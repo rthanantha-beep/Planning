@@ -1,0 +1,68 @@
+<div class="card" style="padding: 20px; border-radius: 10px; background: white; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+  <h2 style="color: #2980b9; margin-top: 0;">
+    <i class="fas fa-cogs"></i> จัดการระบบ (Admin Settings)
+  </h2>
+  <p style="color: #666; margin-bottom: 25px;">ตั้งค่าตัวแปรกลางที่ใช้ควบคุมระบบทั้งโรงเรียน</p>
+
+  <form id="settingsForm" onsubmit="submitSettings(event)" style="max-width: 800px;">
+    
+    <div style="display: flex; gap: 15px; margin-bottom: 20px;">
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px;">ปีงบประมาณ เริ่มโครงการ</label>
+        <input type="number" id="input-active-project" name="ActiveProjectYear" placeholder="เช่น 69" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit';">
+      </div>
+      <div class="form-group" style="flex: 1;">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px;">ปีงบประมาณ ทำรายงานผล</label>
+        <input type="number" id="input-active-report" name="ActiveReportYear" placeholder="เช่น 68" required style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit';">
+      </div>
+    </div>
+
+    <div style="display: flex; gap: 15px; margin-bottom: 25px; flex-wrap: wrap;">
+      <div class="form-group" style="flex: 1; min-width: 250px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px; color:#2980b9;"><i class="fas fa-file-word"></i> ลิงก์ Template โครงการ (Docs)</label>
+        <input type="text" id="input-template-project" name="TemplateProject" placeholder="วางลิงก์ Google Docs สำหรับโครงการ..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit';">
+      </div>
+      <div class="form-group" style="flex: 1; min-width: 250px;">
+        <label style="display: block; font-weight: bold; margin-bottom: 8px; color:#27ae60;"><i class="fas fa-file-invoice"></i> ลิงก์ Template รายงานผล (Docs)</label>
+        <input type="text" id="input-template-report" name="TemplateReport" placeholder="วางลิงก์ Google Docs สำหรับทำรายงานผล..." style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit';">
+      </div>
+    </div>
+
+    <button type="submit" id="btn-save-settings" style="background:#2980b9; color:white; border:none; padding:10px 25px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:1rem;">
+      <i class="fas fa-save"></i> <span>บันทึกการตั้งค่า</span>
+    </button>
+  </form>
+  
+  <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.05); margin-top:35px; border-top:4px solid #8e44ad;">
+    <h3 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #ecf0f1; padding-bottom:10px;">
+      <i class="fas fa-shield-alt" style="color:#8e44ad;"></i> ตั้งค่าสิทธิ์การมองเห็นเมนู (Menu Visibility)
+    </h3>
+    <div style="overflow-x:auto;">
+      <table id="menu-permissions-table" style="width:100%; border-collapse:collapse; font-size:0.85rem; font-family:'Kanit', sans-serif;">
+        <!-- ตารางสิทธิ์จะถูกวาดตรงนี้ -->
+      </table>
+    </div>
+    <div style="text-align:right; margin-top:20px;">
+      <button id="btn-save-menu-perms" onclick="submitMenuPermissions()" style="background:#8e44ad; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-weight:bold; font-family:'Kanit'; font-size:0.95rem;">
+        <i class="fas fa-save"></i> บันทึกสิทธิ์เมนู
+      </button>
+    </div>
+  </div>
+  
+  <!-- 🌟 หมวดหมู่ใหม่: เครื่องมือผู้ดูแลระบบ (Admin Tools) 🌟 -->
+  <div style="background:white; padding:25px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.05); margin-top:35px; border-top:4px solid #27ae60;">
+    <h3 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #ecf0f1; padding-bottom:10px;">
+      <i class="fas fa-tools" style="color:#27ae60;"></i> เครื่องมือพิเศษสำหรับผู้ดูแลระบบ (Admin Tools)
+    </h3>
+    <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 15px;">
+      เครื่องมือสำหรับสั่งการระบบหลังบ้าน (ใช้งานได้เฉพาะผู้ที่มีสิทธิ์ Admin เท่านั้น)
+    </p>
+    <div style="display: flex; gap: 15px; flex-wrap: wrap;">
+      <!-- 🌟 ปุ่มทวงงานค้าง 🌟 -->
+      <button onclick="executeReminders()" style="background:#e67e22; color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-size:0.95rem; white-space: nowrap; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+        <i class="fas fa-bell"></i> ส่งแจ้งเตือนงานค้าง
+      </button>
+    </div>
+  </div>
+
+</div>
