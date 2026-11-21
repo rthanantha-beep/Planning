@@ -52,10 +52,9 @@ function createGasRunner(successHandler, failureHandler) {
 }
 
 // สร้างตัวแปร google.script.run จำลองขึ้นมา (ทำงานเฉพาะตอนรันนอก Google Apps Script)
-if (typeof window.google === 'undefined' || !window.google.script) {
-  window.google = {
-    script: {
-      run: createGasRunner(null, null)
-    }
+window.google = window.google || {};
+if (!window.google.script) {
+  window.google.script = {
+    run: createGasRunner(null, null)
   };
 }
