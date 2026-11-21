@@ -1,0 +1,104 @@
+<!-- 🌟 เพิ่ม style เพื่อควบคุมความสูงเต็มหน้าจอ (100vh) ลบขอบล่างที่เหลือทิ้ง -->
+<div style="padding: 15px 20px; font-family:'Kanit', sans-serif; display: flex; flex-direction: column; height: calc(100vh - 20px); box-sizing: border-box; background: #fdfdfd;">
+  
+  <!-- 1. ส่วนหัว + ป้ายสถิติแบบกะทัดรัด (Compact Stats) -->
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 15px; flex-wrap: wrap; gap: 10px;">
+    <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+        <h2 style="color: #2c3e50; margin: 0; font-size: 1.4rem;"><i class="fas fa-database"></i> ฐานข้อมูลโครงการทั้งหมด</h2>
+        
+        <!-- 🌟 เปลี่ยนการ์ดใหญ่ยักษ์ มาเป็นป้ายเล็กๆ ประหยัดพื้นที่ -->
+        <div style="display: flex; gap: 8px;">
+            <div style="background: #eaf2f8; color: #2980b9; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; border: 1px solid #3498db;">
+                ทั้งหมด: <span id="all-dash-total" style="font-size: 1rem;">0</span>
+            </div>
+            <div style="background: #e9f7ef; color: #27ae60; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; border: 1px solid #2ecc71;">
+                อนุมัติ ผง.1: <span id="all-dash-approved" style="font-size: 1rem;">0</span>
+            </div>
+            <div style="background: #f4ecf7; color: #8e44ad; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; border: 1px solid #9b59b6;">
+                ดำเนินงานเสร็จ: <span id="all-dash-exec-done" style="font-size: 1rem;">0</span>
+            </div>
+            <div style="background: #fef5e7; color: #d35400; padding: 4px 10px; border-radius: 20px; font-size: 0.85rem; font-weight: bold; border: 1px solid #f39c12;">
+                รายงานผ่าน: <span id="all-dash-report-done" style="font-size: 1rem;">0</span>
+            </div>
+        </div>
+    </div>
+
+    <button onclick="exportAllProjectsExcel()" style="background: #27ae60; color: white; border: none; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1); font-size: 0.9rem;">
+      <i class="fas fa-file-excel"></i> ดาวน์โหลดรายงาน (Excel)
+    </button>
+  </div>
+
+  <!-- 2. แถบตัวกรองค้นหา (บีบอัดให้บางลง) -->
+  <div style="background: white; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e0e6ed; flex-shrink: 0;">
+    
+    <div style="flex: 1.5; min-width: 150px;">
+      <input type="text" id="all-search" placeholder="🔍 ค้นหา (รหัส, ชื่อ, เจ้าของ)..." style="width: 100%; padding: 6px 10px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit'; font-size: 0.85rem; box-sizing: border-box;">
+    </div>
+    
+    <div style="flex: 1; min-width: 120px;">
+      <select id="all-year-filter" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit'; font-size: 0.85rem; box-sizing: border-box;"></select>
+    </div>
+    
+    <!-- 🌟 อัปเดตคำตัวกรองให้ตรงกับระบบจริง 100% -->
+    <div style="flex: 1; min-width: 140px;">
+      <select id="all-status-filter" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit'; font-size: 0.85rem; box-sizing: border-box; color: #2c3e50; font-weight: 500;">
+        <option value="all">-- สถานะ ผง.1 --</option>
+        <option value="อนุมัติ" style="color: #27ae60;">✅ อนุมัติสมบูรณ์</option>
+        <option value="รอ" style="color: #f39c12;">⏳ รอพิจารณา / รออนุมัติ</option>
+        <option value="แก้ไข" style="color: #d35400;">⚠️ แบบร่าง / ส่งกลับแก้ไข</option>
+        <option value="ไม่อนุมัติ" style="color: #c0392b;">❌ ไม่อนุมัติ / ยกเลิก</option>
+      </select>
+    </div>
+    
+    <div style="flex: 1; min-width: 140px;">
+      <select id="all-exec-filter" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit'; font-size: 0.85rem; box-sizing: border-box; color: #2c3e50; font-weight: 500;">
+        <option value="all">-- สถานะดำเนินงาน --</option>
+        <option value="รออนุมัติหลักการ" style="color: #95a5a6;">รออนุมัติหลักการ</option>
+        <option value="รอดำเนินการ" style="color: #3498db;">รอดำเนินการ</option>
+        <option value="กำลังดำเนินการ" style="color: #9b59b6;">กำลังดำเนินการ</option>
+        <option value="เสร็จสิ้น" style="color: #27ae60;">ดำเนินการเสร็จสิ้น</option>
+      </select>
+    </div>
+    
+    <div style="flex: 1; min-width: 140px;">
+      <select id="all-report-filter" style="width: 100%; padding: 6px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit'; font-size: 0.85rem; box-sizing: border-box; color: #2c3e50; font-weight: 500;">
+        <option value="all">-- สถานะรายงาน --</option>
+        <option value="ยังไม่รายงาน" style="color: #95a5a6;">ยังไม่รายงาน</option>
+        <option value="แบบร่าง" style="color: #f1c40f;">แบบร่าง</option>
+        <option value="รอตรวจ" style="color: #f39c12;">รอแอดมินตรวจ</option>
+        <option value="แก้ไข" style="color: #e74c3c;">ส่งกลับแก้ไข</option>
+        <option value="ผ่าน" style="color: #27ae60;">รายงานสมบูรณ์</option>
+      </select>
+    </div>
+    
+    <div style="flex: 0 1 auto;">
+      <button onclick="applyAllProjectsFilters()" style="background: #3498db; color: white; border: none; padding: 7px 15px; border-radius: 4px; cursor: pointer; font-family: 'Kanit'; font-weight: bold; font-size: 0.85rem; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+        <i class="fas fa-search"></i> ค้นหา
+      </button>
+    </div>
+  </div>
+
+  <!-- 3. ตารางข้อมูล 🌟 (ใช้ flex-grow: 1 เพื่อให้ยืดเต็มพื้นที่ที่เหลือ) -->
+  <div style="background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e0e6ed; overflow: auto; flex-grow: 1; position: relative;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.85rem; min-width: 1200px;">
+      <!-- 🌟 ใช้ position: sticky เพื่อล็อกหัวตารางไม่ให้เลื่อนหายไป -->
+      <thead style="position: sticky; top: 0; z-index: 10;">
+        <tr style="background: #f4f6f8; color: #2c3e50; border-bottom: 2px solid #bdc3c7;">
+          <th style="padding: 10px 12px; text-align: left; width: 19%;">รหัส / ชื่อโครงการ</th>
+          <th style="padding: 10px 12px; text-align: left; width: 14%;">แหล่งงบประมาณ</th>
+          <th style="padding: 10px 12px; text-align: left; width: 11%;">เจ้าของโครงการ</th>
+          <th style="padding: 10px 12px; text-align: right; width: 9%;">งบอนุมัติ</th>
+          <th style="padding: 10px 12px; text-align: right; width: 9%;">เบิกจ่าย</th>
+          <th style="padding: 10px 12px; text-align: right; width: 9%;">คงเหลือ</th>
+          <th style="padding: 10px 12px; text-align: center; width: 7%;">ผง.1</th>
+          <th style="padding: 10px 12px; text-align: center; width: 7%;">ดำเนินการ</th>
+          <th style="padding: 10px 12px; text-align: center; width: 7%;">รายงาน</th>
+          <th style="padding: 10px 12px; text-align: center; width: 4%;" title="ไฟล์ข้อเสนอโครงการ">📁ผง.1</th>
+          <th style="padding: 10px 12px; text-align: center; width: 4%;" title="ไฟล์รายงานผล">📁รายงาน</th>
+        </tr>
+      </thead>
+      <tbody id="all-projects-tbody">
+      </tbody>
+    </table>
+  </div>
+</div>
