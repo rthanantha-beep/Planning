@@ -1,0 +1,47 @@
+<div class="card">
+  <h2 style="color: var(--primary-color); margin-top: 0;">
+    <i class="fas fa-map-marked-alt"></i> แผนภูมิระยะเวลาดำเนินโครงการ (Yearly Roadmap)
+  </h2>
+  <p style="color: #666;">แสดงภาพรวมระยะเวลาการดำเนินโครงการทั้งหมดตลอดปีงบประมาณ (ต.ค. - ก.ย.)</p>
+  
+  <!-- กล่องเลือกปีงบประมาณ -->
+  <div style="margin-bottom: 20px; display: flex; gap: 10px; align-items: center; background: #f4f6f8; padding: 15px; border-radius: 8px; border-left: 4px solid #2980b9;">
+    <label style="font-weight: bold; color: #2c3e50;"><i class="fas fa-filter"></i> เลือกปีงบประมาณ:</label>
+    <select id="roadmap-year-filter" onchange="renderRoadmap()" style="padding: 8px 15px; border-radius: 4px; border: 1px solid #bdc3c7; font-family: 'Kanit'; font-size: 1rem; color: #2980b9; font-weight: bold; outline: none; cursor: pointer;">
+      <!-- ตัวเลือกจะถูกสร้างอัตโนมัติจาก JS -->
+    </select>
+  </div>
+
+  <!-- โครงสร้างตาราง Gantt Chart -->
+  <div style="overflow-x: auto; background: white; border-radius: 8px; border: 1px solid #bdc3c7; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+      <table style="width: 100%; border-collapse: collapse; min-width: 1000px; font-family: 'Kanit';">
+          <thead>
+              <tr style="background-color: #34495e; color: white;">
+                  <th style="width: 25%; padding: 12px; border: 1px solid #bdc3c7; text-align: left;">ชื่อโครงการ / กิจกรรม</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #e67e22;">ต.ค.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #e67e22;">พ.ย.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #e67e22;">ธ.ค.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #2980b9;">ม.ค.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #2980b9;">ก.พ.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #2980b9;">มี.ค.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #8e44ad;">เม.ย.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #8e44ad;">พ.ค.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #8e44ad;">มิ.ย.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #27ae60;">ก.ค.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #27ae60;">ส.ค.</th>
+                  <th style="width: 6.25%; padding: 10px 0; border: 1px solid #bdc3c7; text-align: center; background: #27ae60;">ก.ย.</th>
+              </tr>
+          </thead>
+          <tbody id="roadmap-tbody">
+              <!-- ข้อมูลแถบเวลาจะถูกดึงมาใส่ตรงนี้ -->
+          </tbody>
+      </table>
+  </div>
+
+  <!-- โซนอธิบายสี -->
+  <div style="margin-top: 20px; font-size: 0.85rem; color: #7f8c8d; display: flex; gap: 15px; flex-wrap: wrap; background: #fdfefe; padding: 10px; border-radius: 4px; border: 1px dashed #ccc;">
+      <span style="display:flex; align-items:center;"><div style="width:15px; height:15px; background:#3498db; margin-right:5px; border-radius:3px;"></div> โครงการกำลังดำเนินการ</span>
+      <span style="display:flex; align-items:center;"><div style="width:15px; height:15px; background:#27ae60; margin-right:5px; border-radius:3px;"></div> โครงการเสร็จสิ้นแล้ว</span>
+      <span style="display:flex; align-items:center;"><div style="width:15px; height:15px; background:#f39c12; margin-right:5px; border-radius:3px;"></div> โครงการรอเบิกจ่าย/รายงานผล</span>
+  </div>
+</div>
