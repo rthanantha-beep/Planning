@@ -1,0 +1,1335 @@
+<!-- ========================================== -->
+<!-- 🌟 หน้าหลัก: การเบิกจ่าย (แสดงเป็นรายโครงการแบบกางหน้า) 🌟 -->
+<!-- ========================================== -->
+<div style="padding: 20px;">
+  <!-- 🌟 ตะกร้างานสำหรับเจ้าของโครงการ (โชว์เฉพาะเวลามีคนมาเบิกกองกลางของเรา) 🌟 -->
+  <div id="owner-approval-section" style="display:none; margin-bottom: 25px; background: #fff; padding: 20px; border-radius: 8px; border-top: 4px solid #e67e22; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <h3 style="margin-top: 0; color: #d35400;"><i class="fas fa-inbox"></i> คำขอเบิกจ่ายที่รอคุณรับทราบ (ในฐานะเจ้าของโครงการ)</h3>
+    <p style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 15px;">มีผู้ขอดำเนินการเบิกจ่ายโดยใช้งบประมาณจากโครงการที่คุณเป็นเจ้าของ กรุณาตรวจสอบและกดยืนยันเพื่อส่งเรื่องให้งานแผนงานต่อไป</p>
+    
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="background: #fdf2e9; color: #d35400; border-bottom: 2px solid #f5b041;">
+            <th style="padding: 12px; text-align: left;">รหัสคำขอ / เวลา</th>
+            <th style="padding: 12px; text-align: left;">ผู้ขอเบิก / รายการที่ขอ</th>
+            <th style="padding: 12px; text-align: right;">ยอดเงิน (บาท)</th>
+            <th style="padding: 12px; text-align: center;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="owner-approval-tbody">
+          </tbody>
+      </table>
+    </div>
+  </div>
+ <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+  <h2 style="margin: 0; color: #2c3e50;"><i class="fas fa-file-invoice-dollar"></i> การเบิกจ่ายของฉัน (ผง.2)</h2>
+  
+  <div style="display: flex; gap: 10px; align-items: center;">
+    <!-- 🌟 เพิ่ม Dropdown เลือกปีงบประมาณตรงนี้ -->
+    <select id="mydisb-year-filter" onchange="loadDisbursementDashboardData()" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #ccc; font-family: 'Kanit'; cursor: pointer; height: 42px;">
+</select>
+    
+    <button onclick="openCentralDisbModal()" style="background: #8e44ad; color: white; border: none; padding: 0 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-weight: bold; height: 42px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+  <i class="fas fa-users"></i> เบิกจ่ายโครงการกลาง
+</button>
+  </div>
+</div>
+  <!-- 🌟 กล่องตะกร้างานสีส้มสำหรับเจ้าของโครงการ (จะโชว์อัตโนมัติเวลามีงาน) 🌟 -->
+  <div id="owner-approval-section" style="display:none; margin-bottom: 25px; background: #fff; padding: 20px; border-radius: 8px; border-top: 4px solid #e67e22; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+    <h3 style="margin-top: 0; color: #d35400;"><i class="fas fa-inbox"></i> คำขอเบิกจ่ายที่รอคุณรับทราบ (ในฐานะเจ้าของโครงการ)</h3>
+    <p style="font-size: 0.9rem; color: #7f8c8d; margin-bottom: 15px;">มีผู้ขอดำเนินการเบิกจ่ายโดยใช้งบประมาณจากโครงการที่คุณเป็นเจ้าของ กรุณาตรวจสอบและกดยืนยันเพื่อส่งเรื่องให้งานแผนงานต่อไป</p>
+    
+    <div style="overflow-x: auto;">
+      <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+        <thead>
+          <tr style="background: #fdf2e9; color: #d35400; border-bottom: 2px solid #f5b041;">
+            <th style="padding: 12px; text-align: left;">รหัสคำขอ / เวลา</th>
+            <th style="padding: 12px; text-align: left;">ผู้ขอเบิก / รายการที่ขอ</th>
+            <th style="padding: 12px; text-align: right;">ยอดเงิน (บาท)</th>
+            <th style="padding: 12px; text-align: center;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="owner-approval-tbody">
+        </tbody>
+      </table>
+    </div>
+  </div>
+  <!-- 🌟 กล่องหลักสำหรับโหลดการ์ดโครงการ (แทนที่ตารางเดิม) 🌟 -->
+  <div id="disbursement-container" style="margin-top: 20px;">
+    <!-- ไอคอนโหลดข้อมูลจะแสดงตรงนี้ตอนเปิดหน้าต่าง -->
+    <div style="text-align: center; padding: 50px; color: #7f8c8d;">
+      <i class="fas fa-spinner fa-spin fa-3x"></i>
+      <p style="margin-top: 15px; font-size: 1.1rem;">กำลังโหลดข้อมูลโครงการและประวัติการเบิกจ่าย...</p>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 🌟 Modal 1: สร้าง / แก้ไขคำขอเบิกจ่าย (ผง.2) 🌟 -->
+<!-- ========================================== -->
+<div id="disbursementModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; justify-content:center; align-items:center;">
+    <div style="background:white; width:95%; max-width:900px; border-radius:10px; overflow:hidden; font-family:'Kanit', sans-serif; display:flex; flex-direction:column; max-height:95vh;">
+      <div style="background:#8e44ad; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0;"><i class="fas fa-file-invoice-dollar"></i> บันทึกขออนุมัติจัดซื้อ/จัดจ้าง (ผง.2)</h3>
+        <button onclick="document.getElementById('disbursementModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      
+      <div style="padding:20px; overflow-y:auto; flex:1; background:#f9fbfc;">
+        <form id="disbursementForm">
+
+          <div id="disb-return-reason-container" style="display:none; margin-bottom:15px; background: #fdedec; padding: 15px; border-radius: 6px; border: 1px dashed #e74c3c;">
+            <label style="display:block; margin-bottom:5px; font-weight:bold; color: #c0392b; font-size: 1.1rem;"><i class="fas fa-exclamation-triangle"></i> หมายเหตุ / เหตุผลที่ต้องแก้ไข:</label>
+            <div id="disb-return-reason-display" style="font-size:0.95rem; color:#c0392b; white-space: pre-wrap; font-family:'Kanit'; line-height: 1.5; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 4px;"></div>
+          </div>
+          
+          <!-- 🌟 ตัวแปรแยกว่าเบิกปกติ หรือ เบิกกองกลาง -->
+          <input type="hidden" id="disb-req-type" value="normal">
+          <input type="hidden" id="disb-project-id" name="projectId">
+          <input type="hidden" id="disb-project-budget" name="projectBudget">
+          <input type="hidden" id="edit-disb-req-id" value="">
+          <input type="hidden" id="edit-disb-old-url" value="">
+          
+          <div style="margin-bottom:15px; background: #fdf2e9; padding: 10px; border-radius: 6px; border: 1px solid #f5b041;">
+            <label style="display:block; margin-bottom:5px; font-weight:bold; color: #d35400;">โครงการที่ขอเบิกจ่าย</label>
+            
+            <!-- โหมด 1: เบิกปกติ (โชว์แค่ชื่อ) -->
+            <div id="normal-project-display">
+              <div id="disb-project-name-display" style="font-size:1.1rem; font-weight:bold; color:#2c3e50;"></div>
+              <div id="disb-project-budget-display" style="font-size:0.9rem; color:#7f8c8d;"></div>
+            </div>
+            
+            <!-- โหมด 2: เบิกกองกลาง (Dropdown เลือกโครงการเอง) -->
+            <div id="central-project-display" style="display:none;">
+              <select id="disb-project-select" onchange="updateCentralProjectInfo()" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; font-size:1rem;"></select>
+              <div id="central-project-budget-display" style="font-size:0.9rem; color:#7f8c8d; margin-top:5px;"></div>
+            </div>
+          </div>
+
+          <!-- 🌟 เอาไว้ซ่อนชื่อโครงการ เพื่อดึงไปใส่ประโยค -->
+          <span id="hidden-project-name" style="display:none;"></span>
+
+          <!-- 🌟 กล่องใหม่: รายละเอียดความประสงค์ขอจัดซื้อ/จัดจ้าง -->
+          <div style="background:#eaf2f8; border-left:4px solid #3498db; padding:15px; border-radius:6px; margin-bottom:20px;">
+            <h4 style="margin-top:0; color:#2980b9;"><i class="fas fa-edit"></i> รายละเอียดความประสงค์ขอจัดซื้อ/จัดจ้าง</h4>
+            <p style="font-size:0.9rem; color:#555; margin-bottom:15px;">กรุณากรอกข้อมูลให้ครบถ้วน เพื่อให้ระบบสร้างรูปประโยคในเอกสาร ผง.2 ให้อัตโนมัติ</p>
+            
+            <div style="display:flex; flex-wrap:wrap; gap:10px; align-items:center; font-size:0.95rem; line-height:2.2;">
+              <span>1. สังกัด/งาน</span>
+              <!-- เติม oninput -->
+              <input type="text" id="disb-project-section" oninput="updateSentencePreview()" readonly style="padding:6px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; flex:1; min-width:150px; background-color:#f4f6f8; font-weight:bold; color:#2980b9; cursor:not-allowed;">
+              
+              <span>2. มีความประสงค์ขอดำเนินการ <span style="font-size:0.8rem; color:#7f8c8d;">(เลือกได้มากกว่า 1)</span></span>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; border:1px solid #ccc; padding:2px 10px; border-radius:4px; background:#fff; flex:2; min-width:250px;">
+                <!-- เติม onchange -->
+                <label style="cursor:pointer;"><input type="checkbox" name="actionType" value="จัดซื้อ" onchange="updateSentencePreview()"> จัดซื้อ</label>
+                <label style="cursor:pointer;"><input type="checkbox" name="actionType" value="จัดจ้าง" onchange="updateSentencePreview()"> จัดจ้าง</label>
+                <label style="cursor:pointer;"><input type="checkbox" name="actionType" value="ปรับปรุง/ซ่อมแซม" onchange="updateSentencePreview()"> ปรับปรุง/ซ่อมแซม</label>
+                <label style="cursor:pointer;"><input type="checkbox" name="actionType" value="อื่นๆ" onchange="updateSentencePreview()"> อื่นๆ</label>
+              </div>
+
+              <span>3. ประเภท</span>
+              <div style="display:flex; gap:10px; flex-wrap:wrap; border:1px solid #ccc; padding:2px 10px; border-radius:4px; background:#fff; flex:1; min-width:150px;">
+                <!-- เติม onchange -->
+                <label style="cursor:pointer;"><input type="checkbox" name="itemCategory" value="วัสดุ" onchange="updateSentencePreview()"> วัสดุ</label>
+                <label style="cursor:pointer;"><input type="checkbox" name="itemCategory" value="ครุภัณฑ์" onchange="updateSentencePreview()"> ครุภัณฑ์</label>
+              </div>
+              
+              <div style="width: 100%; display:flex; gap:10px; align-items:center;">
+                 <span>4. เพื่อ</span>
+                 <!-- เติม oninput -->
+                 <input type="text" id="disb-objective" oninput="updateSentencePreview()" placeholder="ระบุเหตุผล เช่น ใช้ในการจัดกิจกรรมค่ายภาษาอังกฤษ" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; flex:1;">
+              </div>
+            </div>
+
+            <!-- 🌟 แสดงตัวอย่างประโยคแบบ Real-time -->
+            <div style="margin-top:15px; background:white; padding:10px; border:1px dashed #3498db; border-radius:4px;">
+              <strong style="color:#2980b9;">ตัวอย่างประโยคในบันทึกข้อความ:</strong><br>
+              <span style="color:#34495e; font-size:0.9rem;">
+                "ด้วย <span id="preview-section" style="color:#d35400; font-weight:bold;">[สังกัด/งาน]</span> มีความประสงค์ขอดำเนินการ <span id="preview-action" style="color:#d35400; font-weight:bold;">[จัดซื้อ/จัดจ้าง วัสดุ/ครุภัณฑ์]</span> เพื่อ <span id="preview-objective" style="color:#d35400; font-weight:bold;">[ระบุเหตุผล]</span> ตามโครงการ <span id="preview-project" style="color:#27ae60; font-weight:bold;">[รอเลือกโครงการ]</span> จึงขออนุมัติงบประมาณ จำนวน <span id="preview-money" style="color:#27ae60; font-weight:bold;">0.00 บาท (ศูนย์บาทถ้วน)</span>"
+              </span>
+            </div>
+          </div>
+
+          <div style="margin-bottom:20px; background:white; padding:15px; border-radius:8px; border:1px solid #e0e0e0;">
+            <h4 style="margin-top:0; color:#2c3e50;"><i class="fas fa-paperclip"></i> แนบเอกสารประกอบการพิจารณา (ถ้ามี)</h4>
+            <label style="display:block; margin-bottom:5px; font-size:0.9rem; color:#666;">ใบเสนอราคา / รูปถ่ายสินค้า (รองรับไฟล์ภาพ และ PDF)</label>
+            <input type="file" id="disb-quotation-file" accept="image/*,.pdf" multiple style="width:100%; padding:8px; border:1px dashed #ccc; border-radius:4px; background:#f4f6f8; font-family:'Kanit';">
+            <div id="edit-old-file-notice" style="display:none; color:#27ae60; font-size:0.85rem; margin-top:5px;"><i class="fas fa-info-circle"></i> หากไม่ต้องการเปลี่ยนเอกสารเดิม ไม่ต้องแนบไฟล์ใหม่</div>
+          </div>
+
+          <div style="background:white; padding:15px; border-radius:8px; border:1px solid #e0e0e0; margin-bottom:20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:2px solid #ecf0f1; padding-bottom:5px; margin-bottom:15px; flex-wrap: wrap; gap: 10px;">
+              <h4 style="color:#2c3e50; margin:0;"><i class="fas fa-shopping-cart"></i> รายการจัดซื้อ/จัดจ้าง</h4>
+              
+              <!-- 🌟 กลุ่มปุ่มจัดการรายการ (รวมปุ่มใหม่และปุ่มเพิ่มรายการเข้าด้วยกัน) 🌟 -->
+              <div style="display: flex; gap: 8px;">
+                <button type="button" onclick="downloadDisbTemplate()" style="background:#f39c12; color:white; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-size:0.85rem;"><i class="fas fa-file-download"></i> โหลดฟอร์ม Excel</button>
+                <button type="button" onclick="document.getElementById('import-excel-file').click()" style="background:#3498db; color:white; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-size:0.85rem;"><i class="fas fa-file-upload"></i> นำเข้าจาก Excel</button>
+                <input type="file" id="import-excel-file" accept=".xlsx, .xls" style="display:none;" onchange="handleImportDisbExcel(event)">
+                
+                <!-- เก็บปุ่มเพิ่มรายการไว้ปุ่มเดียว -->
+                <button type="button" onclick="addDisbursementItemRow()" style="background:#2ecc71; color:white; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-size:0.85rem;"><i class="fas fa-plus"></i> เพิ่มรายการ</button>
+              </div>
+            </div>
+            
+            <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+              <thead>
+                <tr style="background:#f4f6f8; text-align:left;">
+                  <th style="padding:8px; border-bottom:1px solid #ddd; width:45%;">รายการ (ระบุรายละเอียดให้ชัดเจน เช่น ยี่ห้อ รุ่น)</th>
+                  <th style="padding:8px; border-bottom:1px solid #ddd; width:15%; text-align:center;">จำนวน</th>
+                  <th style="padding:8px; border-bottom:1px solid #ddd; width:15%;">หน่วยนับ</th>
+                  <th style="padding:8px; border-bottom:1px solid #ddd; width:15%; text-align:right;">ราคา/หน่วย</th>
+                  <th style="padding:8px; border-bottom:1px solid #ddd; width:10%; text-align:center;">ลบ</th>
+                </tr>
+              </thead>
+              <tbody id="disb-items-tbody"></tbody>
+            </table>
+
+            <div style="margin-top:15px; text-align:right; font-size:1rem;">
+              <div style="margin-bottom:5px;">รวมมูลค่าสินค้า: <span id="disb-subtotal" style="font-weight:bold; color:#555;">0.00</span> บาท</div>
+              <div style="margin-bottom:5px;">
+                ภาษีมูลค่าเพิ่ม (VAT): 
+                <input type="number" id="disb-vat" value="0" oninput="calculateDisbursementTotal()" style="width:80px; text-align:right; padding:4px; border:1px solid #ccc; font-family:'Kanit';"> บาท
+              </div>
+              
+              <div style="font-size:1.2rem; color:#2980b9; font-weight:bold; border-top:1px dashed #ccc; padding-top:10px;">
+                รวมเป็นเงินทั้งสิ้น: <span id="disb-grandtotal">0.00</span> บาท
+              </div>
+            </div>
+
+          <div style="background:white; padding:15px; border-radius:8px; border:1px solid #e0e0e0;">
+            <h4 style="color:#2c3e50; border-bottom:2px solid #ecf0f1; padding-bottom:5px; margin-top:0;"><i class="fas fa-users"></i> เสนอรายชื่อกรรมการตรวจรับพัสดุ</h4>
+            
+            <!-- 🌟 ป้ายหมายเหตุจากงานพัสดุ -->
+            <div style="background:#fff4e5; border-left:4px solid #f39c12; color:#d35400; padding:8px 12px; border-radius:4px; font-size:0.85rem; margin-top:10px;">
+                <i class="fas fa-info-circle"></i> <b>หมายเหตุจากงานพัสดุ:</b> คณะกรรมการตรวจรับพัสดุ <u>ควรเป็นบุคคลอื่น</u> ที่ไม่ใช่ผู้ขอเบิก/ผู้จัดซื้อครับ
+            </div>
+            
+            <p id="committee-warning" style="color:#e74c3c; font-size:0.85rem; margin-top:5px; display:none;"><i class="fas fa-exclamation-circle"></i> ยอดรวมเกิน 10,000 บาท ต้องระบุกรรมการ 3 ท่าน</p>
+            <div class="committee-box" style="display:flex; gap:15px; margin-top:15px;">
+              <div style="flex:1;">
+                <label style="font-weight:bold;">1. ประธานกรรมการ <span style="color:red;">*</span></label>
+                <input type="text" id="comm-1" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; margin-top:5px;">
+                <!-- 🌟 ซ่อนปุ่มใส่ชื่อตัวเองทิ้งไป ป้องกันการกดผิด -->
+              </div>
+              <div style="flex:1; display:none;" id="comm-2-container">
+                <label style="font-weight:bold;">2. กรรมการ <span style="color:red;">*</span></label>
+                <input type="text" id="comm-2" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; margin-top:5px;">
+              </div>
+              <div style="flex:1; display:none;" id="comm-3-container">
+                <label style="font-weight:bold;">3. กรรมการ <span style="color:red;">*</span></label>
+                <input type="text" id="comm-3" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; margin-top:5px;">
+              </div>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div style="background:#f4f6f8; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e0e0e0; gap:10px;">
+        <button type="button" onclick="document.getElementById('disbursementModal').style.display='none'" style="background:#bbb; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit';">ปิด</button>
+        <div style="display:flex; gap:10px;">
+          <button type="button" id="btn-draft-disb" onclick="submitDisbursement('draft')" style="background:#f39c12; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-save"></i> บันทึกแบบร่าง</button>
+          <button type="button" id="btn-submit-disb" onclick="submitDisbursement('submit')" style="background:#8e44ad; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-paper-plane"></i> ส่งขออนุมัติเบิกจ่าย</button>
+        </div>
+      </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 🌟 Modal 2: แนบบิล / เคลียร์เงิน (Clearance) 🌟 -->
+<!-- ========================================== -->
+<div id="attachBillModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2010; justify-content:center; align-items:center;">
+  <div style="background:white; width:95%; max-width:800px; border-radius:10px; overflow:hidden; font-family:'Kanit', sans-serif; display:flex; flex-direction:column; max-height:95vh;">
+    
+    <div style="background:#f39c12; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;"><i class="fas fa-file-invoice"></i> แนบหลักฐานการจ่ายเงิน (เคลียร์บิล)</h3>
+      <button onclick="document.getElementById('attachBillModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    
+    <div style="padding:20px; overflow-y:auto; flex:1; background:#f9fbfc;">
+      <input type="hidden" id="clearance-req-id">
+      
+      <div style="background:#fdf2e9; border:1px solid #e67e22; padding:15px; border-radius:8px; margin-bottom:20px;">
+        <h4 style="margin:0 0 10px 0; color:#d35400;">เวลาที่ยื่นเรื่อง: <span id="clearance-req-id-display"></span></h4>
+        <div style="font-size:0.9rem; color:#555;">กรุณาแนบใบเสร็จ/บิลเงินสดให้ครบถ้วน สามารถแนบแยกได้หลายบิล และติ๊กเลือกรายการให้ตรงกับบิลใบนั้นๆ</div>
+      </div>
+
+      <div id="bills-container"></div>
+
+      <button type="button" onclick="addBillBlock()" style="background:#3498db; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; width:100%; margin-top:10px;">
+        <i class="fas fa-plus-circle"></i> เพิ่มบิลอีกใบ
+      </button>
+    </div>
+
+    <div style="background:#f4f6f8; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e0e0e0;">
+      <div style="font-size:1rem;">ยอดเบิกจ่ายจริงรวม: <span id="clearance-total-actual" style="font-weight:bold; color:#e74c3c; font-size:1.2rem;">0.00</span> บาท</div>
+      <div style="display:flex; gap:10px;">
+        <button type="button" onclick="document.getElementById('attachBillModal').style.display='none'" style="background:#bbb; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit';">ยกเลิก</button>
+        <button type="button" id="btn-submit-bills" onclick="submitClearanceBills()" style="background:#27ae60; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-check-circle"></i> ส่งหลักฐานกระทบยอด</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+// 🌟 ตัวดักจับ Observer เมื่อหน้าเว็บเปลี่ยนมาที่เมนู "เบิกจ่าย" ให้โหลดข้อมูลทันที 🌟
+var observerDisb = new MutationObserver((mutations) => {
+  mutations.forEach((m) => { if (m.target.style.display === 'block') { loadDisbursementDashboardData(); } });
+});
+var pageDisbNode = document.getElementById('page-disbursement');
+if (pageDisbNode) observerDisb.observe(pageDisbNode, { attributes: true, attributeFilter: ['style'] });
+// 🌟 อัปเดตฟังก์ชัน renderDisbursementDashboard (ตรงปุ่มกดสร้างคำขอ/แก้ไข ให้แนบ section ไปด้วย)
+function renderDisbursementDashboard(projects, allDisbursements) {
+  const container = document.getElementById('disbursement-container');
+  if (projects.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color:#e74c3c; padding:30px; background:white; border-radius:8px;">ไม่พบโครงการที่สามารถเบิกจ่ายได้ (โครงการต้องมีสถานะ 'อนุมัติ' แล้วเท่านั้น)</div>`; 
+    return;
+  }
+
+  let html = '';
+  projects.forEach(proj => {
+    const projHistory = allDisbursements.filter(d => d.projectId === proj.id);
+    let remaining = proj.budget - proj.requested; 
+    let safeName = encodeURIComponent(proj.name).replace(/'/g, "%27");
+    let safeSection = encodeURIComponent(proj.section || "-").replace(/'/g, "%27"); 
+
+    let allocated = Number(proj.budget) || 0;
+    let spentForDisplay = allocated - remaining; 
+
+    // 🌟 วาดแถบแยกแหล่งงบประมาณย่อย (Funding Breakdown)
+    let fundingBreakdownHtml = '';
+    if (proj.fundingDetails && proj.fundingDetails.length > 0) {
+        fundingBreakdownHtml += `<div style="background: #fdfefe; padding: 12px 20px; border-bottom: 1px solid #d9e2ec; font-size: 0.9rem;">`;
+        fundingBreakdownHtml += `<div style="color: #34495e; font-weight: bold; margin-bottom: 8px;"><i class="fas fa-coins" style="color: #f39c12;"></i> รายละเอียดแยกตามแหล่งงบประมาณ:</div>`;
+        proj.fundingDetails.forEach((f, idx) => {
+            let sName = f.source && f.source !== "-" ? f.source : "ไม่ระบุแหล่งงบ";
+            let borderBottom = idx < proj.fundingDetails.length - 1 ? 'border-bottom: 1px dashed #ecf0f1;' : '';
+            fundingBreakdownHtml += `
+            <div style="display: flex; justify-content: space-between; padding: 6px 0; ${borderBottom} flex-wrap: wrap; gap: 10px;">
+                <div style="flex: 2; font-weight: bold; color: #8e44ad; min-width: 150px;">${sName}</div>
+                <div style="flex: 1; text-align: right; color: #7f8c8d; min-width: 80px;">จัดสรร: ${f.budget.toLocaleString()}</div>
+                <div style="flex: 1; text-align: right; color: #e74c3c; min-width: 80px;">เบิก: ${f.spent.toLocaleString()}</div>
+                <div style="flex: 1; text-align: right; font-weight: bold; color: ${f.remaining < 0 ? '#e74c3c' : '#27ae60'}; min-width: 80px;">เหลือ: ${f.remaining.toLocaleString()}</div>
+            </div>`;
+        });
+        fundingBreakdownHtml += `</div>`;
+    } else {
+        let sourceName = proj.source || "ไม่ระบุแหล่งงบ";
+        fundingBreakdownHtml += `
+        <div style="background: #fdfefe; padding: 12px 20px; border-bottom: 1px solid #d9e2ec; font-size: 0.9rem; color: #8e44ad; font-weight: bold;">
+            <i class="fas fa-coins" style="color: #f39c12;"></i> แหล่งงบประมาณ: <span style="color:#2c3e50;">${sourceName}</span>
+        </div>`;
+    }
+
+    // 🌟 ดักจับสถานะว่าใช่โครงการกลางไหม ถ้าใช่ ให้เปลี่ยนสีการ์ดเป็นสีส้ม/เทา
+    let cardHeaderBg = proj.isCentral ? '#e67e22' : '#2c3e50'; 
+    let cardIcon = proj.isCentral ? '<i class="fas fa-hand-holding-usd" style="color: #fff; margin-right: 8px;"></i>' : '<i class="fas fa-folder-open" style="color: #f1c40f; margin-right: 8px;"></i>';
+    let centralTag = proj.isCentral ? '<span style="background:#fff; color:#e67e22; padding:2px 8px; border-radius:12px; font-size:0.8rem; margin-left:10px;">เบิกจากโครงการกลาง</span>' : '';
+    
+    // ถ้าเป็นการ์ดโครงการกลาง ซ่อนปุ่ม "สร้างคำขอเบิก" (บังคับให้ไปกดปุ่มเบิกโครงการกลางสีม่วงด้านบนแทน ป้องกันการหลงโหมด)
+    let createBtnHtml = proj.isCentral ? '' : `
+        <button onclick="openCreateDisbModal('${proj.id}', '${safeName}', ${proj.budget}, ${remaining}, '${safeSection}')" style="background: #f39c12; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.2);">
+            <i class="fas fa-plus-circle"></i> สร้างคำขอเบิก
+        </button>`;
+
+    html += `
+    <div style="background: white; border: ${proj.isCentral ? '2px solid #e67e22' : '1px solid #d9e2ec'}; border-radius: 10px; margin-bottom: 25px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.05); font-family: 'Kanit', sans-serif;">
+        
+        <!-- 🌟 ส่วนหัวการ์ด (เปลี่ยนสีตามประเภท) -->
+        <div style="background: ${cardHeaderBg}; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="font-size: 1.15rem; font-weight: bold;">
+                ${cardIcon} ${proj.name} ${centralTag}
+            </div>
+            <div style="display: flex; gap: 8px;">
+                ${createBtnHtml}
+                <button onclick="toggleHistory('hist-${proj.id}', this)" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); padding: 8px 15px; border-radius: 6px; cursor: pointer;">
+                    <i class="fas fa-chevron-up"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- 💰 บอร์ดตัวเลขการเงิน (ภาพรวม) -->
+        <div style="background: #f8f9fa; padding: 15px 20px; border-bottom: 1px solid #d9e2ec; display: flex; justify-content: space-around; align-items: center; text-align: center; flex-wrap: wrap; gap: 10px;">
+            <div style="flex: 1; min-width: 120px;">
+                <div style="font-size: 0.9rem; color: #7f8c8d; font-weight: 500; margin-bottom: 5px;">ได้รับจัดสรรรวม</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: #34495e;">${allocated.toLocaleString()} <span style="font-size: 0.9rem; color: #95a5a6; font-weight: normal;">บาท</span></div>
+            </div>
+            <div style="width: 1px; height: 50px; background: #bdc3c7; display: block;"></div>
+            <div style="flex: 1; min-width: 120px;">
+                <div style="font-size: 0.9rem; color: #7f8c8d; font-weight: 500; margin-bottom: 5px;">เบิกจ่ายแล้วรวม</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: #e74c3c;">${spentForDisplay.toLocaleString()} <span style="font-size: 0.9rem; color: #95a5a6; font-weight: normal;">บาท</span></div>
+            </div>
+            <div style="width: 1px; height: 50px; background: #bdc3c7; display: block;"></div>
+            <div style="flex: 1; min-width: 120px;">
+                <div style="font-size: 0.9rem; color: #7f8c8d; font-weight: 500; margin-bottom: 5px;">คงเหลือเบิกได้รวม</div>
+                <div style="font-size: 1.6rem; font-weight: bold; color: ${remaining < 0 ? '#e74c3c' : '#27ae60'};">${remaining.toLocaleString()} <span style="font-size: 0.9rem; color: #95a5a6; font-weight: normal;">บาท</span></div>
+            </div>
+        </div>
+
+        ${fundingBreakdownHtml}
+
+        <div id="hist-${proj.id}" style="padding: 15px; display: block; background: #fff;">
+            <h4 style="margin: 0 0 10px 0; color: #34495e; font-size: 1rem;"><i class="fas fa-history"></i> ประวัติการยื่นคำขอ ผง.2</h4>
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem;">
+                <thead>
+                    <tr style="background: #f8f9fa; border-bottom: 2px solid #bdc3c7;">
+                        <th style="padding: 12px; text-align: left; color:#2c3e50; width: 45%;">รายละเอียดคำขอ</th>
+                        <th style="padding: 12px; text-align: right; color:#2c3e50; width: 15%;">ยอดขอเบิก (บาท)</th>
+                        <th style="padding: 12px; text-align: center; color:#2c3e50; width: 15%;">สถานะ (ผง.2)</th>
+                        <th style="padding: 12px; text-align: center; color:#2c3e50; width: 15%;">การกระทบยอด</th>
+                        <th style="padding: 12px; text-align: center; color:#2c3e50; width: 10%;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody>
+    `;
+
+    if (projHistory.length > 0) {
+        projHistory.forEach(h => {
+            let statusBg = '#95a5a6'; 
+            if (h.status.includes('รอ')) statusBg = '#f39c12'; 
+            if (h.status.includes('ผ่าน')) statusBg = '#3498db'; 
+            if (h.status.includes('อนุมัติ')) statusBg = '#27ae60'; 
+            if (h.status.includes('ส่งกลับแก้ไข')) statusBg = '#e74c3c';
+            if (h.status === 'แบบร่าง') statusBg = '#7f8c8d';
+
+            let reconBadgeColor = h.reconStatus === 'รอแนบบิล' ? '#f39c12' : (h.reconStatus === 'รอกระทบยอด' ? '#3498db' : '#27ae60');
+            let displayTotal = Number(h.grandTotal) || Number(h.total) || 0;
+            let itemsHtml = `<div style="margin-top:8px; background:#fdfefe; padding:10px; border-radius:6px; border:1px solid #e0e6ed; font-size:0.85rem;">
+                <strong style="color:#7f8c8d; display:block; margin-bottom:5px;"><i class="fas fa-box-open"></i> รายการที่ขอจัดซื้อ/จัดจ้าง:</strong>
+                <ul style="margin:0; padding-left:20px; color:#555;">`;
+            
+            if (h.items && h.items.length > 0) {
+                h.items.forEach(it => {
+                    let lineTotal = Number(it.qty) * Number(it.price);
+                    itemsHtml += `<li>${it.name} - ${it.qty} ${it.unit} (หน่วยละ ${Number(it.price).toLocaleString()} บ.) = <b style="color:#c0392b;">${lineTotal.toLocaleString()}</b> บ.</li>`;
+                });
+            } else {
+                if (h.isOldSystem) {
+                    itemsHtml += `<li style="color:#7f8c8d; list-style-type: none;"><i class="fas fa-info-circle"></i> ${h.objective}</li>`;
+                } else {
+                    itemsHtml += `<li style="color:#e74c3c;">ไม่พบรายละเอียดรายการ</li>`;
+                }
+            }
+            itemsHtml += `</ul></div>`;
+
+            let actionBtn = '';
+            
+            // 🌟 แก้ไขปุ่มพิมพ์ ผง.2 ให้ขนาดพอดีและอยู่ตรงกลาง
+            let printBtnHtml = `<div style="display:flex; justify-content:center; margin-top:5px;"><button onclick="printDisbursementDocument('${h.reqId}')" style="background:#e74c3c; color:white; border:none; padding:6px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.8rem; min-width:150px; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-print"></i> พิมพ์ ผง.2</button></div>`;
+
+            // 🌟 1. ดักจับสถานะ "รอเจ้าของโครงการอนุมัติ" 
+            if (!proj.isCentral && h.status.includes('รอเจ้าของโครงการ')) {
+                actionBtn = `
+                <div style="display:flex; flex-direction:column; gap:6px; align-items:center; margin-bottom:5px;">
+                    <button onclick="actionProjectOwnerApproval('${h.reqId}', 'approve')" style="background:#27ae60; color:white; border:none; padding:6px 20px; border-radius:4px; cursor:pointer; font-weight:bold; font-family:'Kanit'; min-width:150px; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-check-circle"></i> อนุมัติเบิก</button>
+                    <button onclick="actionProjectOwnerApproval('${h.reqId}', 'return')" style="background:#fff; color:#e74c3c; border:1px solid #e74c3c; padding:6px 20px; border-radius:4px; cursor:pointer; font-weight:bold; font-family:'Kanit'; min-width:150px;"><i class="fas fa-undo"></i> ตีกลับให้แก้</button>
+                </div>` + printBtnHtml;
+            }
+            // 2. สถานะส่งกลับแก้ไข หรือเป็นแค่แบบร่าง
+            else if (h.status.includes('ส่งกลับแก้ไข') || h.status === 'แบบร่าง') {
+                actionBtn = `<div style="display:flex; justify-content:center; margin-bottom:5px;"><button onclick="openEditDisbursementForm('${h.reqId}', '${proj.id}', '${safeName}', ${proj.budget}, ${remaining}, '${safeSection}')" style="background:#e74c3c; color:white; border:none; padding:6px 20px; border-radius:4px; cursor:pointer; font-weight:bold; font-family:'Kanit'; min-width:150px; box-shadow: 0 2px 4px rgba(231, 76, 60, 0.3);"><i class="fas fa-edit"></i> แก้ไขคำขอ</button></div>` + printBtnHtml;
+            } 
+            // 3. แนบบิลครั้งแรก
+            else if (h.reconStatus === "รอแนบบิล" && h.status.includes('อนุมัติเบิกจ่าย')) { 
+                let safeItems = encodeURIComponent(JSON.stringify(h.items || [])).replace(/'/g, "%27").replace(/"/g, "%22");
+                let safeProjName = String(proj.name || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                actionBtn = `<div style="display:flex; justify-content:center; margin-bottom:5px;"><button onclick="openBillPopup('${h.reqId}', '${safeProjName}', ${displayTotal}, '${safeItems}')" style="background:#f39c12; color:white; border:none; padding:6px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; min-width:150px; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-upload"></i> แนบบิลครั้งแรก</button></div>` + printBtnHtml;
+            }
+            // 🌟 4. กระทบยอด / ทยอยแนบบิล (ปรับปุ่มให้ดูเรียบร้อยขึ้น)
+            else if (h.reconStatus === "รอกระทบยอด") {
+                let safeItems = encodeURIComponent(JSON.stringify(h.items || [])).replace(/'/g, "%27").replace(/"/g, "%22");
+                let safeProjName = String(proj.name || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+                actionBtn = `
+                <div style="display:flex; flex-direction:column; gap:6px; align-items:center; margin-bottom:5px;">
+                    <span style="color:#27ae60; font-size:0.85rem; font-weight:bold; margin-bottom:2px;"><i class="fas fa-check"></i> ส่งบิลไปบางส่วนแล้ว</span>
+                    <button onclick="openBillPopup('${h.reqId}', '${safeProjName}', ${displayTotal}, '${safeItems}')" style="background:#3498db; color:white; border:none; padding:6px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.85rem; min-width:150px; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-plus-circle"></i> แนบบิลเพิ่ม</button>
+                    <button onclick="revokeBills('${h.reqId}')" style="background:#fff; color:#e74c3c; border:1px solid #e74c3c; padding:4px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-size:0.8rem; min-width:150px;"><i class="fas fa-undo"></i> ล้างบิลเก่าทิ้ง</button>
+                </div>` + printBtnHtml;
+            } 
+            // 5. สถานะอื่นๆ (กำลังเดินเรื่อง)
+            else {
+                let isCancelled = h.status.includes('ยกเลิก') || h.status.includes('ไม่อนุมัติ');
+                let isApprovedFinal = h.status.includes('อนุมัติเบิกจ่าย') || h.status.includes('อนุมัติสมบูรณ์');
+
+                if (isCancelled) {
+                    actionBtn = `<div style="text-align:center; margin-bottom:5px; margin-top:5px;"><span style="color:#e74c3c; font-size:0.85rem; font-weight:bold;"><i class="fas fa-ban"></i> ยกเลิกรายการแล้ว</span></div>`;
+                } else if (isApprovedFinal) {
+                    actionBtn = `<div style="text-align:center; margin-bottom:5px; margin-top:5px;"><span style="color:#27ae60; font-size:0.85rem; font-weight:bold;"><i class="fas fa-check-circle"></i> อนุมัติแล้ว</span></div>` + printBtnHtml;
+                } else {
+                    actionBtn = `
+                    <div style="display:flex; flex-direction:column; gap:6px; align-items:center; margin-bottom:5px;">
+                        <span style="color:#3498db; font-size:0.85rem; font-weight:bold;"><i class="fas fa-clock"></i> กำลังดำเนินการ</span>
+                        <button onclick="openRecallDisbModal('${h.reqId}')" style="background:#fff; color:#e67e22; border:1px solid #e67e22; padding:5px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.8rem; min-width:150px;"><i class="fas fa-undo-alt"></i> ระงับ / ดึงเรื่องกลับ</button>
+                    </div>` + printBtnHtml;
+                }
+            }
+            
+            
+            let statusBarHtml = generateStatusStepper(h.status);
+            
+            // 🌟 2. เปลี่ยนโครงสร้างจาก 5 คอลัมน์ เป็น 1 คอลัมน์ (แบบการ์ดซ้อน)
+            html += `
+                <tr style="border-bottom: 2px solid #ecf0f1; background: #fff;">
+                    <td colspan="5" style="padding: 15px; border-radius: 8px;">
+                        
+                        <!-- ส่วนหัวของการ์ด (บรรทัดแรก) -->
+                        <div style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 10px;">
+                            <div>
+                                <div style="font-weight:bold; color:#2980b9; font-size: 1.05rem; margin-bottom: 3px;">
+                                    <i class="fas fa-file-invoice"></i> รหัส: ${h.reqId}
+                                </div>
+                                <div style="font-size:0.85rem; color:#7f8c8d; margin-bottom: 5px;">
+                                    <i class="far fa-clock"></i> ยื่นเมื่อ: ${h.timestamp || '-'}
+                                </div>
+                            </div>
+                            <div style="text-align:right;">
+                                <div style="font-weight:bold; color:#c0392b; font-size: 1.3rem;">
+                                    ${displayTotal.toLocaleString(undefined, {minimumFractionDigits: 2})} <span style="font-size:0.9rem; color:#7f8c8d;">บาท</span>
+                                </div>
+                                <!-- ป้ายสถานะกระทบยอด (เคลียร์บิล) -->
+                                <span style="background:${reconBadgeColor}; color:white; padding:3px 10px; border-radius:12px; font-size:0.75rem; display:inline-block; margin-top:4px;">
+                                    ${h.reconStatus}
+                                </span>
+                            </div>
+                        </div>
+
+                        <!-- 🌟 ส่วนที่ 3: แถบ Progress Bar สถานะเอกสาร (ผง.2) 🌟 -->
+                        <div style="margin: 15px 0; background: #fcfcfc; padding: 10px; border-radius: 8px; border: 1px dashed #d9e2ec;">
+                            <div style="text-align: center; font-size: 0.85rem; color: #34495e; font-weight: bold; margin-bottom: 5px;">
+                                สถานะปัจจุบัน: <span style="color: ${statusBg};">${h.status}</span>
+                            </div>
+                            ${statusBarHtml}
+                        </div>
+
+                        <!-- ส่วนล่าง: รายละเอียดพัสดุ และ กลุ่มปุ่มจัดการ -->
+                        <div style="display: flex; gap: 15px; flex-wrap: wrap; align-items: flex-end;">
+                            <div style="flex: 2; min-width: 250px;">
+                                ${itemsHtml}
+                            </div>
+                            <div style="flex: 1; min-width: 150px; display: flex; flex-direction: column; gap: 8px;">
+                                ${actionBtn}
+                            </div>
+                        </div>
+
+                    </td>
+                </tr>
+            `;
+        });
+    } else {
+        html += `<tr><td colspan="5" style="padding: 30px; text-align: center; color: #95a5a6; font-style: italic; background:#fdfefe;">ยังไม่มีประวัติการยื่นขอเบิกจ่ายสำหรับโครงการนี้</td></tr>`;
+    }
+
+    html += `</tbody></table></div></div>`;
+  });
+
+  container.innerHTML = html;
+}
+
+
+
+function toggleHistory(elementId, btnElement) {
+  const el = document.getElementById(elementId);
+  const icon = btnElement.querySelector('i');
+
+  if (el.style.display === 'none') {
+     el.style.display = 'block';
+     if (icon) {
+         icon.classList.remove('fa-chevron-down');
+         icon.classList.add('fa-chevron-up');
+     }
+  } else {
+     el.style.display = 'none';
+     if (icon) {
+         icon.classList.remove('fa-chevron-up');
+         icon.classList.add('fa-chevron-down');
+     }
+  }
+}
+
+// 🌟 อัปเดตฟังก์ชันตอนกดสร้างคำขอใหม่
+function openCreateDisbModal(projectId, encodedName, budget, remaining, encodedSection) {
+  const projName = decodeURIComponent(encodedName);
+  const projSection = encodedSection ? decodeURIComponent(encodedSection) : "-"; 
+  
+  const reasonBox = document.getElementById('disb-return-reason-container');
+  if(reasonBox) reasonBox.style.display = 'none';
+  
+  document.getElementById('edit-disb-req-id').value = "";
+  document.getElementById('edit-disb-old-url').value = "";
+  document.getElementById('edit-old-file-notice').style.display = 'none';
+
+  // คืนค่ากลับสู่โหมด "ปกติ"
+  document.getElementById('disb-req-type').value = 'normal';
+  document.getElementById('normal-project-display').style.display = 'block';
+  document.getElementById('central-project-display').style.display = 'none';
+  const modalTitle = document.querySelector('#disbursementModal h3');
+  if(modalTitle) {
+      modalTitle.innerHTML = '<i class="fas fa-file-invoice-dollar"></i> บันทึกขออนุมัติจัดซื้อ/จัดจ้าง (ผง.2)';
+      modalTitle.parentElement.style.background = '#8e44ad';
+  }
+
+  document.getElementById('disb-project-id').value = projectId;
+  document.getElementById('disb-project-budget').value = budget;
+  document.getElementById('disb-project-name-display').innerText = `[${projectId}] ${projName}`;
+  document.getElementById('disb-project-budget-display').innerHTML = `งบประมาณโครงการ: <b>${budget.toLocaleString()}</b> บาท | คงเหลือ: <b style="color:${remaining<0?'red':'green'}">${remaining.toLocaleString()}</b> บาท`;
+
+  // ล็อกช่องสังกัดไม่ให้แก้ (โหมดปกติ)
+  const sectionInput = document.getElementById('disb-project-section');
+  if (sectionInput) {
+      sectionInput.readOnly = true;
+      sectionInput.style.backgroundColor = '#f4f6f8';
+      sectionInput.style.cursor = 'not-allowed';
+      sectionInput.value = projSection;
+  }
+
+  document.getElementById('disbursementForm').reset();
+  if (sectionInput) sectionInput.value = projSection; // บังคับเซฟค่าหลังรีเซ็ตฟอร์ม
+  
+  document.getElementById('disb-items-tbody').innerHTML = '';
+  addDisbursementItemRow(); 
+  calculateDisbursementTotal();
+  
+  document.getElementById('btn-draft-disb').innerHTML = '<i class="fas fa-save"></i> บันทึกแบบร่าง';
+  const btnSubmit = document.getElementById('btn-submit-disb');
+  btnSubmit.innerHTML = '<i class="fas fa-paper-plane"></i> ส่งขออนุมัติเบิกจ่าย';
+  btnSubmit.style.background = "#8e44ad";
+  
+  document.getElementById('hidden-project-name').innerText = projName;
+  document.querySelectorAll('input[name="actionType"]').forEach(cb => cb.checked = false);
+  document.querySelectorAll('input[name="itemCategory"]').forEach(cb => cb.checked = false);
+  document.getElementById('disbursementModal').style.display = 'flex';
+  
+  setTimeout(updateSentencePreview, 100); 
+}
+// ==========================================
+// 🌟 ฟังก์ชันเปิดหน้าต่าง ขอเบิกโครงการกองกลาง (Co-Disbursement)
+// ==========================================
+window.centralProjectsList = []; // เก็บตัวแปรส่วนกลาง
+
+function openCentralDisbModal() {
+  document.getElementById('disbursementForm').reset();
+  document.getElementById('disb-items-tbody').innerHTML = '';
+  addDisbursementItemRow(); calculateDisbursementTotal();
+  
+  // ตั้งค่าเป็นโหมด "กองกลาง"
+  document.getElementById('disb-req-type').value = 'central';
+  document.getElementById('normal-project-display').style.display = 'none';
+  document.getElementById('central-project-display').style.display = 'block';
+
+  const modalTitle = document.querySelector('#disbursementModal h3');
+  if(modalTitle) {
+      modalTitle.innerHTML = '<i class="fas fa-hand-holding-usd"></i> สร้างคำขอเบิกจ่าย (โครงการกองกลาง / เบิกแทน)';
+      modalTitle.parentElement.style.background = '#e67e22'; // เปลี่ยนสีหัวเป็นสีส้มให้รู้ตัว
+  }
+
+  // ปลดล็อกช่อง "สังกัด/งาน" ให้คนเบิกพิมพ์ชื่องานตัวเองได้
+  const sectionInput = document.getElementById('disb-project-section');
+  if (sectionInput) {
+      sectionInput.readOnly = false;
+      sectionInput.style.backgroundColor = '#ffffff';
+      sectionInput.style.cursor = 'text';
+      sectionInput.value = '';
+      sectionInput.placeholder = 'ระบุชื่องาน/ฝ่าย ของคุณ...';
+  }
+
+  document.getElementById('hidden-project-name').innerText = "[รอเลือกโครงการกองกลาง]";
+  const select = document.getElementById('disb-project-select');
+  select.innerHTML = '<option value="">-- กำลังดึงข้อมูลโครงการทั้งหมด... --</option>';
+  
+  document.getElementById('btn-draft-disb').innerHTML = '<i class="fas fa-save"></i> บันทึกแบบร่าง';
+  const btnSubmit = document.getElementById('btn-submit-disb');
+  btnSubmit.innerHTML = '<i class="fas fa-paper-plane"></i> ส่งขออนุมัติเบิกจ่าย';
+  btnSubmit.style.background = "#e67e22";
+
+  document.getElementById('disbursementModal').style.display = 'flex';
+  setTimeout(updateSentencePreview, 100);
+
+  google.script.run
+    .withSuccessHandler(function(projects) {
+      window.centralProjectsList = projects;
+      if(projects.length === 0) { select.innerHTML = '<option value="">-- ไม่พบโครงการในระบบ --</option>'; return; }
+      
+      let html = '<option value="">-- เลือกโครงการกองกลางที่ต้องการเบิก --</option>';
+      projects.forEach(p => { 
+        // 🌟 เพิ่มโชว์ยอดเงินคงเหลือใน Dropdown
+        html += `<option value="${p.id}">[${p.id}] ${p.name} (คงเหลือ: ${p.remaining.toLocaleString()} บ.) - ${p.owner}</option>`; 
+      });
+      select.innerHTML = html;
+    })
+    .withFailureHandler(function(err) { select.innerHTML = `<option value="">ข้อผิดพลาด: ${err.message}</option>`; })
+    .getAllApprovedProjectsForCentral();
+}
+
+function updateCentralProjectInfo() {
+  const select = document.getElementById('disb-project-select');
+  const pId = select.value;
+  if(!pId) return;
+  
+  const pData = window.centralProjectsList.find(p => p.id === pId);
+  if(pData) {
+      document.getElementById('disb-project-id').value = pData.id;
+      document.getElementById('disb-project-budget').value = pData.budget;
+      document.getElementById('hidden-project-name').innerText = pData.name;
+      
+      document.getElementById('central-project-budget-display').innerHTML = `งบประมาณโครงการ: <b>${pData.budget.toLocaleString()}</b> บาท | คงเหลือ: <b style="color:${pData.remaining < 0 ? 'red' : 'green'}">${pData.remaining.toLocaleString()}</b> บาท`;
+      updateSentencePreview();
+  }
+}
+// 🌟 อัปเดตฟังก์ชันตอนกดแก้ไขคำขอ
+function openEditDisbursementForm(reqId, projectId, encodedName, budget, remaining, encodedSection) {
+   const safeBudget = Number(budget) || 0;
+   const safeRemaining = Number(remaining) || 0;
+   const projName = encodedName ? decodeURIComponent(encodedName) : "ไม่ระบุชื่อโครงการ";
+   const projSection = encodedSection ? decodeURIComponent(encodedSection) : "-"; 
+   
+   const data = window.globalDisbursementsData.find(d => d.reqId === reqId);
+   
+   // 🌟 1. ดึงข้อเสนอแนะทุกด่านมาโชว์ 🌟
+   const reasonBox = document.getElementById('disb-return-reason-container');
+   if(reasonBox) {
+       if (data) {
+           // รวบรวมข้อเสนอแนะจากด่านต่างๆ (ดึงจากฟิลด์ที่ส่งมาจาก Backend)
+           let allComments = [data.adminComm, data.supplyComm, data.finComm, data.a2Comm, data.a3Comm]
+                             .filter(c => c && String(c).trim() !== "").join('\n\n');
+           
+           if (allComments !== "") {
+               document.getElementById('disb-return-reason-display').innerText = allComments;
+               reasonBox.style.display = 'block';
+           } else {
+               // กรณีระบบเก่าที่ส่ง comment มารวมกัน
+               if (data.comments && data.comments.trim() !== "") {
+                   document.getElementById('disb-return-reason-display').innerText = data.comments;
+                   reasonBox.style.display = 'block';
+               } else {
+                   document.getElementById('disb-return-reason-display').innerText = "ผู้ตรวจสอบไม่ได้ระบุเหตุผล";
+                   reasonBox.style.display = 'block';
+               }
+           }
+       } else {
+           reasonBox.style.display = 'none';
+       }
+   }
+
+   if(!data) {
+      alert("เกิดข้อผิดพลาด: ไม่พบข้อมูลคำขอนี้ในระบบ");
+      return;
+   }
+
+   document.getElementById('edit-disb-req-id').value = data.reqId || "";
+   document.getElementById('edit-disb-old-url').value = data.oldDocUrl || "";
+   document.getElementById('edit-old-file-notice').style.display = 'block';
+
+   const displayId = projectId || data.projectId || "";
+   document.getElementById('disb-project-id').value = displayId;
+   document.getElementById('disb-project-budget').value = safeBudget;
+   document.getElementById('disb-project-name-display').innerText = `[${displayId}] ${projName} (รหัสคำขอ: ${data.reqId})`;
+   document.getElementById('disb-project-budget-display').innerHTML = `งบประมาณโครงการ: <b>${safeBudget.toLocaleString()}</b> บาท | คงเหลือ: <b style="color:${safeRemaining<0?'red':'green'}">${safeRemaining.toLocaleString()}</b> บาท`;
+
+   // 🌟 นำค่าสังกัดงานไปใส่ในช่อง
+   const sectionInput = document.getElementById('disb-project-section');
+   if (sectionInput) {
+       sectionInput.value = projSection;
+       sectionInput.readOnly = false; // ปลดล็อกให้แก้ไขได้ถ้าต้องการ
+       sectionInput.style.backgroundColor = '#ffffff';
+       sectionInput.style.cursor = 'text';
+   }
+
+   document.getElementById('comm-1').value = data.comm1 || "";
+   document.getElementById('comm-2').value = data.comm2 || "";
+   document.getElementById('comm-3').value = data.comm3 || "";
+   
+   const vatInput = document.getElementById('disb-vat');
+   const shipInput = document.getElementById('disb-shipping');
+   if (vatInput) vatInput.value = 0;
+   if (shipInput) shipInput.value = 0;
+
+   const tbody = document.getElementById('disb-items-tbody');
+   tbody.innerHTML = ''; 
+   
+   if (data.items && data.items.length > 0) {
+       let realItems = [];
+       let sumTotal = 0;
+       
+       data.items.forEach(it => {
+           if (it.name === '#SYS_VAT#') { if (vatInput) vatInput.value = it.price; } 
+           else if (it.name === '#SYS_SHIPPING#') { if (shipInput) shipInput.value = it.price; } 
+           else {
+               realItems.push(it);
+               sumTotal += Number(it.qty) * Number(it.price);
+           }
+       });
+
+       // เผื่อเป็นบิลเก่าที่ยังไม่มีระบบแยก VAT (ดึงยอดส่วนต่างมาใส่ช่อง VAT แทน)
+       if (!data.items.some(it => it.name === '#SYS_VAT#')) {
+           let diff = Number(data.grandTotal) - sumTotal;
+           if (diff > 0 && vatInput) vatInput.value = diff;
+       }
+
+       if (realItems.length > 0) {
+           realItems.forEach(it => {
+               addDisbursementItemRow();
+               const lastRow = tbody.lastElementChild;
+               lastRow.querySelector('.item-name').value = it.name || "";
+               lastRow.querySelector('.item-qty').value = it.qty || 1;
+               lastRow.querySelector('.item-unit').value = it.unit || "";
+               lastRow.querySelector('.item-price').value = it.price || 0;
+           });
+       } else { addDisbursementItemRow(); }
+   } else {
+       addDisbursementItemRow();
+   }
+   calculateDisbursementTotal();
+
+   document.getElementById('btn-draft-disb').innerHTML = '<i class="fas fa-save"></i> บันทึกแบบร่าง';
+   const btnSubmit = document.getElementById('btn-submit-disb');
+   btnSubmit.innerHTML = '<i class="fas fa-sync-alt"></i> ส่งคำขอที่แก้ไขแล้ว (Resubmit)';
+   btnSubmit.style.background = "#e67e22"; 
+   
+   // จำชื่อโครงการเอาไว้ใส่ในประโยคพรีวิว
+  document.getElementById('hidden-project-name').innerText = projName;
+
+  // ติ๊ก Checkbox ให้ตรงกับข้อมูลที่เคยเซฟไว้
+  const savedActions = data.actionType || "";
+  document.querySelectorAll('input[name="actionType"]').forEach(cb => {
+      cb.checked = savedActions.includes(cb.value);
+  });
+  const savedCats = data.itemCategory || "";
+  document.querySelectorAll('input[name="itemCategory"]').forEach(cb => {
+      cb.checked = savedCats.includes(cb.value);
+  });
+  
+  // หยอดจุดประสงค์เดิม
+  const objInput = document.getElementById('disb-objective');
+  if (objInput) objInput.value = data.objective || "";
+  
+  // ซ่อนโหมด Dropdown กองกลาง บังคับให้เป็นโหมดแก้ไขปกติ
+  const reqTypeInput = document.getElementById('disb-req-type');
+  if (reqTypeInput) reqTypeInput.value = 'normal';
+  const normalDisplay = document.getElementById('normal-project-display');
+  const centralDisplay = document.getElementById('central-project-display');
+  if (normalDisplay) normalDisplay.style.display = 'block';
+  if (centralDisplay) centralDisplay.style.display = 'none';
+
+  document.getElementById('disbursementModal').style.display = 'flex'; 
+   
+  setTimeout(updateSentencePreview, 100); // 🌟 สั่งให้อัปเดตประโยคทันที
+}
+
+// ==========================================
+// 5. ลอจิกคำนวณและเพิ่มแถวรายการ
+// ==========================================
+function addDisbursementItemRow() {
+  const tbody = document.getElementById('disb-items-tbody');
+  
+  // 🌟 แอบสร้าง "พจนานุกรมคำแนะนำหน่วยนับ" ซ่อนไว้ในหน้าเว็บ (สร้างแค่ครั้งเดียว)
+  if (!document.getElementById('unit-list')) {
+      const dataList = document.createElement('datalist');
+      dataList.id = 'unit-list';
+      // คุณครูสามารถพิมพ์เพิ่ม/ลด คำแนะนำในนี้ได้ตามสบายเลยครับ
+      dataList.innerHTML = `
+          <option value="ชิ้น"><option value="อัน"><option value="เครื่อง"><option value="ชุด">
+          <option value="กล่อง"><option value="แพ็ค"><option value="ห่อ"><option value="ซอง">
+          <option value="ม้วน"><option value="เล่ม"><option value="แผ่น"><option value="ใบ">
+          <option value="ขวด"><option value="กระป๋อง"><option value="หลอด"><option value="กิโลกรัม">
+          <option value="ลิตร"><option value="เมตร"><option value="เซนติเมตร"><option value="โหล">
+      `;
+      document.body.appendChild(dataList);
+  }
+
+  const tr = document.createElement('tr');
+  // 🌟 อัปเกรดช่อง Input ทั้ง 4 ช่องให้ฉลาดขึ้น
+  tr.innerHTML = `
+    <td style="padding:5px;">
+      <input type="text" class="item-name" placeholder="ระบุชื่อรายการ" style="width:100%; padding:6px; border:1px solid #ccc; font-family:'Kanit'; border-radius:4px;">
+    </td>
+    <td style="padding:5px;">
+      <!-- 🌟 บังคับตัวเลข: ถ้าพิมพ์ตัวหนังสือ ระบบจะลบทิ้งทันที (รองรับจุดทศนิยม) -->
+      <input type="text" class="item-qty" value="1" placeholder="จำนวน" 
+             oninput="this.value = this.value.replace(/[^0-9.]/g, ''); calculateDisbursementTotal();" 
+             style="width:100%; padding:6px; text-align:center; border:1px solid #ccc; font-family:'Kanit'; border-radius:4px; background:#fffdf5;">
+    </td>
+    <td style="padding:5px;">
+      <!-- 🌟 ช่องสมาร์ทเซิร์ช: ผูกกับ unit-list ที่เราสร้างไว้ข้างบน -->
+      <input type="text" class="item-unit" list="unit-list" placeholder="เช่น ชิ้น, ชุด" 
+             style="width:100%; padding:6px; border:1px solid #ccc; font-family:'Kanit'; border-radius:4px;">
+    </td>
+    <td style="padding:5px;">
+      <!-- 🌟 บังคับตัวเลข: เช่นเดียวกับช่องจำนวน -->
+      <input type="text" class="item-price" value="0" placeholder="ราคา/หน่วย"
+             oninput="this.value = this.value.replace(/[^0-9.]/g, ''); calculateDisbursementTotal();" 
+             style="width:100%; padding:6px; text-align:right; border:1px solid #ccc; font-family:'Kanit'; border-radius:4px; background:#fffdf5;">
+    </td>
+    <td style="padding:5px; text-align:center;">
+      <button type="button" onclick="this.parentElement.parentElement.remove(); calculateDisbursementTotal();" style="background:#e74c3c; color:white; border:none; border-radius:4px; cursor:pointer; padding:6px 10px; transition:0.2s;"><i class="fas fa-trash"></i></button>
+    </td>
+  `;
+  tbody.appendChild(tr);
+}
+
+function calculateDisbursementTotal() {
+  const qtys = document.querySelectorAll('.item-qty');
+  const prices = document.querySelectorAll('.item-price');
+  let subtotal = 0;
+  
+  for(let i=0; i<qtys.length; i++) { 
+    subtotal += ((Number(qtys[i].value)||0) * (Number(prices[i].value)||0)); 
+  }
+  
+  const vat = Number(document.getElementById('disb-vat').value) || 0;
+  const grandTotal = subtotal + vat;
+  
+  document.getElementById('disb-subtotal').innerText = subtotal.toLocaleString('th-TH', {minimumFractionDigits: 2});
+  document.getElementById('disb-grandtotal').innerText = grandTotal.toLocaleString('th-TH', {minimumFractionDigits: 2});
+  
+  if(grandTotal > 10000) {
+    document.getElementById('comm-2-container').style.display = 'block'; 
+    document.getElementById('comm-3-container').style.display = 'block'; 
+    document.getElementById('committee-warning').style.display = 'block';
+  } else {
+    document.getElementById('comm-2-container').style.display = 'none'; 
+    document.getElementById('comm-3-container').style.display = 'none'; 
+    document.getElementById('committee-warning').style.display = 'none';
+  }
+
+  if (typeof updateSentencePreview === 'function') updateSentencePreview();
+}
+
+
+// ==========================================
+// 6. กด Submit หรือ บันทึกแบบร่าง (ด่านตรวจด้วย SweetAlert2)
+// ==========================================
+function submitDisbursement(actionType) {
+  const projectId = document.getElementById('disb-project-id').value;
+  const projectBudget = Number(document.getElementById('disb-project-budget').value);
+  const editReqId = document.getElementById('edit-disb-req-id').value;
+  
+  const itemNames = document.querySelectorAll('.item-name');
+  const itemQtys = document.querySelectorAll('.item-qty');
+  const itemUnits = document.querySelectorAll('.item-unit');
+  const itemPrices = document.querySelectorAll('.item-price');
+  let items = [];
+  
+  for(let i=0; i<itemNames.length; i++) {
+    if(itemNames[i].value.trim()) { 
+      items.push({ name: itemNames[i].value.trim(), qty: Number(itemQtys[i].value)||0, unit: itemUnits[i].value.trim(), price: Number(itemPrices[i].value)||0 }); 
+    }
+  }
+  
+  const vatAmt = Number(document.getElementById('disb-vat').value) || 0;
+  if (vatAmt > 0) items.push({ name: '#SYS_VAT#', qty: 1, unit: '-', price: vatAmt });
+
+  const grandTotal = Number(document.getElementById('disb-grandtotal').innerText.replace(/,/g, ''));
+  const comm1 = document.getElementById('comm-1').value.trim(); 
+  const comm2 = document.getElementById('comm-2').value.trim(); 
+  const comm3 = document.getElementById('comm-3').value.trim();
+
+  // 🌟 จุดแก้ไข: บังคับเช็คความครบถ้วน "เฉพาะตอนกดส่งจริง" เท่านั้น
+  if (actionType === 'submit') {
+      if(items.length === 0 && vatAmt === 0) { alert("กรุณาระบุชื่อรายการพัสดุอย่างน้อย 1 รายการครับ"); return; }
+      if(grandTotal <= 0) { alert("ยอดเงินต้องมากกว่า 0 บาทครับ"); return; }
+      if(!comm1) { alert("กรุณาระบุชื่อประธานกรรมการครับ"); return; }
+      if(grandTotal > 10000 && (!comm2 || !comm3)) { alert("ยอดเงินเกิน 10,000 บาท ต้องระบุกรรมการครบ 3 ท่านครับ"); return; }
+  }
+
+  const typeInput = document.getElementById('disb-req-type');
+  const isCentral = typeInput && typeInput.value === 'central';
+  let actionName = actionType === 'draft' ? "บันทึกแบบร่าง" : "ส่งขออนุมัติเบิกจ่าย";
+  
+  let swalTitle = actionType === 'draft' ? 'บันทึกแบบร่าง?' : 'ยืนยันการดำเนินการ?';
+  let swalText = actionType === 'draft' ? `ต้องการบันทึกข้อมูลนี้ไว้ทำต่อในภายหลัง ใช่หรือไม่?` : `ยืนยันการ${actionName} ยอดรวม ${grandTotal.toLocaleString()} บาท ใช่หรือไม่?`;
+  let swalIcon = 'question';
+  let confirmBtnColor = actionType === 'draft' ? '#f39c12' : '#8e44ad'; 
+
+  // เตือนงบเกิน (เตือนเฉพาะตอนกดส่งจริง แบบร่างให้ปล่อยผ่าน)
+  if(grandTotal > projectBudget && actionType === 'submit') {
+    const diff = grandTotal - projectBudget;
+    swalTitle = '⚠️ แจ้งเตือนงบประมาณ!';
+    swalText = `ยอดเงินของท่านเกินงบประมาณที่ได้รับการจัดสรร!\nต้องการขอสนับสนุนเพิ่มเติมจำนวน ${diff.toLocaleString()} บาท ใช่หรือไม่?`;
+    swalIcon = 'warning'; confirmBtnColor = '#e74c3c';
+  }
+
+  Swal.fire({
+    title: swalTitle, text: swalText, icon: swalIcon, showCancelButton: true,
+    confirmButtonColor: confirmBtnColor, cancelButtonColor: '#bdc3c7',
+    confirmButtonText: 'ใช่, ดำเนินการเลย!', cancelButtonText: 'ยกเลิก', customClass: { container: 'kanit-font' }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      executeSubmitDisbursement(actionType, projectId, editReqId, items, grandTotal, comm1, comm2, comm3, isCentral);
+    }
+  });
+}
+
+// ==========================================
+// ฟังก์ชันตัวช่วย: ประมวลผลและส่งเข้า Google Apps Script
+// ==========================================
+async function executeSubmitDisbursement(actionType, projectId, editReqId, items, grandTotal, comm1, comm2, comm3, isCentral) {
+  let targetStatus = 'รอตรวจสอบ (งานแผน)';
+  if (actionType === 'draft') {
+      targetStatus = 'แบบร่าง';
+  } else if (isCentral && actionType === 'submit') {
+      targetStatus = 'รอเจ้าของโครงการรับทราบ'; 
+  }
+
+  const formData = { 
+    projectId: projectId, 
+    grandTotal: grandTotal, 
+    comm1: comm1, 
+    comm2: comm2, 
+    comm3: comm3, 
+    items: items, 
+    status: targetStatus,
+    projectSection: document.getElementById('disb-project-section') ? document.getElementById('disb-project-section').value.trim() : "",
+    actionType: Array.from(document.querySelectorAll('input[name="actionType"]:checked')).map(cb => cb.value).join('/'),
+    itemCategory: Array.from(document.querySelectorAll('input[name="itemCategory"]:checked')).map(cb => cb.value).join('/'),
+    objective: document.getElementById('disb-objective') ? document.getElementById('disb-objective').value.trim() : ""
+  };
+  
+  const btn = actionType === 'draft' ? document.getElementById('btn-draft-disb') : document.getElementById('btn-submit-disb');
+  const btnTextBackup = btn.innerHTML;
+  btn.disabled = true; 
+  btn.innerHTML = actionType === 'draft' ? '<i class="fas fa-spinner fa-spin"></i> กำลังบันทึก...' : '<i class="fas fa-spinner fa-spin"></i> กำลังส่ง...';
+
+  const fileInput = document.getElementById('disb-quotation-file');
+  let filesDataArray = null;
+
+  // 🌟 ประมวลผลไฟล์หลายไฟล์เป็น Array ของ Base64
+  if (fileInput && fileInput.files.length > 0) {
+     try {
+         // เรียกใช้ฟังก์ชัน getMultipleFilesBase64 (ที่เรามีอยู่แล้วจากระบบบิล)
+         filesDataArray = await getMultipleFilesBase64(fileInput.files);
+     } catch(e) {
+         alert("เกิดข้อผิดพลาดในการอ่านไฟล์: " + e.message);
+         btn.disabled = false; btn.innerHTML = btnTextBackup;
+         return;
+     }
+  }
+  
+  if (editReqId !== "") {
+     formData.reqId = editReqId;
+     formData.oldDocUrl = document.getElementById('edit-disb-old-url').value;
+     // ส่ง filesDataArray (Array ของไฟล์) ไปหลังบ้าน
+     runServerFunction("resubmitDisbursementRequest", formData, filesDataArray, btn, btnTextBackup);
+  } else {
+     runServerFunction("saveDisbursementRequest", formData, filesDataArray, btn, btnTextBackup); 
+  }
+}
+// ==========================================
+// 🌟 หน้าต่าง Pop-up สำหรับงานบัญชีกดกระทบยอดและเปลี่ยนแหล่งเงิน
+// ==========================================
+function openReconModal(reqId, requestedTotal, defaultSource) {
+  // ดึงค่ายอดขอเบิกเดิมมาเป็นค่าตั้งต้นในช่อง "ยอดเบิกจ่ายจริง"
+  const safeTotal = Number(requestedTotal.replace(/,/g, '')) || 0;
+  
+  Swal.fire({
+    title: '<i class="fas fa-file-invoice-dollar" style="color:#27ae60;"></i> กระทบยอดบัญชี',
+    html: `
+      <div style="text-align: left; font-size: 0.95rem; font-family: 'Kanit';">
+        <div style="background:#f4f6f8; padding: 10px; border-radius: 6px; margin-bottom: 15px; border-left: 4px solid #3498db;">
+          <label style="font-weight: bold; color: #2c3e50;">รหัสคำขอ: <span style="color: #2980b9;">${reqId}</span></label><br>
+          <label style="font-weight: bold; color: #2c3e50;">ยอดขอเบิกตั้งต้น: <span style="color: #e74c3c; font-size:1.1rem;">${safeTotal.toLocaleString()}</span> บาท</label>
+        </div>
+        
+        <label style="font-weight: bold; color: #27ae60;">1. ยอดเบิกจ่ายสุทธิตามบิลจริง (บาท) <span style="color: red;">*</span></label>
+        <input type="number" id="recon-actual-amt" class="swal2-input" style="width: 100%; margin: 5px 0 15px 0;" value="${safeTotal}">
+        
+        <label style="font-weight: bold; color: #8e44ad;">2. แหล่งงบประมาณ <span style="color: #7f8c8d; font-weight: normal; font-size: 0.85rem;">(แก้ได้หากเบิกผิดบัญชี)</span></label>
+        <input type="text" id="recon-source" class="swal2-input" style="width: 100%; margin: 5px 0 15px 0;" value="${defaultSource}">
+        
+        <label style="font-weight: bold; color: #2c3e50;">3. หมายเหตุการกระทบยอด (ถ้ามี)</label>
+        <input type="text" id="recon-comment" class="swal2-input" style="width: 100%; margin: 5px 0;" placeholder="เช่น โอนผิดบัญชี, คืนเงินทอน 50 บาท...">
+      </div>
+    `,
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonColor: '#27ae60',
+    cancelButtonColor: '#95a5a6',
+    denyButtonColor: '#e74c3c',
+    confirmButtonText: '<i class="fas fa-check"></i> อนุมัติกระทบยอด',
+    denyButtonText: '<i class="fas fa-undo"></i> ตีกลับให้แก้ไข',
+    cancelButtonText: 'ปิดหน้าต่าง',
+    customClass: { container: 'kanit-font' },
+    preConfirm: () => {
+      const actualAmt = document.getElementById('recon-actual-amt').value;
+      const source = document.getElementById('recon-source').value;
+      const comment = document.getElementById('recon-comment').value;
+      
+      if (!actualAmt || actualAmt < 0) {
+        Swal.showValidationMessage('กรุณาระบุยอดเงินสุทธิให้ถูกต้อง (ต้องไม่ติดลบ)');
+        return false;
+      }
+      if (!source || source.trim() === '') {
+        Swal.showValidationMessage('กรุณาระบุแหล่งงบประมาณ');
+        return false;
+      }
+      return { actualAmt: Number(actualAmt), source: source.trim(), comment: comment.trim() };
+    }
+  }).then((result) => {
+     if (result.isConfirmed) {
+        executeReconciliation(reqId, 'approve', result.value.actualAmt, result.value.comment, result.value.source);
+     } else if (result.isDenied) {
+        // กรณีบัญชีกดปุ่ม "ตีกลับ" ให้แสดงหน้าต่างถามเหตุผล
+        Swal.fire({
+          title: 'ตีกลับให้แก้ไขบิล',
+          input: 'text',
+          inputPlaceholder: 'ระบุเหตุผล เช่น บิลไม่ชัดเจน, ยอดเงินไม่ตรง',
+          showCancelButton: true,
+          confirmButtonText: 'ยืนยันตีกลับ',
+          cancelButtonText: 'ยกเลิก',
+          confirmButtonColor: '#e74c3c',
+          customClass: { container: 'kanit-font' }
+        }).then((resReturn) => {
+          if (resReturn.isConfirmed && resReturn.value.trim() !== '') {
+            executeReconciliation(reqId, 'reject', 0, resReturn.value.trim(), null);
+          } else if (resReturn.isConfirmed) {
+            Swal.fire('ข้อผิดพลาด', 'กรุณาระบุเหตุผลการตีกลับด้วยครับ', 'warning');
+          }
+        });
+     }
+  });
+}
+
+function executeReconciliation(reqId, action, actualAmt, comment, newSource) {
+  Swal.fire({
+    title: 'กำลังบันทึกบัญชี...',
+    text: 'กรุณารอสักครู่ ระบบกำลังปรับปรุงยอดและแหล่งเงิน',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  google.script.run
+    .withSuccessHandler(res => {
+      Swal.fire({ title: 'สำเร็จ!', text: res.message, icon: 'success', customClass: { container: 'kanit-font' } })
+      .then(() => {
+         // รีเฟรชตาราง Inbox (อ้างอิงจากฟังก์ชันโหลด Inbox ของคุณครู)
+         if (typeof loadAccountPlanInbox === 'function') loadAccountPlanInbox(); 
+         else if (typeof loadDisbursementDashboardData === 'function') loadDisbursementDashboardData();
+      });
+    })
+    .withFailureHandler(err => {
+      Swal.fire({ title: 'เกิดข้อผิดพลาด', text: err.message, icon: 'error', customClass: { container: 'kanit-font' } });
+    })
+    .processReconciliationDecision(reqId, action, actualAmt, comment, newSource);
+}
+
+// ฟังก์ชันตัวช่วยสำหรับส่งเข้า Google Apps Script
+function runServerFunction(functionName, formData, fileData, btnElement, btnTextBackup) {
+  google.script.run
+    .withSuccessHandler(function(res) {
+      alert(res.message); 
+      document.getElementById('disbursementModal').style.display = 'none';
+      btnElement.disabled = false; 
+      btnElement.innerHTML = btnTextBackup;
+      loadDisbursementDashboardData(); // โหลดหน้า Dashboard ใหม่อีกครั้ง
+    })
+    .withFailureHandler(function(err) {
+      alert("ผิดพลาด: " + err.message);
+      btnElement.disabled = false; 
+      btnElement.innerHTML = 'ลองใหม่อีกครั้ง';
+    })
+    [functionName](formData, fileData);
+}
+
+// ==========================================
+// 7. ลอจิกการยกเลิกบิล และ จัดการบิล
+// ==========================================
+function revokeBills(reqId) {
+  if(!confirm("คุณต้องการยกเลิกและลบบิลของคำขอนี้ ใช่หรือไม่?\n(คุณจะต้องอัปโหลดบิลทั้งหมดใหม่อีกครั้ง)")) return;
+  
+  google.script.run
+    .withSuccessHandler(function(res) {
+      alert(res.message);
+      loadDisbursementDashboardData();
+    })
+    .withFailureHandler(function(err) {
+      alert("ผิดพลาด: " + err.message);
+    })
+    .revokeDisbursementBills(reqId);
+}
+
+let currentBillItems = []; 
+
+function openAttachBillModal(reqId, timestamp) {
+  document.getElementById('clearance-req-id').value = reqId; 
+  document.getElementById('clearance-req-id-display').innerText = timestamp; 
+  document.getElementById('bills-container').innerHTML = '<div style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin fa-2x"></i> ดึงรายการสิ่งของ...</div>';
+  document.getElementById('clearance-total-actual').innerText = "0.00";
+  document.getElementById('attachBillModal').style.display = 'flex';
+
+  google.script.run
+    .withSuccessHandler(function(items) {
+      currentBillItems = items;
+      document.getElementById('bills-container').innerHTML = '';
+      addBillBlock(); 
+    })
+    .getDisbursementItemsForBill(reqId);
+}
+
+let billCounter = 0;
+function addBillBlock() {
+  billCounter++;
+  const container = document.getElementById('bills-container');
+  const billDiv = document.createElement('div');
+  billDiv.className = 'bill-block';
+  billDiv.style.cssText = "background:white; border:1px solid #ccc; padding:15px; border-radius:8px; margin-bottom:15px; position:relative;";
+  
+  let checkboxesHtml = currentBillItems.map((item, idx) => `
+    <label style="display:block; margin-bottom:5px; cursor:pointer;">
+      <input type="checkbox" class="bill-item-check" value="${item.name}"> 
+      ${item.name} <span style="color:#7f8c8d; font-size:0.85rem;">(ตั้งไว้: ${Number(item.qty*item.price).toLocaleString()} บ.)</span>
+    </label>
+  `).join('');
+
+  if(currentBillItems.length === 0) checkboxesHtml = "<div style='color:red;'>ไม่พบรายการ (อาจมีข้อผิดพลาด)</div>";
+
+  billDiv.innerHTML = `
+    <div style="display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid #eee; padding-bottom:10px; margin-bottom:15px;">
+      <h5 style="margin:0; color:#2980b9; font-size:1.1rem;"><i class="fas fa-receipt"></i> บิลใบที่ <span class="bill-index">${billCounter}</span></h5>
+      <button type="button" onclick="this.parentElement.parentElement.remove(); calculateTotalActual(); updateBillIndexes();" style="background:none; border:none; color:#e74c3c; cursor:pointer;"><i class="fas fa-trash"></i> ลบบิลนี้</button>
+    </div>
+    
+    <div style="margin-bottom:15px;">
+      <label style="font-weight:bold; color:#2c3e50;">1. บิลนี้ใช้จ่ายสำหรับรายการใดบ้าง? (ติ๊กเลือก) <span style="color:red;">*</span></label>
+      <div style="background:#f4f6f8; padding:10px; border-radius:4px; margin-top:5px; max-height:120px; overflow-y:auto; border:1px solid #d9e2ec;">
+        ${checkboxesHtml}
+      </div>
+    </div>
+
+    <div style="display:flex; gap:15px;">
+      <div style="flex:1;">
+        <label style="font-weight:bold;">2. ยอดจ่ายจริงตามบิลนี้ (บาท) <span style="color:red;">*</span></label>
+        <input type="number" class="bill-actual-amount" oninput="calculateTotalActual()" placeholder="เช่น 1500" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; margin-top:5px;">
+      </div>
+      <div style="flex:1;">
+        <label style="font-weight:bold;">3. แนบรูปถ่าย/PDF บิล <span style="color:red;">*</span></label>
+        <input type="file" class="bill-file" accept="image/*,.pdf" style="width:100%; padding:6px; border:1px dashed #ccc; border-radius:4px; font-family:'Kanit'; margin-top:5px; background:#f9fbfc;">
+      </div>
+    </div>
+  `;
+  container.appendChild(billDiv);
+  updateBillIndexes();
+}
+
+function updateBillIndexes() {
+  const blocks = document.querySelectorAll('.bill-index');
+  blocks.forEach((span, i) => span.innerText = i + 1);
+  billCounter = blocks.length;
+}
+
+function calculateTotalActual() {
+  const amounts = document.querySelectorAll('.bill-actual-amount');
+  let total = 0;
+  amounts.forEach(input => total += (Number(input.value) || 0));
+  document.getElementById('clearance-total-actual').innerText = total.toLocaleString('th-TH', {minimumFractionDigits: 2});
+}
+
+async function submitClearanceBills() {
+  const reqId = document.getElementById('clearance-req-id').value;
+  const blocks = document.querySelectorAll('.bill-block');
+  
+  if(blocks.length === 0) { alert("กรุณาเพิ่มบิลอย่างน้อย 1 ใบครับ"); return; }
+
+  let billsData = [];
+  let isValid = true;
+
+  for (let i = 0; i < blocks.length; i++) {
+    const block = blocks[i];
+    const checkboxes = block.querySelectorAll('.bill-item-check:checked');
+    const matchedItems = Array.from(checkboxes).map(cb => cb.value).join(', ');
+    
+    const actualAmount = Number(block.querySelector('.bill-actual-amount').value) || 0;
+    const fileInput = block.querySelector('.bill-file');
+    
+    if(!matchedItems) { alert(`กรุณาติ๊กเลือกรายการสำหรับ "บิลใบที่ ${i+1}" ครับ`); isValid = false; break; }
+    if(actualAmount <= 0) { alert(`กรุณาระบุยอดเงิน "บิลใบที่ ${i+1}" ให้ถูกต้องครับ`); isValid = false; break; }
+    if(fileInput.files.length === 0) { alert(`กรุณาแนบไฟล์รูปภาพ/PDF สำหรับ "บิลใบที่ ${i+1}" ครับ`); isValid = false; break; }
+
+    const file = fileInput.files[0];
+    const base64Data = await readFileAsBase64(file);
+
+    billsData.push({ matchedItems: matchedItems, actualAmount: actualAmount, file: { name: file.name, mimeType: file.type, base64: base64Data } });
+  }
+
+  if(!isValid) return;
+
+  // 🌟 ใช้ SweetAlert2 แบบ await ดักรอคำตอบโดยไม่ต้องซ้อนปีกกา
+  const result = await Swal.fire({
+    title: 'ยืนยันการส่งเอกสาร?',
+    text: "คุณต้องการส่งหลักฐานการจ่ายเงินเพื่อกระทบยอด ใช่หรือไม่?",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#27ae60', // ปุ่มสีเขียว
+    cancelButtonColor: '#bdc3c7', // ปุ่มสีเทา
+    confirmButtonText: 'ใช่, ส่งเอกสารเลย!',
+    cancelButtonText: 'ยกเลิก',
+    customClass: { container: 'kanit-font' }
+  });
+
+  // ถ้าผู้ใช้ไม่ได้กด "ใช่" ให้หยุดการทำงานทันที
+  if (!result.isConfirmed) return;
+
+  const btn = document.getElementById('btn-submit-bills');
+  btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังอัปโหลด...';
+
+  google.script.run
+    .withSuccessHandler(function(res) {
+      alert(res.message);
+      document.getElementById('attachBillModal').style.display = 'none';
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> ส่งหลักฐานกระทบยอด';
+      loadDisbursementDashboardData(); 
+    })
+    .withFailureHandler(function(err) {
+      alert("ผิดพลาด: " + err.message);
+      btn.disabled = false; btn.innerHTML = '<i class="fas fa-check-circle"></i> ส่งหลักฐานกระทบยอด';
+    })
+    .saveDisbursementBills(reqId, billsData);
+}
+
+function readFileAsBase64(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = e => reject(e);
+    reader.readAsDataURL(file);
+  });
+}
+function openRecallDisbModal(reqId) {
+  Swal.fire({
+    title: '<i class="fas fa-undo-alt" style="color:#e67e22;"></i> ระงับ / ดึงคำขอกลับ',
+    html: `
+      <div style="font-size:0.95rem; color:#2c3e50; margin-bottom:12px;">
+        รหัสคำขอ: <b style="color:#8e44ad;">${reqId}</b><br>
+        ต้องการดึงเอกสารนี้กลับไปทำรายการใดครับ?
+      </div>
+      <input type="text" id="recall-reason-input" class="swal2-input" style="width:90%; margin:0 auto; font-family:'Kanit'; font-size:0.95rem;" placeholder="ระบุเหตุผลสั้นๆ (เช่น คีย์จำนวนผิด, เปลี่ยนร้านค้า)...">
+    `,
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonColor: '#f39c12',
+    denyButtonColor: '#e74c3c',
+    cancelButtonColor: '#95a5a6',
+    confirmButtonText: '<i class="fas fa-edit"></i> ดึงกลับไปแก้ไข (แบบร่าง)',
+    denyButtonText: '<i class="fas fa-trash-alt"></i> ยกเลิกคำขอนี้ถาวร',
+    cancelButtonText: 'ปิด',
+    customClass: { container: 'kanit-font' }
+  }).then((result) => {
+    if (!result.isConfirmed && !result.isDenied) return;
+
+    const action = result.isConfirmed ? 'recall' : 'cancel';
+    const reason = (document.getElementById('recall-reason-input')?.value || "").trim();
+
+    Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    google.script.run
+      .withSuccessHandler(res => {
+        Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: res.message, customClass: { container: 'kanit-font' } })
+          .then(() => {
+            if (typeof loadDisbursementDashboardData === 'function') loadDisbursementDashboardData();
+          });
+      })
+      .withFailureHandler(err => {
+        Swal.fire({ icon: 'error', title: 'ไม่สามารถดำเนินการได้', text: err.message, customClass: { container: 'kanit-font' } });
+      })
+      .recallOrCancelDisbursement(reqId, action, reason);
+  });
+}
