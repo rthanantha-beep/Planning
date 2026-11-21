@@ -7679,16 +7679,19 @@ window.onload = async function() {
     initYearDropdowns();
     loadConfigData();
 
-    const urlParams = new URLSearchParams(window.location.search);
-    let savedLineUid = urlParams.get('uid') || localStorage.getItem('nongPhaenDee_lineUid') || "";
-    
+   const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('uid')) {
        localStorage.setItem('nongPhaenDee_lineUid', urlParams.get('uid'));
     }
 
+    let savedAuthKey = urlParams.get('uid')
+                    || localStorage.getItem('sopon_preferred_email')
+                    || localStorage.getItem('nongPhaenDee_lineUid')
+                    || "";
+
     let userInfo;
     try {
-        userInfo = await fetchAPI('getCurrentUserInfo', savedLineUid);
+        userInfo = await fetchAPI('getCurrentUserInfo', savedAuthKey);
         console.log("✅ โหลดข้อมูลผู้ใช้สำเร็จ:", userInfo);
     } catch(e) {
         console.error("❌ โหลดข้อมูลผู้ใช้ล้มเหลว (getCurrentUserInfo):", e);
