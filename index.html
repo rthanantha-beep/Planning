@@ -1,0 +1,1352 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>ระบบแผนงาน</title>
+  <script src="./gas-bridge.js"></script>
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  
+  <style>
+    body { font-family: 'Kanit', sans-serif; background-color: #f8f9fa; margin: 0; padding: 0; color: #2c3e50; padding-bottom: 70px; }
+    
+    /* Header มินิมอล */
+    .header { background: linear-gradient(135deg, #8e44ad, #3498db); color: white; padding: 30px 20px 45px 20px; border-radius: 0 0 25px 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); position: relative; }
+    .btn-logout { position: absolute; top: 15px; right: 15px; background: rgba(255,255,255,0.25); color: white; border: none; padding: 6px 12px; border-radius: 20px; font-family: 'Kanit'; font-size: 0.8rem; cursor: pointer; backdrop-filter: blur(5px); }
+    
+    /* สรุปข้อมูลติดตามโครงการแบบ 3 คอลัมน์ */
+    .summary-box { background: white; margin: -30px 15px 20px 15px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.08); padding: 15px; position: relative; z-index: 10; display: flex; justify-content: space-around; text-align: center; }
+    .sum-item { flex: 1; }
+    .sum-title { font-size: 0.75rem; color: #7f8c8d; font-weight: bold; margin-bottom: 5px; }
+    .sum-val { font-size: 1.4rem; font-weight: bold; color: #2c3e50; }
+
+    /* คอนเทนต์หลัก */
+    .container { padding: 0 15px; }
+    .card { background: white; border-radius: 12px; padding: 15px 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); position: relative; overflow: hidden; border: 1px solid #f1f2f6; }
+    .card::before { content: ""; position: absolute; top: 0; left: 0; width: 6px; height: 100%; }
+    .card.project::before { background: #3498db; }
+    .card.myrequest::before { background: #9b59b6; }
+    .card.approval-proj::before { background: #3498db; }
+    .card.approval-disb::before { background: #e67e22; }
+    
+    .badge { padding: 4px 10px; border-radius: 12px; font-size: 0.75rem; font-weight: bold; color: white; display: inline-block; }
+    
+    /* Progress Bar */
+    .progress-bg { width: 100%; background: #ecf0f1; border-radius: 10px; height: 8px; margin-top: 12px; overflow: hidden; }
+    .progress-fill { height: 100%; border-radius: 10px; transition: width 0.5s ease; }
+
+    /* ปุ่ม Action */
+    .btn-action { width: 100%; color: white; border: none; padding: 10px 12px; border-radius: 8px; font-family: 'Kanit'; font-weight: bold; font-size: 0.95rem; margin-top: 15px; cursor: pointer; display: flex; justify-content: center; align-items: center; gap: 8px; box-shadow: 0 2px 6px rgba(0,0,0,0.1); }
+    .btn-approve { background: #27ae60; }
+    .btn-reject { background: #e74c3c; }
+
+    /* Bottom Navigation Bar */
+    .bottom-nav { position: fixed; bottom: 0; left: 0; width: 100%; background: white; box-shadow: 0 -2px 15px rgba(0,0,0,0.08); display: flex; justify-content: space-around; padding: 10px 0; padding-bottom: calc(10px + env(safe-area-inset-bottom)); z-index: 100; border-radius: 20px 20px 0 0; }
+    .nav-item { flex: 1; text-align: center; color: #95a5a6; cursor: pointer; font-size: 0.75rem; font-weight: 500; display: flex; flex-direction: column; align-items: center; gap: 4px; transition: 0.2s; position: relative; }
+    .nav-item i { font-size: 1.3rem; }
+    .nav-item.active { color: #8e44ad; }
+    .nav-badge { position: absolute; top: -5px; right: 20%; background: #e74c3c; color: white; border-radius: 50%; width: 18px; height: 18px; font-size: 0.65rem; display: flex; justify-content: center; align-items: center; font-weight: bold; border: 2px solid white; }
+
+    .tab-content { display: none; animation: fadeIn 0.3s; }
+    .tab-content.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    #loading-screen { display: flex; flex-direction: column; justify-content: center; align-items: center; height: 100vh; background: #fff; }
+    #unlinked-screen { display: none; text-align: center; padding: 30px 20px; min-height: 100vh; background: white; box-sizing: border-box; }
+    #main-content { display: none; }
+    
+    .login-box { max-width: 360px; margin: 15px auto; background: #fdfefe; border: 1px solid #e0e6ed; border-radius: 16px; padding: 25px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); }
+    .email-input { width: 100%; padding: 14px; border: 1.5px solid #bdc3c7; border-radius: 12px; font-family: 'Kanit'; font-size: 1rem; box-sizing: border-box; text-align: center; margin-bottom: 15px; outline: none; }
+
+    /* Custom scrollbar สำหรับกล่องพัสดุในมือถือ */
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-thumb { background: #bdc3c7; border-radius: 10px; }
+    ::-webkit-scrollbar-track { background: #f1f2f6; }
+    .skeleton {
+      background: #e2e5e7;
+      background-image: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+      background-size: 200px 100%;
+      background-repeat: no-repeat;
+      display: inline-block;
+      border-radius: 4px;
+      animation: shimmer 1.5s infinite linear;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200px 0; }
+      100% { background-position: calc(200px + 100%) 0; }
+    }
+    .skeleton-text { height: 14px; margin-bottom: 8px; width: 100%; }
+    .skeleton-title { height: 20px; margin-bottom: 12px; width: 70%; }
+    .skeleton-btn { height: 35px; width: 100%; border-radius: 8px; margin-top: 10px; }
+    .skeleton-card { background: white; border-radius: 12px; padding: 15px; margin-bottom: 15px; border: 1px solid #f1f2f6; }
+  </style>
+</head>
+<body>
+
+  <!-- 🌟 หน้าจอ Skeleton Loading (แสดงระหว่างดึงข้อมูล) -->
+  <div id="loading-screen" style="display: flex; flex-direction: column; height: 100vh; background: #f8f9fa; width: 100%; box-sizing: border-box;">
+    
+    <!-- ส่วนจำลอง Header -->
+    <div style="background: linear-gradient(135deg, #bdc3c7, #95a5a6); padding: 30px 20px 45px 20px; border-radius: 0 0 25px 25px;">
+      <div class="skeleton skeleton-title" style="background-color: rgba(255,255,255,0.4); width: 120px; height: 24px; margin-top: 15px;"></div>
+      <div class="skeleton skeleton-text" style="background-color: rgba(255,255,255,0.4); width: 180px;"></div>
+    </div>
+    
+    <!-- ส่วนจำลองกล่องสรุปยอด (Summary Box) -->
+    <div style="display: flex; gap: 10px; margin: -25px 15px 15px 15px; position: relative; z-index: 10;">
+      <div style="flex: 1; background: white; border-radius: 12px; padding: 15px; text-align: center;">
+        <div class="skeleton skeleton-text" style="width: 60%; margin: 0 auto 10px auto;"></div>
+        <div class="skeleton" style="width: 40px; height: 25px; border-radius: 4px;"></div>
+      </div>
+      <div style="flex: 1; background: white; border-radius: 12px; padding: 15px; text-align: center;">
+        <div class="skeleton skeleton-text" style="width: 60%; margin: 0 auto 10px auto;"></div>
+        <div class="skeleton" style="width: 40px; height: 25px; border-radius: 4px;"></div>
+      </div>
+    </div>
+
+    <!-- ส่วนจำลองการ์ดเนื้อหา (Cards) -->
+    <div style="padding: 0 15px;">
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-text" style="width: 30%;"></div>
+        <div class="skeleton skeleton-title"></div>
+        <div class="skeleton skeleton-text" style="width: 100%;"></div>
+        <div class="skeleton skeleton-text" style="width: 80%;"></div>
+        <div class="skeleton skeleton-btn"></div>
+      </div>
+      
+      <div class="skeleton-card">
+        <div class="skeleton skeleton-text" style="width: 40%;"></div>
+        <div class="skeleton skeleton-title" style="width: 90%;"></div>
+        <div class="skeleton skeleton-text" style="width: 70%;"></div>
+        <div class="skeleton skeleton-text" style="width: 100%;"></div>
+      </div>
+    </div>
+  </div>
+
+  <div id="unlinked-screen">
+    <div style="width: 90px; height: 90px; border-radius: 50%; background: #f5eef8; display: flex; justify-content: center; align-items: center; margin: 20px auto 15px auto;">
+      <i class="fas fa-fingerprint fa-3x" style="color: #8e44ad;"></i>
+    </div>
+    <h2 style="margin: 0 0 8px 0; color: #2c3e50;">ยืนยันตัวตนเข้าระบบ</h2>
+    <p style="color: #7f8c8d; font-size: 0.9rem; margin-bottom: 20px;" id="unlinked-msg">กรุณากรอกอีเมลในระบบแผนงานเพื่อเข้าใช้งาน</p>
+    <div class="login-box">
+      <input type="email" id="manual-email-input" class="email-input" placeholder="ตัวอย่าง: name@sopon.ac.th">
+      <button onclick="submitEmailBind()" class="btn-action" style="background: linear-gradient(135deg, #8e44ad, #2980b9);">
+        <i class="fas fa-shield-alt"></i> ยืนยันและเข้าสู่ระบบ
+      </button>
+    </div>
+  </div>
+
+  <div id="main-content">
+    <div class="header">
+      <button class="btn-logout" onclick="switchAccount()"><i class="fas fa-exchange-alt"></i> สลับผู้ใช้</button>
+      <div style="text-align: left; padding-top: 10px;">
+         <h2 id="user-name" style="margin: 0; font-weight: 600; font-size: 1.4rem;">...</h2>
+         <div id="user-email-badge" style="font-size: 0.95rem; opacity: 0.9; margin-top: 2px; font-weight: 300;">กำลังดึงข้อมูลสิทธิ์...</div>
+      </div>
+    </div>
+
+    <!-- สารสนเทศติดตามงาน -->
+    <div style="display: flex; gap: 10px; margin: -25px 15px 15px 15px; position: relative; z-index: 10;">
+      <div style="flex: 1; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-bottom: 4px solid #3498db;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; font-weight: bold; margin-bottom: 2px;">โครงการในมือ</div>
+        <div id="sum-projects" style="font-size: 1.4rem; font-weight: bold; color: #2c3e50;">0</div>
+      </div>
+      <div style="flex: 1; background: white; border-radius: 12px; padding: 15px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); text-align: center; border-bottom: 4px solid #e74c3c;">
+        <div style="font-size: 0.75rem; color: #7f8c8d; font-weight: bold; margin-bottom: 2px;">รอเคลียร์บิล</div>
+        <div id="sum-pending-bills" style="font-size: 1.4rem; font-weight: bold; color: #2c3e50;">0</div>
+      </div>
+    </div>
+
+    <!-- 🌟 ส่วนที่ 2: งานบริหาร/ตรวจสอบ (ตะกร้างานรอฉันอนุมัติ) -->
+    <div style="margin: 0 15px 20px 15px;" onclick="switchTab('tab-approvals', document.querySelectorAll('.nav-item')[2])">
+      <div style="background: linear-gradient(135deg, #27ae60, #2ecc71); border-radius: 12px; padding: 15px 20px; box-shadow: 0 4px 10px rgba(39, 174, 96, 0.25); display: flex; justify-content: space-between; align-items: center; color: white; cursor: pointer;">
+        <div>
+          <div style="font-size: 0.85rem; opacity: 0.9; margin-bottom: 2px;"><i class="fas fa-inbox"></i> ตะกร้างานตรวจสอบ</div>
+          <div style="font-size: 1.1rem; font-weight: bold;">รอฉันพิจารณาอนุมัติ</div>
+        </div>
+        <div style="background: rgba(255,255,255,0.2); border-radius: 50%; width: 45px; height: 45px; display: flex; justify-content: center; align-items: center; font-size: 1.3rem; font-weight: bold; border: 2px solid rgba(255,255,255,0.5);" id="sum-approvals">
+          0
+        </div>
+      </div>
+    </div>
+
+    <div class="container">
+      <div id="tab-projects" class="tab-content active"><div id="project-list"></div></div>
+      <div id="tab-myrequests" class="tab-content"><div id="myrequest-list"></div></div>
+      
+      <!-- 🌟 พื้นที่วาดคิวงานรออนุมัติ -->
+      <div id="tab-approvals" class="tab-content"><div id="approval-list"></div></div>
+    </div>
+
+    <nav class="bottom-nav">
+      <div class="nav-item active" onclick="switchTab('tab-projects', this)">
+        <i class="fas fa-folder"></i>
+        <span>โครงการ</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('tab-myrequests', this)">
+        <i class="fas fa-receipt"></i>
+        <span>ประวัติเบิกจ่าย&แนบบิล</span>
+        <span id="bill-badge" class="nav-badge" style="display: none;">0</span>
+      </div>
+      <div class="nav-item" onclick="switchTab('tab-approvals', this)">
+        <i class="fas fa-clipboard-check"></i>
+        <span>รออนุมัติ</span>
+        <span id="approval-badge" class="nav-badge" style="display: none;">0</span>
+      </div>
+    </nav>
+  </div>
+  <!-- 🌟 แท็บฟอร์มเบิกจ่ายผ่านมือถือ (ซ่อนไว้ก่อน) -->
+      <div id="tab-new-disb" class="tab-content">
+         <div style="background: white; border-radius: 12px; padding: 20px; box-shadow: 0 4px 10px rgba(0,0,0,0.05); margin-bottom: 20px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; border-bottom:2px solid #ecf0f1; padding-bottom:10px;">
+               <h3 style="margin:0; color:#e67e22;"><i class="fas fa-file-invoice-dollar"></i> สร้างคำขอเบิกจ่าย</h3>
+               <button onclick="switchTab('tab-projects', document.querySelectorAll('.nav-item')[0])" style="background:none; border:none; color:#7f8c8d; font-size:1.2rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+            </div>
+            
+            <form id="mobile-disb-form">
+               <!-- 🌟 ซ่อน ID สำหรับโหมดแก้ไข -->
+               <input type="hidden" id="mob-edit-req-id">
+               <input type="hidden" id="mob-edit-old-url">
+               <input type="hidden" id="mob-project-id">
+               
+               <!-- 🌟 กล่องแจ้งเตือนเหตุผลที่ถูกตีกลับ (ซ่อนไว้ก่อน) -->
+               <div id="mob-return-reason-container" style="display:none; margin-bottom:15px; background: #fdedec; padding: 15px; border-radius: 6px; border: 1px dashed #e74c3c;">
+                  <label style="display:block; margin-bottom:5px; font-weight:bold; color: #c0392b; font-size: 0.9rem;"><i class="fas fa-exclamation-triangle"></i> หมายเหตุ / เหตุผลที่ต้องแก้ไข:</label>
+                  <div id="mob-return-reason-display" style="font-size:0.85rem; color:#c0392b; white-space: pre-wrap; font-family:'Kanit'; line-height: 1.5; background: rgba(255,255,255,0.6); padding: 10px; border-radius: 4px;"></div>
+               </div>
+
+               <div style="background:#f4f6f8; padding:12px; border-radius:8px; border-left:4px solid #3498db; margin-bottom:15px;">
+                  <div style="font-size:0.8rem; color:#7f8c8d;">กำลังขอเบิกเงินจากโครงการ:</div>
+                  <div id="mob-project-name-display" style="font-weight:bold; color:#2980b9; font-size:1.05rem;">-</div>
+               </div>
+
+               <div style="margin-bottom: 15px;">
+                  <label style="font-size:0.85rem; font-weight:bold; color:#2c3e50;">1. ลักษณะการขอเบิก <span style="color:red;">*</span></label>
+                  <div style="display:flex; gap:10px; margin-top:5px;">
+                     <select id="mob-action-type" style="flex:1; padding:10px; border-radius:8px; border:1px solid #bdc3c7; font-family:'Kanit'; font-size:0.9rem; outline:none;">
+                        <option value="จัดซื้อ">จัดซื้อ</option>
+                        <option value="จัดจ้าง">จัดจ้าง</option>
+                        <option value="ขออนุมัติค่าใช้จ่าย">ขออนุมัติค่าใช้จ่าย</option>
+                     </select>
+                     <select id="mob-item-category" style="flex:1; padding:10px; border-radius:8px; border:1px solid #bdc3c7; font-family:'Kanit'; font-size:0.9rem; outline:none;">
+                        <option value="วัสดุ">วัสดุ</option>
+                        <option value="ครุภัณฑ์">ครุภัณฑ์</option>
+                        <option value="ค่าอาหาร/อาหารว่าง">ค่าอาหาร/อาหารว่าง</option>
+                        <option value="ค่าใช้สอยอื่นๆ">ค่าใช้สอยอื่นๆ</option>
+                     </select>
+                  </div>
+               </div>
+
+               <div style="margin-bottom: 15px;">
+                  <label style="font-size:0.85rem; font-weight:bold; color:#2c3e50;">2. เพื่อนำไปใช้สำหรับงานใด? <span style="color:red;">*</span></label>
+                  <input type="text" id="mob-objective" placeholder="เช่น ใช้เป็นอุปกรณ์ในฐานกิจกรรม..." style="width:100%; padding:10px; border-radius:8px; border:1px solid #bdc3c7; font-family:'Kanit'; font-size:0.9rem; margin-top:5px; box-sizing: border-box;">
+               </div>
+
+               <div style="margin-bottom: 15px; border-top:1px dashed #bdc3c7; padding-top:15px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                     <label style="font-size:0.85rem; font-weight:bold; color:#2c3e50;">3. รายการพัสดุ/ค่าใช้จ่าย <span style="color:red;">*</span></label>
+                     <button type="button" onclick="addMobileItemRow()" style="background:#27ae60; color:white; border:none; padding:5px 10px; border-radius:6px; font-family:'Kanit'; font-size:0.75rem;"><i class="fas fa-plus"></i> เพิ่มรายการ</button>
+                  </div>
+                  <div id="mob-items-container"></div>
+               </div>
+
+               <div style="background:#fdf2e9; padding:12px; border-radius:8px; border:1px solid #f39c12; margin-bottom:15px; display:flex; justify-content:space-between; align-items:center;">
+                  <div style="font-weight:bold; color:#d35400;">ยอดขอเบิกรวม (บาท):</div>
+                  <input type="number" id="mob-grand-total" readonly value="0" style="width:100px; text-align:right; font-weight:bold; color:#c0392b; font-size:1.1rem; border:none; background:transparent; outline:none; padding:0;">
+               </div>
+               <!-- 🌟 ส่วนที่เพิ่มใหม่: VAT และ ค่าจัดส่ง -->
+               <div style="background:#f9fbfc; padding:12px; border-radius:8px; border:1px solid #d9e2ec; margin-bottom:15px;">
+                  <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                     <label style="font-size:0.85rem; color:#7f8c8d;"><i class="fas fa-file-invoice"></i> ภาษีมูลค่าเพิ่ม (VAT)</label>
+                     <div style="display:flex; align-items:center;">
+                        <input type="number" id="mob-vat-amount" value="0" oninput="calcMobileTotal()" style="width:80px; text-align:right; border:1px solid #bdc3c7; border-radius:4px; padding:4px 8px; font-family:'Kanit';">
+                        <span style="font-size:0.85rem; color:#7f8c8d; margin-left:5px;">฿</span>
+                     </div>
+                  </div>
+                  <div style="display:flex; justify-content:space-between; align-items:center;">
+                     <label style="font-size:0.85rem; color:#7f8c8d;"><i class="fas fa-truck"></i> ค่าจัดส่ง</label>
+                     <div style="display:flex; align-items:center;">
+                        <input type="number" id="mob-ship-amount" value="0" oninput="calcMobileTotal()" style="width:80px; text-align:right; border:1px solid #bdc3c7; border-radius:4px; padding:4px 8px; font-family:'Kanit';">
+                        <span style="font-size:0.85rem; color:#7f8c8d; margin-left:5px;">฿</span>
+                     </div>
+                  </div>
+               </div>
+
+               <div style="margin-bottom: 15px;">
+                  <label style="font-size:0.85rem; font-weight:bold; color:#2c3e50;">4. คณะกรรมการตรวจรับ (ถ้ามี)</label>
+                  
+                  <!-- 🌟 ป้ายหมายเหตุจากงานพัสดุ (มือถือ) -->
+                  <div style="background:#fff4e5; border-left:3px solid #f39c12; color:#d35400; padding:8px 10px; border-radius:4px; font-size:0.8rem; margin-top:5px; margin-bottom:10px; line-height:1.4;">
+                     <i class="fas fa-info-circle"></i> <b>หมายเหตุจากงานพัสดุ:</b> ควรระบุชื่อบุคคลอื่น ที่ไม่ใช่ผู้ขอเบิก
+                  </div>
+
+                  <input type="text" id="mob-comm1" placeholder="ประธานกรรมการ" style="width:100%; padding:10px; border-radius:8px; border:1px solid #bdc3c7; font-family:'Kanit'; font-size:0.9rem; margin-top:5px; box-sizing: border-box;">
+                  <input type="text" id="mob-comm2" placeholder="กรรมการคนที่ 1" style="width:100%; padding:10px; border-radius:8px; border:1px solid #bdc3c7; font-family:'Kanit'; font-size:0.9rem; margin-top:5px; box-sizing: border-box;">
+                  <input type="text" id="mob-comm3" placeholder="กรรมการคนที่ 2" style="width:100%; padding:10px; border-radius:8px; border:1px solid #bdc3c7; font-family:'Kanit'; font-size:0.9rem; margin-top:5px; box-sizing: border-box;">
+               </div>
+
+               <div style="margin-bottom: 20px;">
+                  <label style="font-size:0.85rem; font-weight:bold; color:#2c3e50;">5. แนบเอกสาร/ใบเสนอราคา (ถ้ามี)</label>
+                  <input type="file" id="mob-file-upload" accept="image/*,.pdf" style="width:100%; padding:10px; background:#f4f6f8; border:1px dashed #bdc3c7; border-radius:8px; font-family:'Kanit'; font-size:0.85rem; margin-top:5px; box-sizing: border-box;">
+               </div>
+
+               <button type="button" id="btn-mobile-submit-disb" onclick="submitMobileDisbursement()" class="btn-action" style="background: linear-gradient(135deg, #e67e22, #d35400); margin-top:0; padding:12px; font-size:1.1rem;">
+                  <i class="fas fa-paper-plane"></i> ยื่นคำขอเบิกจ่าย (ผง.2)
+               </button>
+            </form>
+         </div>
+      </div>
+
+  <script>
+    const serverUid = "<?= typeof serverLineUid !== 'undefined' ? serverLineUid : '' ?>";
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlUid = urlParams.get('uid') || "";
+
+    function getActiveAuthKey() {
+      const preferredEmail = localStorage.getItem('sopon_preferred_email');
+      if (preferredEmail) return preferredEmail;
+      if (serverUid && !serverUid.includes('serverLineUid')) { localStorage.setItem('sopon_mobile_auth', serverUid); return serverUid; }
+      if (urlUid) { localStorage.setItem('sopon_mobile_auth', urlUid); return urlUid; }
+      return localStorage.getItem('sopon_mobile_auth') || "";
+    }
+
+    function loadMobileDashboard() {
+      const authKey = getActiveAuthKey();
+      document.getElementById('loading-screen').style.display = 'flex';
+      document.getElementById('unlinked-screen').style.display = 'none';
+      document.getElementById('main-content').style.display = 'none';
+
+      google.script.run
+        .withSuccessHandler(renderDashboard)
+        .withFailureHandler(err => {
+            document.getElementById('loading-screen').innerHTML = `<div style="color:red; text-align:center; padding:20px;">❌ เกิดข้อผิดพลาด: ${err.message}</div>`;
+        })
+        .getMobileDashboardData(authKey);
+    }
+
+    window.onload = loadMobileDashboard;
+
+    function submitEmailBind() {
+      const emailVal = document.getElementById('manual-email-input').value.trim().toLowerCase();
+      if (!emailVal || !emailVal.includes('@')) { Swal.fire('แจ้งเตือน', 'กรุณากรอกอีเมลให้ถูกต้อง', 'warning'); return; }
+
+      const currentUid = (serverUid && !serverUid.includes('serverLineUid')) ? serverUid : urlUid;
+      Swal.fire({ title: 'กำลังตรวจสอบ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+      google.script.run
+        .withSuccessHandler(res => {
+          Swal.close();
+          if (res.success) {
+            localStorage.setItem('sopon_preferred_email', res.email);
+            localStorage.setItem('sopon_mobile_auth', res.email);
+            Swal.fire({ icon: 'success', title: `เข้าสู่ระบบสำเร็จ`, text: `ยินดีต้อนรับ ${res.fullName}`, timer: 1500, showConfirmButton: false }).then(loadMobileDashboard);
+          } else {
+            Swal.fire('ไม่พบข้อมูล', res.message, 'error');
+          }
+        })
+        .withFailureHandler(err => Swal.fire('ผิดพลาด', err.message, 'error'))
+        .linkMobileUserByEmail(emailVal, currentUid);
+    }
+
+    function switchAccount() {
+      Swal.fire({
+        title: 'สลับบัญชีผู้ใช้?',
+        text: 'ระบบจะให้คุณกรอกอีเมลใหม่เพื่อเข้าใช้งานในบทบาทอื่น',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'สลับผู้ใช้',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#8e44ad'
+      }).then(result => {
+        if (result.isConfirmed) {
+          localStorage.removeItem('sopon_preferred_email');
+          localStorage.removeItem('sopon_mobile_auth');
+          document.getElementById('manual-email-input').value = '';
+          document.getElementById('main-content').style.display = 'none';
+          document.getElementById('unlinked-screen').style.display = 'block';
+        }
+      });
+    }
+
+    function switchTab(tabId, el) {
+      document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.nav-item').forEach(b => b.classList.remove('active'));
+      document.getElementById(tabId).classList.add('active');
+      el.classList.add('active');
+    }
+
+    // ==========================================
+    // 🌟 ฟังก์ชันหลัก: Render Dashboard ทั้ง 3 แท็บ
+    // ==========================================
+    function renderDashboard(res) {
+      document.getElementById('loading-screen').style.display = 'none';
+
+      if (!res.success) {
+        document.getElementById('unlinked-screen').style.display = 'block';
+        return;
+      }
+
+      if (res.userEmail && res.userEmail !== 'undefined') localStorage.setItem('sopon_mobile_auth', res.userEmail);
+
+      document.getElementById('main-content').style.display = 'block';
+      document.getElementById('user-name').innerText = res.userName || "ผู้ใช้งานระบบ";
+
+      let rawRole = String(res.userRole || "").trim().toLowerCase();
+      let roleThai = "ครูผู้รับผิดชอบโครงการ"; 
+      if (rawRole.includes('admin') || rawRole.includes('แผน')) roleThai = "งานแผนงาน";
+      else if (rawRole.includes('supply') || rawRole.includes('พัสดุ')) roleThai = "งานพัสดุ";
+      else if (rawRole.includes('finance') || rawRole.includes('การเงิน')) roleThai = "งานการเงิน";
+      else if (rawRole.includes('approver1') || rawRole.includes('หัวหน้า')) roleThai = "หัวหน้างาน (A1)";
+      else if (rawRole.includes('approver2') || rawRole.includes('รอง')) roleThai = "รองผู้อำนวยการ (A2)";
+      else if (rawRole.includes('approver3') || rawRole.includes('ผอ')) roleThai = "ผู้อำนวยการ (A3)";
+      else if (rawRole !== "" && rawRole !== "user") roleThai = rawRole;
+
+      document.getElementById('user-email-badge').innerText = `สิทธิ์ใช้งาน: ${roleThai}`;
+
+      let totalProjects = res.projects ? res.projects.length : 0;
+      let pendingBillsCount = 0;
+      let pendingApprovalsCount = res.pendingApprovals ? res.pendingApprovals.length : 0;
+
+      // ===================================
+      // 1. โครงการของฉัน (ผง.1) - โค้ดสำหรับ Mobile
+      // ===================================
+      const projContainer = document.getElementById('project-list');
+      if (totalProjects === 0) {
+         projContainer.innerHTML = '<div style="text-align:center; padding:40px 20px; color:#95a5a6;"><i class="fas fa-folder-open fa-3x" style="margin-bottom:10px; color:#bdc3c7;"></i><br>ไม่มีโครงการในระบบ</div>';
+      } else {
+         let pHtml = '';
+         res.projects.forEach(p => {
+           let percent = p.budget > 0 ? (p.spent / p.budget) * 100 : 0;
+           let pColor = percent > 90 ? '#e74c3c' : (percent > 60 ? '#f39c12' : '#27ae60');
+           let execColor = '#3498db';
+           if (p.execStatus && p.execStatus.includes('เสร็จสิ้น')) execColor = '#27ae60';
+           else if (p.execStatus && p.execStatus.includes('ไม่ได้')) execColor = '#e74c3c';
+           
+           let isApproved = (p.status && p.status.includes('อนุมัติ') && !p.status.includes('รอ') && !p.status.includes('ไม่'));
+           
+           // 🌟 เช็คว่าเป็นโครงการส่วนกลางที่ไปขอเบิกมาหรือไม่ 🌟
+           let isCentral = p.isCentral === true; // ตัวแปรอ้างอิงจาก Backend
+           
+           let disbBtnHtml = '';
+           let docBtnHtml = '';
+           let headerDecor = '';
+
+           if (isCentral) {
+               // 📌 ถ้าเป็นโครงการกลาง (ให้แสดงป้ายสีส้ม และไม่ต้องมีปุ่มเบิกเงิน)
+               headerDecor = '<div style="background:#e67e22; color:white; font-size:0.7rem; padding:2px 8px; border-radius:10px; margin-bottom:5px; display:inline-block;"><i class="fas fa-star"></i> โครงการส่วนกลาง (เบิกแทน)</div>';
+           } else {
+               // 📌 ถ้าเป็นโครงการของตัวเอง (ให้โชว์ปุ่มตามปกติ)
+               disbBtnHtml = isApproved 
+                ? `<button onclick="openMobileDisbForm('${p.id}', '${p.name.replace(/'/g, "\\'")}')" class="btn-action" style="flex:1; background:#e67e22; color:white; border:none; font-size:0.85rem; margin-top:0; padding:8px;"><i class="fas fa-money-bill-wave"></i> เบิกเงิน</button>`
+                : `<button disabled class="btn-action" style="flex:1; background:#ecf0f1; color:#95a5a6; border:none; font-size:0.85rem; margin-top:0; padding:8px;"><i class="fas fa-lock"></i> รออนุมัติ</button>`;
+               
+               docBtnHtml = `<button onclick="window.open('${p.url}', '_blank')" class="btn-action" style="flex:1; background:#f4f6f8; color:#2980b9; border: 1px solid #d9e2ec; font-size:0.85rem; margin-top:0; padding:8px;"><i class="fas fa-file-word"></i> เปิด ผง.1</button>`;
+           }
+
+           pHtml += `
+             <div class="card project" style="${isCentral ? 'border: 2px solid #e67e22; box-shadow: 0 4px 10px rgba(230,126,34,0.15);' : ''}">
+               ${headerDecor}
+               <div style="display:flex; justify-content:space-between; margin-bottom: 8px;">
+                 <span style="font-size: 0.75rem; color: #7f8c8d; font-weight:bold;">${p.id}</span>
+                 <span class="badge" style="background: ${execColor};">${p.execStatus || '-'}</span>
+               </div>
+               <div style="font-weight: bold; font-size: 1.1rem; color: #2c3e50; margin-bottom: 12px; line-height: 1.3;">${isCentral ? '<i class="fas fa-hand-holding-usd" style="color:#e67e22;"></i> ' : ''}${p.name}</div>
+               
+               <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:5px;">
+                 <span style="color:#7f8c8d;">งบจัดสรร</span><span style="font-weight:bold; color:#2980b9;">${Number(p.budget || 0).toLocaleString()} ฿</span>
+               </div>
+               <div style="display:flex; justify-content:space-between; font-size:0.85rem; margin-bottom:5px;">
+                 <span style="color:#7f8c8d;">เบิกแล้ว</span><span style="font-weight:bold; color:#e74c3c;">${Number(p.spent || 0).toLocaleString()} ฿</span>
+               </div>
+               <div style="display:flex; justify-content:space-between; font-size:0.95rem; margin-top:5px;">
+                 <span style="font-weight:bold; color:#2c3e50;">คงเหลือ</span><span style="font-weight:bold; color:${p.remaining < 0 ? '#e74c3c' : '#27ae60'};">${Number(p.remaining || 0).toLocaleString()} ฿</span>
+               </div>
+               <div class="progress-bg">
+                 <div class="progress-fill" style="width: ${Math.min(100, percent)}%; background: ${pColor};"></div>
+               </div>
+               
+               ${!isCentral ? `<div style="display:flex; gap:8px; margin-top:12px;">${docBtnHtml}${disbBtnHtml}</div>` : ''}
+             </div>`;
+         });
+         projContainer.innerHTML = pHtml;
+      }
+
+      // ===================================
+      // 2. ประวัติเบิกและแนบบิล (ผง.2)
+      // ===================================
+      const reqContainer = document.getElementById('myrequest-list');
+      if (!res.myRequests || res.myRequests.length === 0) {
+          reqContainer.innerHTML = '<div style="text-align:center; padding:40px 20px; color:#95a5a6;"><i class="fas fa-receipt fa-3x" style="margin-bottom:10px; color:#bdc3c7;"></i><br>ยังไม่มีประวัติการเบิกจ่าย</div>';
+      } else {
+          // 🌟 จำข้อมูลไว้ใช้ตอนกดแก้ไขคำขอผ่านมือถือ
+          window.mobileMyRequestsData = res.myRequests; 
+
+          let reqHtml = '';
+          res.myRequests.slice().reverse().forEach(r => {
+             let statusColor = '#f39c12';
+             if (r.status && (r.status.includes('เสร็จสิ้น') || r.status.includes('กระทบยอดแล้ว') || r.status.includes('อนุมัติ'))) statusColor = '#27ae60';
+             if (r.status && (r.status.includes('ตีกลับ') || r.status.includes('แก้ไข') || r.status.includes('ไม่อนุมัติ'))) statusColor = '#e74c3c';
+             
+             if (r.status && r.status.includes('รอแนบบิล')) pendingBillsCount++;
+
+             let actionButtonsHtml = '';
+             let itemsStr = encodeURIComponent(JSON.stringify(r.items || [])).replace(/'/g, "%27").replace(/"/g, "%22");
+             let safeProjName = String(r.projectName || '').replace(/'/g, "\\'").replace(/"/g, "&quot;");
+
+             // 🌟 1. เพิ่มปุ่มแก้ไขคำขอ ถ้าเป็นแบบร่างหรือโดนตีกลับมา
+             let isCancelled = r.status && (r.status.includes('ยกเลิก') || r.status.includes('ไม่อนุมัติ'));
+             let isApprovedOrDone = r.status && (
+                 r.status.includes('อนุมัติเบิกจ่าย') ||
+                 r.status.includes('อนุมัติสมบูรณ์') ||
+                 r.status.includes('รอกระทบยอด') ||
+                 r.status.includes('กระทบยอดแล้ว') ||
+                 r.status.includes('เสร็จสิ้น')
+             );
+
+             // 🌟 1. ปุ่มแก้ไขคำขอ (แบบร่าง หรือ โดนตีกลับ)
+             if (r.status && (r.status.includes('ส่งกลับแก้ไข') || r.status === 'แบบร่าง')) {
+                 actionButtonsHtml += `<button onclick="openEditMobileDisbForm('${r.reqId}', '${r.projectId}', '${safeProjName}')" class="btn-action" style="background:#e74c3c; color:white; border:none; margin-top:10px; flex:1;"><i class="fas fa-edit"></i> แก้ไข</button>`;
+             }
+
+             // 🌟 2. ปุ่มแนบบิล
+             if (!isCancelled && r.status && (r.status.includes('รอแนบบิล') || r.originalStatus === 'อนุมัติเบิกจ่าย (รอแนบบิล)')) {
+                 actionButtonsHtml += `<button onclick="openBillPopup('${r.reqId}', '${safeProjName}', ${Number(r.total || 0)}, '${itemsStr}')" class="btn-action" style="background:#e67e22; color:white; border:none; margin-top:10px; flex:1;"><i class="fas fa-camera"></i> แนบบิล</button>`;
+             }
+
+             // 🌟 3. ปุ่มระงับ / ดึงเรื่องกลับ (เฉพาะรายการที่กำลังเดินเรื่องอยู่ ยังไม่ผ่าน ผอ.)
+             if (!actionButtonsHtml && !isCancelled && !isApprovedOrDone) {
+                 actionButtonsHtml = `<button onclick="openMobileRecallModal('${r.reqId}')" class="btn-action" style="background:#fff; color:#e67e22; border:1.5px solid #e67e22; margin-top:10px; flex:1;"><i class="fas fa-undo-alt"></i> ระงับ / ดึงเรื่องกลับ</button>`;
+             }
+
+             // 🌟 4. กรณียกเลิกแล้ว หรือ อนุมัติ/ส่งตรวจแล้ว
+             if (!actionButtonsHtml) {
+                 if (isCancelled) {
+                     actionButtonsHtml = `<button disabled class="btn-action" style="background:#fdedec; color:#e74c3c; border:1px solid #f5b7b1; margin-top:10px; flex:1;"><i class="fas fa-ban"></i> ยกเลิกรายการแล้ว</button>`;
+                 } else {
+                     actionButtonsHtml = `<button disabled class="btn-action" style="background:#f4f6f8; color:#95a5a6; border:1px solid #bdc3c7; margin-top:10px; flex:1;"><i class="fas fa-check-circle"></i> ส่งตรวจแล้ว</button>`;
+                 }
+             }
+
+             // 🌟 1. ดึงแถบ Progress Bar มาใช้
+             let statusBarHtml = generateStatusStepper(r.status);
+
+             // 🌟 2. วาดการ์ดใหม่ที่สอดไส้ Progress Bar ตรงกลาง
+             reqHtml += `
+               <div class="card myrequest">
+                 <div style="font-size: 0.75rem; color: #8e44ad; font-weight:bold; margin-bottom: 5px;">รหัสคำขอ: ${r.reqId}</div>
+                 <div style="font-weight: bold; font-size: 1.05rem; color: #2c3e50; line-height: 1.3;">${r.projectName}</div>
+                 <div style="font-size: 1rem; color: #c0392b; font-weight:bold; margin-top: 8px;"><i class="fas fa-coins"></i> ยอดเบิก: ${Number(r.total || 0).toLocaleString()} ฿</div>
+                 
+                 <!-- 🌟 ส่วนที่เพิ่มใหม่: แถบสถานะ -->
+                 <div style="margin-top: 12px; padding: 10px; background: #fdfefe; border: 1px dashed #ecf0f1; border-radius: 8px; font-size: 0.85rem; text-align: center;">
+                    สถานะ: <span style="color: ${statusColor}; font-weight:bold;">${r.status}</span>
+                    ${statusBarHtml}
+                 </div>
+                 
+                 <div style="display:flex; gap:8px;">${actionButtonsHtml}</div>
+               </div>`;
+          });
+          reqContainer.innerHTML = reqHtml;
+      }
+
+      // ===================================
+      // 3. ตะกร้างานตรวจสอบ (ผสม ผง.1 และ ผง.2)
+      // ===================================
+      const appContainer = document.getElementById('approval-list');
+      const appBadge = document.getElementById('approval-badge');
+      const billBadge = document.getElementById('bill-badge');
+      
+      document.getElementById('sum-projects').innerText = totalProjects;
+      document.getElementById('sum-pending-bills').innerText = pendingBillsCount;
+      document.getElementById('sum-approvals').innerText = pendingApprovalsCount;
+
+      if (pendingBillsCount > 0) { billBadge.innerText = pendingBillsCount; billBadge.style.display = 'flex'; }
+      if (pendingApprovalsCount > 0) { appBadge.innerText = pendingApprovalsCount; appBadge.style.display = 'flex'; }
+      
+      if (pendingApprovalsCount > 0) {
+          let aHtml = '';
+          res.pendingApprovals.forEach(a => {
+             let isProject = a.type === 'project';
+             let typeTag = isProject ? '<span style="background:#3498db; color:white; padding:2px 6px; border-radius:4px; font-size:0.7rem;">ผง.1 โครงการ</span>' : '<span style="background:#e67e22; color:white; padding:2px 6px; border-radius:4px; font-size:0.7rem;">ผง.2 เบิกจ่าย</span>';
+             let cardClass = isProject ? 'approval-proj' : 'approval-disb';
+
+             let actionFunc = isProject ? `handleProjectApproval('${a.reqId}', 'return')` : `handleApproval('${a.reqId}', 'return')`;
+             let approveFunc = isProject ? `handleProjectApproval('${a.reqId}', 'approve')` : `handleApproval('${a.reqId}', 'approve')`;
+             
+             let detailBoxHtml = '';
+             let historyHtml = '';
+             
+             const formatText = (text) => {
+                 if (!text) return '';
+                 let formatted = text.replace(/\n/g, '<br>');
+                 if (text.match(/ไม่ถูกต้อง|ไม่สอดคล้อง|ไม่อนุมัติ|ตีกลับ|ทบทวน|ชะลอ|เกิน|ไม่ครบถ้วน/)) return `❌ <span style="color:#c0392b;">${formatted}</span>`;
+                 else if (text.match(/อนุมัติ|สอดคล้อง|ถูกต้อง|เห็นควร|เพียงพอ|ผ่าน|ดำเนินการได้/)) return `✅ <span style="color:#27ae60;">${formatted}</span>`;
+                 return `💬 <span style="color:#34495e;">${formatted}</span>`;
+             };
+
+             if (a.adminComment) historyHtml += `<div style="margin-bottom:8px; border-bottom:1px dashed #f3d19e; padding-bottom:6px;"><span style="color:#d35400; font-size:0.8rem;"><i class="fas fa-clipboard-check"></i> <b>งานแผนงาน:</b></span><br><div style="margin-top:3px; padding-left:5px; font-size:0.85rem;">${formatText(a.adminComment)}</div></div>`;
+             if (a.supplyComment) historyHtml += `<div style="margin-bottom:8px; border-bottom:1px dashed #f3d19e; padding-bottom:6px;"><span style="color:#d35400; font-size:0.8rem;"><i class="fas fa-box-open"></i> <b>งานพัสดุ:</b></span><br><div style="margin-top:3px; padding-left:5px; font-size:0.85rem;">${formatText(a.supplyComment)}</div></div>`;
+             if (a.financeComment) historyHtml += `<div style="margin-bottom:8px; border-bottom:1px dashed #f3d19e; padding-bottom:6px;"><span style="color:#d35400; font-size:0.8rem;"><i class="fas fa-coins"></i> <b>งานการเงิน:</b></span><br><div style="margin-top:3px; padding-left:5px; font-size:0.85rem;">${formatText(a.financeComment)}</div></div>`;
+             if (a.a2Comment) historyHtml += `<div style="margin-bottom:4px;"><span style="color:#d35400; font-size:0.8rem;"><i class="fas fa-user-tie"></i> <b>รองผู้อำนวยการ:</b></span><br><div style="margin-top:3px; padding-left:5px; font-size:0.85rem;">${formatText(a.a2Comment)}</div></div>`;
+             
+             let historySection = historyHtml ? `<div style="background:#fffcf3; border-left:4px solid #f39c12; padding:12px; margin-top:12px; border-radius:6px; font-size:0.85rem;"><div style="font-weight:bold; color:#e67e22; margin-bottom:8px;"><i class="fas fa-history"></i> ประวัติความเห็นจากผู้ตรวจสอบ:</div>${historyHtml}</div>` : '';
+
+             let filesHtml = '';
+             if (a.docUrl && a.docUrl !== '-') filesHtml += `<a href="${a.docUrl}" target="_blank" style="display:inline-block; background:#eaf2f8; color:#2980b9; padding:5px 10px; border-radius:4px; text-decoration:none; font-size:0.85rem; margin-right:5px; border:1px solid #d9e2ec;"><i class="fas fa-file-alt"></i> เอกสารอ้างอิง</a>`;
+             if (a.billUrls && a.billUrls.length > 0) { 
+                  a.billUrls.forEach((url, idx) => { filesHtml += `<a href="${url}" target="_blank" style="display:inline-block; background:#eaf2f8; color:#2980b9; padding:5px 10px; border-radius:4px; text-decoration:none; font-size:0.85rem; margin-right:5px; margin-top:5px; border:1px solid #d9e2ec;"><i class="fas fa-file-image"></i> ใบเสนอราคา ${idx+1}</a>`; });
+             }
+
+             let filesSection = filesHtml ? `<div style="margin-top:10px;"><div style="font-weight:bold; font-size:0.85rem; color:#7f8c8d; margin-bottom:5px;"><i class="fas fa-paperclip"></i> เอกสารประกอบ:</div>${filesHtml}</div>` : '';
+
+             if (isProject) {
+                let docBtnHtml = a.docUrl ? `<button onclick="window.open('${a.docUrl}', '_blank')" class="btn-action" style="background:#f4f6f8; color:#2980b9; border: 1px solid #d9e2ec; margin-top:5px; padding:8px;"><i class="fas fa-file-word"></i> เปิดอ่านเอกสารโครงการ</button>` : `<div style="text-align:center; font-size:0.8rem; color:#e74c3c; margin-top:5px;">ไม่พบลิงก์เอกสาร</div>`;
+
+                detailBoxHtml = `
+                  <div style="background: #eaf2f8; padding: 12px; border-radius: 8px; border-left: 3px solid #3498db; margin: 12px 0;">
+                    <div style="font-size: 0.8rem; color: #7f8c8d;">งบประมาณที่ขอตั้งต้น</div>
+                    <div style="font-size: 1.4rem; font-weight: bold; color: #2980b9;">${Number(a.total || 0).toLocaleString()} ฿</div>
+                  </div>
+                  ${docBtnHtml}
+                `;
+             } else {
+                let remainingColor = a.budgetRemaining < 0 ? '#e74c3c' : '#27ae60';
+                let itemsHtml = '';
+                
+                if (a.items && a.items.length > 0) {
+                   let realItems = [];
+                   let vatAmt = 0, shipAmt = 0, sumTotal = 0;
+                   
+                   a.items.forEach(it => {
+                       if (it.name === '#SYS_VAT#') vatAmt = Number(it.price);
+                       else if (it.name === '#SYS_SHIPPING#') shipAmt = Number(it.price);
+                       else { realItems.push(it); sumTotal += Number(it.qty) * Number(it.price); }
+                   });
+
+                   itemsHtml = `<ul style="margin: 5px 0 0 0; padding-left: 20px; color: #34495e;">`;
+                   realItems.forEach(it => {
+                      let lineSum = Number(it.qty) * Number(it.price);
+                      itemsHtml += `<li>${it.name} <span style="color:#7f8c8d;">(${it.qty} ${it.unit})</span> = <b>${lineSum.toLocaleString()} ฿</b></li>`;
+                   });
+                   itemsHtml += `</ul>`;
+                   
+                   itemsHtml += `<div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed #bdc3c7; font-size: 0.85rem;">`;
+                   itemsHtml += `  <div style="display:flex; justify-content:space-between; color:#7f8c8d;"><span>รวมมูลค่าสินค้า:</span> <b>${sumTotal.toLocaleString()} ฿</b></div>`;
+                   if (vatAmt > 0) itemsHtml += `  <div style="display:flex; justify-content:space-between; color:#e67e22;"><span>ภาษีมูลค่าเพิ่ม (VAT):</span> <b>${vatAmt.toLocaleString()} ฿</b></div>`;
+                   if (shipAmt > 0) itemsHtml += `  <div style="display:flex; justify-content:space-between; color:#e67e22;"><span>ค่าจัดส่ง:</span> <b>${shipAmt.toLocaleString()} ฿</b></div>`;
+                   
+                   // 🌟 เพิ่มบรรทัดสรุปยอดสุทธิ (Grand Total) ให้เห็นชัดเจน
+                   itemsHtml += `  <div style="display:flex; justify-content:space-between; color:#c0392b; font-size: 1rem; font-weight: bold; margin-top: 5px; border-top: 2px solid #e74c3c; padding-top: 5px;"><span>รวมเป็นเงินทั้งสิ้น:</span> <b>${Number(a.total || 0).toLocaleString()} ฿</b></div>`;
+                   itemsHtml += `</div>`;
+                } else {
+                   itemsHtml = `<div style="color: #e74c3c; font-size: 0.8rem; margin-top: 5px;">ไม่พบรายการพัสดุ</div>`;
+                }
+
+                detailBoxHtml = `
+                  <div style="background: #fdf2e9; border-left: 3px solid #e67e22; padding: 10px; border-radius: 4px; margin-top: 10px; font-size: 0.85rem; color: #d35400;">
+                     <i class="fas fa-info-circle"></i> ขอ <b>${a.actionType} ${a.itemCategory}</b> เพื่อ ${a.objective}
+                  </div>
+
+                  <div style="background: #f4f6f8; border: 1px solid #d9e2ec; padding: 12px; border-radius: 6px; margin-top: 10px; font-size: 0.85rem;">
+                     <div style="display: flex; justify-content: space-between; border-bottom: 1px dashed #ccc; padding-bottom: 5px; margin-bottom: 5px;">
+                        <span style="color: #7f8c8d;">แหล่งเงิน</span>
+                        <b style="color: #8e44ad;">${a.fundingSource}</b>
+                     </div>
+                     <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="color: #7f8c8d;">งบจัดสรร</span>
+                        <b style="color: #34495e;">${(a.budgetAllocated || 0).toLocaleString()}</b>
+                     </div>
+                     <div style="display: flex; justify-content: space-between; margin-bottom: 2px;">
+                        <span style="color: #7f8c8d;">เบิกไปแล้ว</span>
+                        <b style="color: #e74c3c;">${(a.budgetUsed || 0).toLocaleString()}</b>
+                     </div>
+                     <div style="display: flex; justify-content: space-between; border-top: 1px solid #d9e2ec; padding-top: 5px; margin-top: 3px;">
+                        <span style="color: #2c3e50; font-weight: bold;">คงเหลือสุทธิ:</span>
+                        <b style="color: ${remainingColor}; font-size: 1.05rem;">${(a.budgetRemaining || 0).toLocaleString()}</b>
+                     </div>
+                  </div>
+                  
+                  <details style="margin-top: 10px; background: white; border: 1px solid #e0e6ed; border-radius: 6px; font-size: 0.85rem;">
+                     <summary style="padding: 10px; font-weight: bold; color: #c0392b; cursor: pointer; outline: none; background: #fdfefe;"><i class="fas fa-box-open" style="color:#2980b9;"></i> ยอดขอเบิกครั้งนี้: <span style="font-size:1rem;">${Number(a.total || 0).toLocaleString()} ฿</span></summary>
+                     <div style="padding: 0 10px 10px 10px; border-top: 1px dashed #eee;">
+                        ${itemsHtml}
+                     </div>
+                  </details>
+                `;
+             }
+
+             aHtml += `
+               <div class="card ${cardClass}">
+                 <div style="display:flex; justify-content:space-between; margin-bottom: 5px;">
+                   <span style="font-size: 0.75rem; color: #7f8c8d; font-weight:bold;">รหัส: ${a.reqId}</span>
+                   ${typeTag}
+                 </div>
+                 <div style="font-weight: bold; font-size: 1.05rem; color: #2c3e50; line-height: 1.3;">${a.projectName}</div>
+                 <div style="font-size: 0.85rem; color: #7f8c8d; margin-top: 5px;"><i class="fas fa-user"></i> ผู้เสนอเรื่อง: ${a.requester}</div>
+                 
+                 ${detailBoxHtml}
+                 ${filesSection}
+                 ${historySection}
+
+                 <div style="display:flex; gap:10px; margin-top:15px;">
+                   <button onclick="${actionFunc}" class="btn-action btn-reject" style="margin-top:0;"><i class="fas fa-undo"></i> ตีกลับ</button>
+                   <button onclick="${approveFunc}" class="btn-action btn-approve" style="margin-top:0;"><i class="fas fa-check-circle"></i> อนุมัติ</button>
+                 </div>
+               </div>`;
+          });
+          appContainer.innerHTML = aHtml;
+      } else {
+          appContainer.innerHTML = '<div style="text-align:center; padding:50px 20px; color:#27ae60;"><i class="fas fa-check-circle fa-4x" style="margin-bottom:15px; opacity:0.8;"></i><br><span style="font-weight:bold; font-size:1.1rem;">ตะกร้างานว่างเปล่า</span><br><span style="font-size:0.85rem; color:#7f8c8d;">คุณไม่มีรายการค้างพิจารณาครับ</span></div>';
+      }
+    }
+
+function openBillPopup(reqId, projectName, totalAmount, itemsJsonStr) {
+   let parsedItems = [];
+   try { parsedItems = JSON.parse(decodeURIComponent(itemsJsonStr)); } catch(e) { parsedItems = []; }
+   
+   // 🌟 กรองเอาเฉพาะ "สินค้าจริง" ไม่เอา VAT/Shipping มาโชว์ให้ติ๊ก
+   let realItems = parsedItems.filter(it => it.name !== '#SYS_VAT#' && it.name !== '#SYS_SHIPPING#');
+   
+   let itemsHtml = '';
+   if (realItems.length === 0) {
+       itemsHtml = `<div style="color:#e74c3c; font-size:0.85rem; margin-bottom:15px;">ไม่พบรายการย่อย กรุณาระบุในหมายเหตุแทนครับ</div>`;
+   } else {
+       itemsHtml = `
+         <div style="text-align:left; margin-bottom:15px; max-height:150px; overflow-y:auto; border:1px solid #ecf0f1; padding:10px; border-radius:8px; background:#fdfefe;">
+           <div style="margin-bottom:8px; border-bottom:1px solid #eee; padding-bottom:5px;">
+             <input type="checkbox" id="selectAllItems" onchange="toggleSelectAll(this)" style="transform: scale(1.2); margin-right:8px;"> 
+             <label for="selectAllItems" style="font-weight:bold; cursor:pointer; color:#2980b9; font-size:0.9rem;">เลือกทั้งหมด</label>
+           </div>
+       `;
+       realItems.forEach((item, idx) => {
+          itemsHtml += `
+            <div style="margin-bottom:5px;">
+              <input type="checkbox" class="item-checkbox" value="${item.name}" id="item_${idx}" style="transform: scale(1.2); margin-right:8px;">
+              <label for="item_${idx}" style="cursor:pointer; font-size:0.85rem; color:#2c3e50;"> ${item.name}</label>
+            </div>
+          `;
+       });
+       itemsHtml += `</div>`;
+   }
+
+   Swal.fire({
+      title: 'แนบบิลเบิกจ่าย',
+      html: `
+        <div style="font-size:1rem; color:#8e44ad; font-weight:bold; margin-bottom:5px; line-height:1.3;">${projectName}</div>
+        <div style="font-size:0.85rem; color:#7f8c8d; margin-bottom:15px;">รหัสคำขอ: ${reqId}</div>
+        
+        <div style="text-align:left; font-weight:bold; margin-bottom:5px; color:#2c3e50; font-size:0.95rem;">1. เลือกรายการ:</div>
+        ${itemsHtml}
+        
+        <div style="text-align:left; font-weight:bold; margin-bottom:5px; color:#2c3e50; font-size:0.95rem;">2. ยอดตามบิลรวมทั้งหมด (บาท):</div>
+        <input type="number" id="actualAmount" class="swal2-input" placeholder="ขอไว้: ${totalAmount.toLocaleString()}" style="width:100%; max-width:100%; margin:0 0 15px 0; box-sizing:border-box;">
+        
+        <div style="text-align:left; font-weight:bold; margin-bottom:5px; color:#2c3e50; font-size:0.95rem;">3. อัปโหลดรูปบิล (เลือกได้หลายใบ):</div>
+        <input type="file" id="billFileInput" accept="image/*,.pdf" multiple style="width:100%; padding:10px; border:1px dashed #bdc3c7; border-radius:8px; background:#fdfefe; box-sizing:border-box; font-family:'Kanit';">
+      `,
+      showCancelButton: true,
+      confirmButtonText: 'บันทึกบิล',
+      cancelButtonText: 'ยกเลิก',
+      confirmButtonColor: '#27ae60',
+      customClass: { container: 'kanit-font' },
+      preConfirm: () => {
+         const selectedItems = Array.from(document.querySelectorAll('.item-checkbox:checked')).map(cb => cb.value).join(', ');
+         const actualAmt = document.getElementById('actualAmount').value;
+         const fileInput = document.getElementById('billFileInput');
+         
+         if (realItems.length > 0 && !selectedItems) { Swal.showValidationMessage('กรุณาเลือกรายการอย่างน้อย 1 รายการ'); return false; }
+         if (!actualAmt) { Swal.showValidationMessage('กรุณาระบุยอดเงินตามบิลจริง'); return false; }
+         if (!fileInput.files.length) { Swal.showValidationMessage('กรุณาอัปโหลดรูปบิลอย่างน้อย 1 ใบ'); return false; }
+         
+         let filePromises = Array.from(fileInput.files).map(file => {
+             return new Promise((resolve) => {
+                 const reader = new FileReader();
+                 reader.onload = e => {
+                     const splitBase = e.target.result.split(',');
+                     resolve({ base64: splitBase[1], mimeType: splitBase[0].split(';')[0].replace('data:', ''), name: file.name });
+                 };
+                 reader.readAsDataURL(file);
+             });
+         });
+         return Promise.all(filePromises).then(filesBase64 => {
+             return { items: selectedItems || "ไม่ได้ระบุ", amount: actualAmt, files: filesBase64 };
+         });
+      }
+   }).then((result) => {
+      if (result.isConfirmed) {
+          const files = result.value.files;
+          Swal.fire({ title: 'กำลังบันทึก...', text: `กำลังอัปโหลดเอกสาร ${files.length} ไฟล์`, allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+          
+          const billsData = files.map((f, index) => ({
+              file: f,
+              actualAmount: index === 0 ? result.value.amount : 0, 
+              matchedItems: result.value.items
+          }));
+             
+          google.script.run
+            .withSuccessHandler(res => {
+                if(res.success) {
+                    Swal.fire('สำเร็จ', res.message, 'success').then(() => {
+                        if (typeof loadMobileDashboard === 'function') loadMobileDashboard(); // รีโหลดข้อมูลตารางใหม่
+                    });
+                } else {
+                    Swal.fire('ผิดพลาด', res.message, 'error');
+                }
+            })
+            .withFailureHandler(err => Swal.fire('ผิดพลาด', err.message, 'error'))
+            .saveDisbursementBills(reqId, billsData); 
+      }
+   });
+}
+
+function toggleSelectAll(selectAllCheckbox) {
+    document.querySelectorAll('.item-checkbox').forEach(cb => { cb.checked = selectAllCheckbox.checked; });
+}
+
+    // ==========================================
+    // 🌟 1. ฟังก์ชันตัวช่วย: ดึงชุดข้อความ Checkbox ตามบทบาท (Role)
+    // ==========================================
+    function getRoleBasedCheckboxes(action) {
+       let roleText = document.getElementById('user-email-badge').innerText || "";
+       let approveArr = [];
+       let returnArr = [];
+       
+       if (roleText.includes('แผนงาน') || roleText.includes('admin')) {
+           approveArr = [
+               "รายการสอดคล้องกับวัตถุประสงค์ของโครงการและแผนปฏิบัติการ",
+               "งบประมาณคงเหลือเพียงพอ"
+           ];
+           returnArr = [
+               "กิจกรรม/รายการที่ขอเบิก ไม่สอดคล้องกับรายละเอียดในโครงการ",
+               "ยอดขอใช้เงินเกินกว่างบประมาณคงเหลือของโครงการ"
+           ];
+       } else if (roleText.includes('พัสดุ')) {
+           approveArr = [
+               "สามารถดำเนินการจัดซื้อจัดจ้างตามระเบียบพัสดุฯ ได้",
+               "รายการและราคาถูกต้องตามเกณฑ์มาตรฐาน / ราคากลาง",
+               "เอกสารใบเสนอราคาถูกต้อง ครบถ้วน"
+           ];
+           returnArr = [
+               "รายละเอียดคุณลักษณะเฉพาะ (สเปกสินค้า) ไม่ชัดเจน โปรดระบุเพิ่มเติม",
+               "ใบเสนอราคาไม่ถูกต้อง / ร้านค้าไม่มีใบทะเบียนพาณิชย์",
+               "โปรดระบุเหตุผลความจำเป็นในการจัดซื้อให้ชัดเจนขึ้น"
+           ];
+       } else if (roleText.includes('การเงิน')) {
+           approveArr = [
+               "ตรวจสอบแหล่งเงินและหมวดหมู่รายจ่ายถูกต้อง",
+               "มีเม็ดเงิน/สภาพคล่องเพียงพอต่อการเบิกจ่ายตามระเบียบ"
+           ];
+           returnArr = [
+               "ระบุแหล่งเงิน / หมวดหมู่รายจ่ายไม่ถูกต้อง",
+               "ยอดเงินขอเบิกไม่ตรงกับเอกสารอ้างอิง"
+           ];
+       } else if (roleText.includes('รองผู้อำนวยการ')) {
+           approveArr = [
+               "เห็นควรพิจารณาอนุมัติตามเสนอ",
+               "สอดคล้องกับนโยบายและเป้าหมายของโรงเรียน",
+               "โปรดกำกับดูแลการใช้งบประมาณให้เกิดความคุ้มค่าสูงสุด"
+           ];
+           returnArr = [
+               "โปรดทบทวนความเหมาะสมและสัดส่วนการใช้งบประมาณอีกครั้ง",
+               "ขอรายละเอียดผลสัมฤทธิ์ที่คาดว่าจะได้รับเพิ่มเติมประกอบการตัดสินใจ"
+           ];
+       } else if (roleText.includes('ผู้อำนวยการ')) {
+           approveArr = [
+               "อนุมัติ",
+               "อนุมัติตามเสนอ โปรดดำเนินการตามระเบียบอย่างเคร่งครัด"
+           ];
+           returnArr = [
+               "ให้ชะลอการดำเนินการไว้ก่อน โปรดชี้แจงเหตุผลความจำเป็นเพิ่มเติม",
+               "ไม่อนุมัติ เนื่องจากงบประมาณภาพรวมไม่เพียงพอ / ไม่สอดคล้องกับนโยบายเร่งด่วน"
+           ];
+       } else {
+           // กรณีอื่นๆ (Fallback เผื่อไว้)
+           approveArr = ["เห็นควรอนุมัติตามเสนอ", "รายการมีความเหมาะสม"];
+           returnArr = ["กรุณาตรวจสอบและแก้ไขใหม่", "เอกสารยังไม่ครบถ้วน"];
+       }
+
+       let html = '';
+       let targetArr = action === 'approve' ? approveArr : returnArr;
+       let boxBg = action === 'approve' ? '#eaf2f8' : '#fdf2e9';
+       let boxBorder = action === 'approve' ? '#d9e2ec' : '#f5c6cb';
+       let titleColor = action === 'approve' ? '#2980b9' : '#c0392b';
+       let titleText = action === 'approve' ? 'ข้อความด่วน (ติ๊กเลือกได้):' : 'ข้อความด่วน (ตีกลับ):';
+
+       html += `<div style="text-align:left; font-size:0.85rem; color:#34495e; margin-bottom:10px; background:${boxBg}; padding:10px; border-radius:6px; border:1px solid ${boxBorder};">
+                  <div style="font-weight:bold; margin-bottom:8px; color:${titleColor};"><i class="fas fa-bolt"></i> ${titleText}</div>`;
+       
+       targetArr.forEach((txt, idx) => {
+           let marginB = idx === targetArr.length - 1 ? '0' : '6px';
+           html += `<label style="display:block; margin-bottom:${marginB}; cursor:pointer; line-height:1.4;">
+                      <input type="checkbox" class="quick-comment-cb" value="${txt}" style="transform: scale(1.2); margin-right:8px; vertical-align:middle;"> ${txt}
+                    </label>`;
+       });
+       
+       html += `</div>`;
+       return html;
+    }
+
+    // ==========================================
+    // 🌟 2. ระบบกดอนุมัติ / ตีกลับ ผง.2 (เบิกจ่าย)
+    // ==========================================
+    function handleApproval(reqId, action) {
+      let swalTitle = action === 'approve' ? '<span style="color:#27ae60;"><i class="fas fa-check-circle"></i> ยืนยันการอนุมัติ</span>' : '<span style="color:#e74c3c;"><i class="fas fa-undo"></i> ตีกลับแก้ไข?</span>';
+      let btnColor = action === 'approve' ? '#27ae60' : '#e74c3c';
+      let btnText = action === 'approve' ? 'บันทึกและอนุมัติ' : 'ตีกลับ';
+      
+      let defaultCommentsHtml = getRoleBasedCheckboxes(action);
+      
+      Swal.fire({
+        title: swalTitle,
+        html: `
+            <div style="font-size:0.9rem; color:#7f8c8d; margin-bottom:10px;">รหัสรายการ: ${reqId}</div>
+            ${defaultCommentsHtml}
+            <div style="text-align:left; font-weight:bold; color:#2c3e50; font-size:0.95rem; margin-bottom:5px;">พิมพ์ข้อความเพิ่มเติม ${action === 'approve' ? '(ถ้ามี)' : '<span style="color:red;">*</span>'}:</div>
+            <textarea id="swal-comment" class="swal2-textarea" style="margin:0; width:100%; font-family:'Kanit'; font-size:0.95rem;" placeholder="พิมพ์รายละเอียดเพิ่มเติม..."></textarea>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: btnColor,
+        cancelButtonColor: '#bdc3c7',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonText: btnText,
+        customClass: { container: 'kanit-font' },
+        preConfirm: () => {
+          // กวาดข้อความที่โดนติ๊ก
+          const selectedCbs = Array.from(document.querySelectorAll('.quick-comment-cb:checked')).map(cb => cb.value);
+          const typedComment = document.getElementById('swal-comment').value.trim();
+          
+          // รวมข้อความ (รวมไว้ในตัวแปรเดียว เพื่อส่งไปเก็บที่ Excel)
+          let finalComment = selectedCbs.join(', ');
+          if (typedComment) {
+              finalComment = finalComment ? (finalComment + "\n(เพิ่มเติม: " + typedComment + ")") : typedComment;
+          }
+
+          if (action === 'return' && !finalComment) {
+             Swal.showValidationMessage('กรุณาเลือกข้อความด่วน หรือพิมพ์เหตุผลด้วยครับ!');
+             return false;
+          }
+          return finalComment || "-";
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+          google.script.run
+            .withSuccessHandler(res => { Swal.fire('สำเร็จ', res.message, 'success').then(loadMobileDashboard); })
+            .withFailureHandler(err => Swal.fire('ผิดพลาด', err.message, 'error'))
+            .processDisbursementReview({ reqId: reqId, action: action, comment: result.value, topupAmount: 0, authKey: getActiveAuthKey() });
+        }
+      });
+    }
+
+    // ==========================================
+    // 🌟 3. ระบบกดอนุมัติ / ตีกลับ ผง.1 (โครงการ)
+    // ==========================================
+    function handleProjectApproval(projectId, action) {
+      let swalTitle = action === 'approve' ? '<span style="color:#3498db;"><i class="fas fa-check-circle"></i> ยืนยันอนุมัติโครงการ</span>' : '<span style="color:#e74c3c;"><i class="fas fa-undo"></i> ตีกลับแก้ไข?</span>';
+      let btnColor = action === 'approve' ? '#3498db' : '#e74c3c';
+      let btnText = action === 'approve' ? 'บันทึกและอนุมัติ' : 'ตีกลับ';
+
+      let defaultCommentsHtml = getRoleBasedCheckboxes(action);
+
+      Swal.fire({
+        title: swalTitle,
+        html: `
+            <div style="font-size:0.9rem; color:#7f8c8d; margin-bottom:10px;">รหัสโครงการ: ${projectId}</div>
+            ${defaultCommentsHtml}
+            <div style="text-align:left; font-weight:bold; color:#2c3e50; font-size:0.95rem; margin-bottom:5px;">พิมพ์ข้อความเพิ่มเติม ${action === 'approve' ? '(ถ้ามี)' : '<span style="color:red;">*</span>'}:</div>
+            <textarea id="swal-comment" class="swal2-textarea" style="margin:0; width:100%; font-family:'Kanit'; font-size:0.95rem;" placeholder="พิมพ์รายละเอียดเพิ่มเติม..."></textarea>
+        `,
+        showCancelButton: true,
+        confirmButtonColor: btnColor,
+        cancelButtonColor: '#bdc3c7',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonText: btnText,
+        customClass: { container: 'kanit-font' },
+        preConfirm: () => {
+          const selectedCbs = Array.from(document.querySelectorAll('.quick-comment-cb:checked')).map(cb => cb.value);
+          const typedComment = document.getElementById('swal-comment').value.trim();
+          
+          let finalComment = selectedCbs.join(', ');
+          if (typedComment) {
+              finalComment = finalComment ? (finalComment + "\n(เพิ่มเติม: " + typedComment + ")") : typedComment;
+          }
+
+          if ((action === 'return' || action === 'reject') && !finalComment) {
+             Swal.showValidationMessage('กรุณาเลือกข้อความด่วน หรือพิมพ์เหตุผลด้วยครับ!');
+             return false;
+          }
+          return finalComment || "";
+        }
+      }).then((result) => {
+        if (result.isConfirmed) {
+          Swal.fire({ title: 'กำลังบันทึก...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+          google.script.run
+            .withSuccessHandler(res => { Swal.fire('สำเร็จ', res.message, 'success').then(loadMobileDashboard); })
+            .withFailureHandler(err => Swal.fire('ผิดพลาด', err.message, 'error'))
+            .processProjectApproval_Mobile({ projectId: projectId, action: action, comment: result.value, authKey: getActiveAuthKey() });
+        }
+      });
+    }
+// ==========================================
+// 🌟 ฟังก์ชันส่งคำขอเบิกจ่ายผ่านมือถือ (Mobile / LIFF)
+// ==========================================
+function submitMobileDisbursement() {
+        const lineUid = getActiveAuthKey();
+        if (!lineUid) { Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลการเชื่อมต่อ กรุณาเข้าสู่ระบบใหม่ครับ', 'error'); return; }
+
+        const btnSubmit = document.getElementById('btn-mobile-submit-disb');
+        const originalBtnHtml = btnSubmit.innerHTML;
+        btnSubmit.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังส่งคำขอ...';
+        btnSubmit.disabled = true;
+
+        const itemsData = getMobileItems(); 
+        if (itemsData.length === 0) {
+            Swal.fire('แจ้งเตือน', 'กรุณาระบุรายการพัสดุ/ค่าใช้จ่ายอย่างน้อย 1 รายการครับ', 'warning');
+            btnSubmit.innerHTML = originalBtnHtml; 
+            btnSubmit.disabled = false; return;
+        }
+
+        const editReqIdInput = document.getElementById('mob-edit-req-id');
+        const editReqId = editReqIdInput ? editReqIdInput.value : "";
+
+        const formData = {
+            authKey: lineUid, 
+            projectId: document.getElementById('mob-project-id').value,
+            grandTotal: document.getElementById('mob-grand-total').value,
+            actionType: document.getElementById('mob-action-type').value,
+            itemCategory: document.getElementById('mob-item-category').value,
+            objective: document.getElementById('mob-objective').value,
+            comm1: document.getElementById('mob-comm1').value,
+            comm2: document.getElementById('mob-comm2').value,
+            comm3: document.getElementById('mob-comm3').value,
+            items: itemsData,
+            status: "รอตรวจสอบ (งานแผนงาน)" 
+        };
+
+        // 🌟 ถ้ากำลังแก้ไข ให้ส่ง ID คำขอเดิมไปให้หลังบ้านอัปเดตทับ
+        if (editReqId !== "") {
+            formData.reqId = editReqId;
+            formData.oldDocUrl = document.getElementById('mob-edit-old-url').value;
+        }
+
+        const fileInput = document.getElementById('mob-file-upload');
+        let fileData = null;
+
+        if (fileInput.files.length > 0) {
+            const file = fileInput.files[0];
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                fileData = { name: file.name, mimeType: file.type, base64: e.target.result.split(',')[1] };
+                sendToBackend(formData, fileData, btnSubmit, editReqId, originalBtnHtml);
+            };
+            reader.readAsDataURL(file);
+        } else {
+            sendToBackend(formData, null, btnSubmit, editReqId, originalBtnHtml);
+        }
+    }
+
+function sendToBackend(formData, fileData, btnSubmit, editReqId, originalBtnHtml) {
+        // 🌟 เลือกว่าจะเรียกฟังก์ชันสร้างใหม่ หรือฟังก์ชันบันทึกทับ 🌟
+        const serverFunction = editReqId !== "" ? 'resubmitDisbursementRequest' : 'saveDisbursementRequest';
+
+        google.script.run
+            .withSuccessHandler(res => {
+                Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: res.message, confirmButtonColor: '#27ae60' }).then(() => {
+                    document.getElementById('mobile-disb-form').reset();
+                    btnSubmit.innerHTML = '<i class="fas fa-paper-plane"></i> ยื่นคำขอเบิกจ่าย (ผง.2)';
+                    btnSubmit.style.background = 'linear-gradient(135deg, #e67e22, #d35400)';
+                    btnSubmit.disabled = false;
+                    loadMobileDashboard(); // โหลดหน้าใหม่
+                });
+            })
+            .withFailureHandler(err => {
+                Swal.fire('ผิดพลาด', err.message, 'error');
+                btnSubmit.innerHTML = originalBtnHtml;
+                btnSubmit.disabled = false;
+            })
+            [serverFunction](formData, fileData); 
+    }
+    // ==========================================
+    // 🌟 ฟังก์ชันจัดการฟอร์มเบิกจ่ายบนมือถือ (UI & Logic)
+    // ==========================================
+    function openMobileDisbForm(projectId, projectName) {
+        document.getElementById('mobile-disb-form').reset();
+        document.getElementById('mob-project-id').value = projectId;
+        
+        // 🌟 เคลียร์ค่าโหมดแก้ไข (กลับสู่การสร้างใหม่ปกติ)
+        if(document.getElementById('mob-edit-req-id')) document.getElementById('mob-edit-req-id').value = "";
+        if(document.getElementById('mob-edit-old-url')) document.getElementById('mob-edit-old-url').value = "";
+        const reasonBox = document.getElementById('mob-return-reason-container');
+        if (reasonBox) reasonBox.style.display = 'none';
+
+        const btnSubmit = document.getElementById('btn-mobile-submit-disb');
+        btnSubmit.innerHTML = '<i class="fas fa-paper-plane"></i> ยื่นคำขอเบิกจ่าย (ผง.2)';
+        btnSubmit.style.background = 'linear-gradient(135deg, #e67e22, #d35400)';
+
+        document.getElementById('mob-project-name-display').innerText = `[${projectId}] ${projectName}`;
+        document.getElementById('mob-items-container').innerHTML = '';
+        
+        const vatInput = document.getElementById('mob-vat-amount');
+        const shipInput = document.getElementById('mob-ship-amount');
+        if(vatInput) vatInput.value = 0;
+        if(shipInput) shipInput.value = 0;
+
+        addMobileItemRow(); 
+        
+        switchTab('tab-new-disb', null);
+        window.scrollTo(0, 0); 
+    }
+    function openEditMobileDisbForm(reqId, projectId, projectName) {
+        const data = window.mobileMyRequestsData.find(d => d.reqId === reqId);
+        if (!data) { Swal.fire('ข้อผิดพลาด', 'ไม่พบข้อมูลคำขอนี้ในระบบ', 'error'); return; }
+
+        document.getElementById('mobile-disb-form').reset();
+        document.getElementById('mob-project-id').value = projectId;
+        document.getElementById('mob-edit-req-id').value = data.reqId || "";
+        document.getElementById('mob-edit-old-url').value = data.quotationUrl || data.oldDocUrl || "";
+        document.getElementById('mob-project-name-display').innerText = `[${projectId}] ${projectName} (แก้รหัส: ${data.reqId})`;
+
+        // 🌟 ดึงข้อเสนอแนะแอดมินมาแจ้งเตือนสีแดง
+        const reasonBox = document.getElementById('mob-return-reason-container');
+        let allComments = [data.adminComm, data.supplyComm, data.finComm, data.a2Comm, data.a3Comm]
+                          .filter(c => c && String(c).trim() !== "").join('\n\n');
+        if (!allComments && data.comments) allComments = data.comments;
+        
+        if (allComments) {
+            document.getElementById('mob-return-reason-display').innerText = allComments;
+            reasonBox.style.display = 'block';
+        } else {
+            reasonBox.style.display = 'none';
+        }
+
+        // 🌟 หยอดข้อมูลเก่าลงฟอร์ม
+        document.getElementById('mob-action-type').value = data.actionType || "จัดซื้อ";
+        document.getElementById('mob-item-category').value = data.itemCategory || "วัสดุ";
+        document.getElementById('mob-objective').value = data.objective || "";
+        document.getElementById('mob-comm1').value = data.comm1 || "";
+        document.getElementById('mob-comm2').value = data.comm2 || "";
+        document.getElementById('mob-comm3').value = data.comm3 || "";
+
+        const vatInput = document.getElementById('mob-vat-amount');
+        const shipInput = document.getElementById('mob-ship-amount');
+        if (vatInput) vatInput.value = 0;
+        if (shipInput) shipInput.value = 0;
+
+        const tbody = document.getElementById('mob-items-container');
+        tbody.innerHTML = ''; 
+        
+        if (data.items && data.items.length > 0) {
+            let realItems = [];
+            data.items.forEach(it => {
+                if (it.name === '#SYS_VAT#') { if (vatInput) vatInput.value = it.price; } 
+                else if (it.name === '#SYS_SHIPPING#') { if (shipInput) shipInput.value = it.price; } 
+                else { realItems.push(it); }
+            });
+
+            if (realItems.length > 0) {
+                realItems.forEach(it => {
+                    addMobileItemRow();
+                    const lastRow = tbody.lastElementChild;
+                    lastRow.querySelector('.m-item-name').value = it.name || "";
+                    lastRow.querySelector('.m-item-qty').value = it.qty || 1;
+                    lastRow.querySelector('.m-item-unit').value = it.unit || "";
+                    lastRow.querySelector('.m-item-price').value = it.price || 0;
+                });
+            } else { addMobileItemRow(); }
+        } else { addMobileItemRow(); }
+        
+        calcMobileTotal();
+
+        // เปลี่ยนสีและชื่อปุ่มส่ง
+        const btnSubmit = document.getElementById('btn-mobile-submit-disb');
+        btnSubmit.innerHTML = '<i class="fas fa-sync-alt"></i> ส่งคำขอที่แก้ไขแล้ว';
+        btnSubmit.style.background = 'linear-gradient(135deg, #e74c3c, #c0392b)';
+
+        switchTab('tab-new-disb', null);
+        window.scrollTo(0, 0); 
+    }
+
+    function addMobileItemRow() {
+        const container = document.getElementById('mob-items-container');
+        const rowId = 'mob-item-' + Date.now();
+        const row = document.createElement('div');
+        row.id = rowId;
+        row.className = 'mob-item-row';
+        row.style.cssText = 'background:#fdfefe; border:1px solid #e0e6ed; padding:10px; border-radius:8px; margin-bottom:10px; position:relative;';
+        
+        row.innerHTML = `
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:5px;">
+               <input type="text" class="m-item-name" placeholder="ชื่อรายการ..." style="flex:1; border:none; border-bottom:1px solid #bdc3c7; outline:none; font-family:'Kanit'; font-size:0.9rem; padding:4px 0; background:transparent;">
+               <button type="button" onclick="document.getElementById('${rowId}').remove(); calcMobileTotal();" style="background:none; border:none; color:#e74c3c; font-size:1.1rem; padding:0 0 0 10px;"><i class="fas fa-times-circle"></i></button>
+            </div>
+            <div style="display:flex; gap:10px;">
+               <div style="flex:1;">
+                   <div style="font-size:0.7rem; color:#7f8c8d;">จำนวน</div>
+                   <input type="number" class="m-item-qty" value="1" oninput="calcMobileTotal()" style="width:100%; border:1px solid #ecf0f1; border-radius:4px; padding:6px; font-family:'Kanit'; text-align:center; box-sizing:border-box;">
+               </div>
+               <div style="flex:1;">
+                   <div style="font-size:0.7rem; color:#7f8c8d;">หน่วย</div>
+                   <input type="text" class="m-item-unit" placeholder="เช่น ชิ้น" style="width:100%; border:1px solid #ecf0f1; border-radius:4px; padding:6px; font-family:'Kanit'; text-align:center; box-sizing:border-box;">
+               </div>
+               <div style="flex:1;">
+                   <div style="font-size:0.7rem; color:#7f8c8d;">ราคา/หน่วย</div>
+                   <input type="number" class="m-item-price" placeholder="0" oninput="calcMobileTotal()" style="width:100%; border:1px solid #ecf0f1; border-radius:4px; padding:6px; font-family:'Kanit'; text-align:right; box-sizing:border-box;">
+               </div>
+            </div>
+        `;
+        container.appendChild(row);
+    }
+
+    function calcMobileTotal() {
+        let total = 0;
+        
+        // 1. รวมยอดราคาสินค้าปกติ
+        document.querySelectorAll('.mob-item-row').forEach(row => {
+            let qty = Number(row.querySelector('.m-item-qty').value) || 0;
+            let price = Number(row.querySelector('.m-item-price').value) || 0;
+            total += (qty * price);
+        });
+        
+        // 2. ดึงค่า VAT และค่าจัดส่ง (เช็คให้ชัวร์ว่ามีช่องนี้อยู่)
+        const vatInput = document.getElementById('mob-vat-amount');
+        const shipInput = document.getElementById('mob-ship-amount');
+        
+        let vat = vatInput ? (Number(vatInput.value) || 0) : 0;
+        let ship = shipInput ? (Number(shipInput.value) || 0) : 0;
+        
+        // 3. จับบวกกันเป็น Grand Total
+        let grandTotal = total + vat + ship;
+        
+        // อัปเดตกลับลงไปในช่องยอดรวม
+        document.getElementById('mob-grand-total').value = grandTotal;
+    }
+
+    function getMobileItems() {
+        let items = [];
+        document.querySelectorAll('.mob-item-row').forEach(row => {
+            let name = row.querySelector('.m-item-name').value.trim();
+            let qty = Number(row.querySelector('.m-item-qty').value) || 0;
+            let unit = row.querySelector('.m-item-unit').value.trim();
+            let price = Number(row.querySelector('.m-item-price').value) || 0;
+            if (name && price > 0) items.push({ name: name, qty: qty, unit: unit, price: price });
+        });
+        
+        // 🌟 แทรก VAT และค่าส่ง เป็นรายการพัสดุพิเศษ ส่งไปให้ระบบหลังบ้านรับรู้
+        let vat = Number(document.getElementById('mob-vat-amount').value) || 0;
+        let ship = Number(document.getElementById('mob-ship-amount').value) || 0;
+        
+        if (vat > 0) items.push({ name: '#SYS_VAT#', qty: 1, unit: 'ระบบ', price: vat });
+        if (ship > 0) items.push({ name: '#SYS_SHIPPING#', qty: 1, unit: 'ระบบ', price: ship });
+        
+        return items;
+    }
+    // ==========================================
+// 🌟 ฟังก์ชันสร้าง Progress Bar (LIFF / Mobile)
+// ==========================================
+function generateStatusStepper(status) {
+    let step = 0;
+    let isRejected = status.includes('ส่งกลับ') || status.includes('ไม่อนุมัติ') || status.includes('ไม่ผ่าน');
+
+    if (status.includes('รอแนบบิล') || status.includes('รอกระทบยอด') || status.includes('กระทบยอดแล้ว') || (status.includes('อนุมัติ') && !isRejected)) { step = 6; isRejected = false; }
+    else if (status.includes('รอ ผอ.') || (status.includes('ผอ.') && !status.includes('รอง'))) step = 5;
+    else if (status.includes('รอรอง ผอ.') || status.includes('รอง ผอ.')) step = 4;
+    else if (status.includes('รอการเงิน') || status.includes('การเงิน')) step = 3;
+    else if (status.includes('รอพัสดุ') || status.includes('พัสดุ')) step = 2;
+    else step = 1;
+
+    const stepsData = [
+        { id: 1, label: 'แผน', icon: 'fas fa-sitemap' },
+        { id: 2, label: 'พัสดุ', icon: 'fas fa-boxes' },
+        { id: 3, label: 'การเงิน', icon: 'fas fa-coins' },
+        { id: 4, label: 'รองฯ', icon: 'fas fa-user-tie' },
+        { id: 5, label: 'ผอ.', icon: 'fas fa-user-shield' }
+    ];
+
+    let html = `<div style="display:flex; justify-content:space-between; align-items:flex-start; position:relative; margin: 15px 0 10px 0; width: 100%; flex-wrap: nowrap; overflow: hidden;">`;
+    
+    // เส้นพื้นหลังสีเทา
+    html += `<div style="position:absolute; top:13px; left:10%; right:10%; height:3px; background:#ecf0f1; z-index:1; border-radius:2px;"></div>`;
+
+    // เส้นสีวิ่งตามความคืบหน้า
+    let progressWidth = step > 0 ? ((Math.min(step, 5) - 1) / 4) * 80 : 0;
+    if (step === 6) progressWidth = 80;
+    let lineColor = isRejected ? '#e74c3c' : '#27ae60'; 
+    html += `<div style="position:absolute; top:13px; left:10%; width:${progressWidth}%; height:3px; background:${lineColor}; z-index:1; transition: 0.5s ease; border-radius:2px;"></div>`;
+
+    stepsData.forEach((s) => {
+        let bgColor = '#fff', borderColor = '#d9e2ec', iconColor = '#bdc3c7', labelColor = '#95a5a6';
+        let displayIcon = s.icon;
+        let shadow = 'none';
+
+        if (step === 6) {
+            bgColor = '#27ae60'; borderColor = '#27ae60'; iconColor = '#fff'; labelColor = '#27ae60';
+            displayIcon = 'fas fa-check';
+        } else if (s.id < step) {
+            bgColor = '#27ae60'; borderColor = '#27ae60'; iconColor = '#fff'; labelColor = '#27ae60';
+            displayIcon = 'fas fa-check';
+        } else if (s.id === step) {
+            if (isRejected) {
+                bgColor = '#e74c3c'; borderColor = '#e74c3c'; iconColor = '#fff'; labelColor = '#e74c3c';
+                displayIcon = 'fas fa-times';
+                shadow = '0 0 5px rgba(231,76,60,0.4)';
+            } else {
+                bgColor = '#eaf2f8'; borderColor = '#3498db'; iconColor = '#3498db'; labelColor = '#3498db';
+                shadow = '0 0 5px rgba(52,152,219,0.3)';
+            }
+        }
+
+        html += `
+        <div style="position:relative; z-index:2; display:flex; flex-direction:column; align-items:center; flex:1; min-width:0;">
+            <div style="width:30px; height:30px; border-radius:50%; background:${bgColor}; border:2px solid ${borderColor}; display:flex; justify-content:center; align-items:center; color:${iconColor}; font-size:12px; box-shadow: ${shadow}; background-clip: padding-box;">
+                <i class="${displayIcon}"></i>
+            </div>
+            <div style="font-size:0.65rem; font-weight:bold; color:${labelColor}; margin-top:4px; text-align:center; font-family:'Kanit'; line-height:1.1; word-break: break-word; max-width: 50px;">${s.label}</div>
+        </div>`;
+    });
+    html += `</div>`;
+    return html;
+}
+function openMobileRecallModal(reqId) {
+  Swal.fire({
+    title: '<i class="fas fa-undo-alt" style="color:#e67e22;"></i> ระงับ / ดึงคำขอกลับ',
+    html: `
+      <div style="font-size:0.95rem; color:#2c3e50; margin-bottom:12px;">
+        รหัสคำขอ: <b style="color:#8e44ad;">${reqId}</b><br>
+        ต้องการดึงเอกสารนี้กลับไปทำรายการใดครับ?
+      </div>
+      <input type="text" id="mob-recall-reason" class="swal2-input" style="width:90%; margin:0 auto; font-family:'Kanit'; font-size:0.9rem;" placeholder="ระบุเหตุผลสั้นๆ (เช่น คีย์จำนวนผิด)...">
+    `,
+    showCancelButton: true,
+    showDenyButton: true,
+    confirmButtonColor: '#f39c12',
+    denyButtonColor: '#e74c3c',
+    cancelButtonColor: '#95a5a6',
+    confirmButtonText: '<i class="fas fa-edit"></i> ดึงกลับไปแก้ไข',
+    denyButtonText: '<i class="fas fa-trash-alt"></i> ยกเลิกคำขอถาวร',
+    cancelButtonText: 'ปิด',
+    customClass: { container: 'kanit-font' }
+  }).then((result) => {
+    if (!result.isConfirmed && !result.isDenied) return;
+
+    const action = result.isConfirmed ? 'recall' : 'cancel';
+    const reason = (document.getElementById('mob-recall-reason')?.value || "").trim();
+
+    Swal.fire({ title: 'กำลังดำเนินการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+    google.script.run
+      .withSuccessHandler(res => {
+        Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: res.message, customClass: { container: 'kanit-font' } })
+          .then(loadMobileDashboard);
+      })
+      .withFailureHandler(err => {
+        Swal.fire({ icon: 'error', title: 'ไม่สามารถดำเนินการได้', text: err.message, customClass: { container: 'kanit-font' } });
+      })
+      .recallOrCancelDisbursement(reqId, action, reason, getActiveAuthKey());
+  });
+}
+  </script>
+</body>
+</html>
