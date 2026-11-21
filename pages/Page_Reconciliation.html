@@ -1,0 +1,161 @@
+<div style="padding: 20px; font-family:'Kanit', sans-serif;">
+  <div style="display:flex; justify-content:space-between; align-items:center; border-bottom: 2px solid #27ae60; padding-bottom: 10px; margin-top:0; flex-wrap: wrap; gap: 15px;">
+    <div style="display: flex; align-items: center; flex-wrap: wrap; gap: 15px;">
+      <h2 style="color: #27ae60; margin:0;"><i class="fas fa-calculator"></i> ตะกร้างานบัญชีและแผนงาน</h2>
+      <button onclick="openExpenseModal()" style="background: linear-gradient(135deg, #f39c12, #d35400); color: white; border: none; padding: 10px 20px; border-radius: 30px; font-family: 'Kanit'; font-weight: bold; font-size: 1rem; cursor: pointer; box-shadow: 0 4px 10px rgba(211, 84, 0, 0.3); transition: 0.2s; display: flex; align-items: center; gap: 8px;">
+        <i class="fas fa-plus-circle fa-lg"></i> บันทึกรายจ่ายตรง
+      </button>
+    </div>
+    <div>
+      <label style="font-weight:bold; color:#555; margin-right:5px;">ปีงบประมาณ:</label>
+      <select id="recon-year-filter" onchange="loadReconInbox()" style="padding:6px 10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; font-size:1rem;"></select>
+    </div>
+  </div>
+
+  <div style="border-bottom: 2px solid #ecf0f1; margin-bottom: 20px; margin-top: 20px; display: flex; gap: 15px; flex-wrap:wrap;">
+    <div onclick="switchReconTab('tab-recon-pending')" id="btn-recon-pending" style="cursor:pointer; padding:10px 15px; font-weight:bold; color:#27ae60; border-bottom:3px solid #27ae60; position:relative;">
+      <i class="fas fa-inbox"></i> รอกระทบยอด (คิวงาน)
+      <span id="badge-recon-pending" style="display:none; position:absolute; top:0; right:-5px; background:#e74c3c; color:white; border-radius:50%; padding:2px 6px; font-size:0.75rem;">0</span>
+    </div>
+    <div onclick="switchReconTab('tab-plan-assign')" id="btn-plan-assign" style="cursor:pointer; padding:10px 15px; font-weight:bold; color:#7f8c8d; border-bottom:3px solid transparent; position:relative;">
+      <i class="fas fa-link"></i> รอกำหนดโครงการ (แผน)
+      <span id="badge-plan-pending" style="display:none; position:absolute; top:0; right:-5px; background:#e74c3c; color:white; border-radius:50%; padding:2px 6px; font-size:0.75rem;">0</span>
+    </div>
+    <div onclick="switchReconTab('tab-recon-history')" id="btn-recon-history" style="cursor:pointer; padding:10px 15px; font-weight:bold; color:#7f8c8d; border-bottom:3px solid transparent;">
+      <i class="fas fa-check-circle"></i> ประวัติการกระทบยอด
+    </div>
+    <!-- 🌟 แท็บใหม่: ประวัติกรณีพิเศษ -->
+    <div onclick="switchReconTab('tab-audit-log'); loadAuditLog();" id="btn-audit-log" style="cursor:pointer; padding:10px 15px; font-weight:bold; color:#e74c3c; border-bottom:3px solid transparent;">
+      <i class="fas fa-exclamation-triangle"></i> ประวัติกรณีพิเศษ (Audit Log)
+    </div>
+  </div>
+
+  <!-- แท็บ 1: รอกระทบยอด -->
+  <div id="tab-recon-pending" class="recon-tab-content" style="display:block;">
+    <div style="background:#fff; padding:20px; border-radius:8px; border:1px solid #eee; overflow-x:auto;">
+      <div style="margin-bottom:10px; color:#e67e22; font-size:0.85rem; font-weight:bold;"><i class="fas fa-info-circle"></i> รายการเรียงตามลำดับคิว (ผู้ที่ส่งบิลก่อน จะอยู่ด้านบนสุดเสมอ)</div>
+      <table style="width:100%; border-collapse:collapse; font-size:0.95rem; min-width: 1100px;">
+        <thead>
+          <tr style="background:#f4f6f8; border-bottom:2px solid #bdc3c7;">
+            <th style="padding:10px; text-align:left; width:20%;">รหัสเบิก / โครงการ</th>
+            <th style="padding:10px; text-align:center; width:10%;">แหล่งงบประมาณ</th>
+            <th style="padding:10px; text-align:left; width:15%;">ผู้เบิก</th>
+            <th style="padding:10px; text-align:right; width:10%;">ขอเบิก (฿)</th>
+            <th style="padding:10px; text-align:center; width:15%;">บิลแนบ</th>
+            <th style="padding:10px; text-align:right; width:12%;">ยอดใช้จริง (฿)</th>
+            <th style="padding:10px; text-align:center; width:18%;">จัดการบิล</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-recon-pending"><tr><td colspan="7" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- แท็บ 2: รอกำหนดโครงการ -->
+  <div id="tab-plan-assign" class="recon-tab-content" style="display:none;">
+    <div style="background:#fff; padding:20px; border-radius:8px; border:1px solid #eee;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px;">
+        <h3 style="margin:0; color:#e67e22;"><i class="fas fa-link"></i> รายจ่ายตรงรอกำหนดโครงการ</h3>
+        <button onclick="submitProjectAssignments()" id="btn-save-assign" style="background:#e67e22; color:white; border:none; padding:8px 15px; border-radius:4px; font-family:'Kanit'; font-weight:bold; cursor:pointer;"><i class="fas fa-save"></i> ยืนยันผูกโครงการตัดยอด</button>
+      </div>
+      <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
+        <thead>
+          <tr style="background:#fdf2e9; border-bottom:2px solid #e67e22; color:#d35400;">
+            <th style="padding:10px; text-align:left; width:15%;">รหัส / วันที่</th>
+            <th style="padding:10px; text-align:left; width:35%;">รายการ / คำอธิบาย</th>
+            <th style="padding:10px; text-align:right; width:15%;">ยอดเงิน (บาท)</th>
+            <th style="padding:10px; text-align:left; width:35%;">ผูกเข้าโครงการ (ตัดงบ)</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-plan-assign"><tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- แท็บ 3: ประวัติกระทบยอด -->
+  <div id="tab-recon-history" class="recon-tab-content" style="display:none;">
+    <div style="background:#fff; padding:20px; border-radius:8px; border:1px solid #eee;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.95rem;">
+        <thead>
+          <tr style="background:#f4f6f8; border-bottom:2px solid #bdc3c7;">
+            <th style="padding:10px; text-align:left;">รหัสเบิก / โครงการ</th>
+            <th style="padding:10px; text-align:left;">ผู้เบิก</th>
+            <th style="padding:10px; text-align:right;">ยอดขอเบิก</th>
+            <th style="padding:10px; text-align:center;">สถานะบิล</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-recon-history"><tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังโหลด...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- แท็บ 4: ประวัติกรณีพิเศษ (Audit Log) -->
+  <div id="tab-audit-log" class="recon-tab-content" style="display:none;">
+    <div style="background:#fffcf3; padding:20px; border-radius:8px; border:1px solid #f39c12;">
+      <h3 style="margin-top:0; color:#c0392b;"><i class="fas fa-user-secret"></i> บันทึกรายการกรณีพิเศษ (เปลี่ยนแหล่งงบ / ลบยกเลิกบิล)</h3>
+      <table style="width:100%; border-collapse:collapse; font-size:0.9rem;">
+        <thead>
+          <tr style="background:#fdf2e9; border-bottom:2px solid #e67e22;">
+            <th style="padding:10px; text-align:left;">วันที่ดำเนินการ</th>
+            <th style="padding:10px; text-align:left;">ประเภทรายการ</th>
+            <th style="padding:10px; text-align:left;">รายละเอียด / สาเหตุ</th>
+            <th style="padding:10px; text-align:right;">ยอดเงิน</th>
+            <th style="padding:10px; text-align:center;">ผู้ทำรายการ</th>
+          </tr>
+        </thead>
+        <tbody id="tbody-audit-log"><tr><td colspan="5" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงประวัติ...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- 🌟 Modal: บันทึกรายจ่ายตรง (พักบิล) 🌟 -->
+<div id="expenseModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+  <div style="background:white; width:95%; max-width:900px; border-radius:8px; overflow:hidden; box-shadow: 0 4px 15px rgba(0,0,0,0.2);">
+    
+    <div style="background:#e67e22; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.3rem;"><i class="fas fa-file-invoice-dollar"></i> บันทึกรายจ่ายนอกโครงการ (รอผูกงบ)</h3>
+      <button onclick="document.getElementById('expenseModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.8rem; cursor:pointer;">&times;</button>
+    </div>
+    
+    <div style="padding:25px;">
+      <!-- 🌟 DataList: ข้อความกึ่งสำเร็จ (พิมพ์ค้นหาหรือกดเลือกได้) -->
+      <datalist id="preset-expenses">
+        <option value="ค่าขนขยะเดือน "></option>
+        <option value="ค่าไฟฟ้าเดือน "></option>
+        <option value="ค่าโทรศัพท์เดือน "></option>
+        <option value="ค่าน้ำประปาเดือน "></option>
+        <option value="เงินเดือน "></option>
+        <option value="ค่าเบี้ยเลี้ยงนักเรียน "></option>
+        <option value="ค่าเบี้ยเลี้ยงครู "></option>
+      </datalist>
+
+      <div style="background:#fff3e0; border-left:4px solid #f39c12; padding:15px; margin-bottom:20px; border-radius:4px;">
+         <p style="margin:0; color:#555; font-size:0.95rem;">
+           ใช้บันทึก <b>ค่าใช้จ่ายที่เบิกจ่ายตรงโดยงานการเงิน</b> เช่น ค่าน้ำ ค่าไฟ ฯลฯ <br>
+           รายการเหล่านี้จะถูกส่งไปที่ <b>"ตะกร้ารอกำหนดโครงการ"</b> เพื่อให้งานแผนงานนำไปจับคู่ตัดยอดกับงบกลางต่อไป
+         </p>
+      </div>
+      
+      <table style="width:100%; border-collapse:collapse; margin-bottom:15px;">
+        <thead>
+          <tr style="background:#f4f6f8; border-bottom: 2px solid #ddd;">
+            <th style="padding:10px; text-align:left; width:15%;">วันที่</th>
+            <th style="padding:10px; text-align:left; width:30%;">รายการ / คำอธิบาย</th>
+            <th style="padding:10px; text-align:left; width:25%;">แหล่งงบประมาณ</th>
+            <th style="padding:10px; text-align:right; width:20%;">ยอดเงิน (บาท)</th>
+            <th style="padding:10px; text-align:center; width:10%;">
+              <button type="button" onclick="addFinanceRow()" style="background:#3498db; color:white; border:none; padding:6px 12px; border-radius:4px; cursor:pointer; font-size:1rem;" title="เพิ่มรายการ"><i class="fas fa-plus"></i></button>
+            </th>
+          </tr>
+        </thead>
+        <tbody id="finance-expense-tbody"></tbody>
+      </table>
+    </div>
+    
+    <div style="padding:15px 25px; background:#fcfcfc; border-top:1px solid #eee; display:flex; justify-content:flex-end; gap:10px;">
+      <button type="button" onclick="document.getElementById('expenseModal').style.display='none'" style="background:#bdc3c7; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold;">ยกเลิก</button>
+      <button type="button" onclick="submitFinanceExpenses()" id="btn-save-finance" style="background:#27ae60; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-paper-plane"></i> ส่งให้แผนผูกตัดงบ</button>
+    </div>
+  </div>
+</div>
