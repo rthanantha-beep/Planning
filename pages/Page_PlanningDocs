@@ -1,0 +1,19 @@
+<div style="padding: 20px; font-family: 'Kanit', sans-serif;">
+  <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-bottom: 2px solid #f39c12; padding-bottom: 12px; margin-bottom: 20px;">
+    <div>
+      <h2 style="color: #2c3e50; margin: 0;">
+        <i class="fas fa-folder-open" style="color: #f39c12;"></i> คลังเอกสารงานแผนงาน (Google Drive)
+      </h2>
+      <p style="color: #7f8c8d; margin: 5px 0 0 0; font-size: 0.9rem;">รวบรวมเล่มแผนปฏิบัติการ แบบฟอร์ม และเอกสารเผยแพร่ของงานแผนงาน</p>
+    </div>
+
+    <a id="btn-open-drive-external" href="https://drive.google.com/drive/folders/1Vx5WVROQs601bHDd-xNzzPy1m5OOYTZk?usp=sharing" target="_blank" style="background: #f39c12; color: white; text-decoration: none; padding: 10px 20px; border-radius: 6px; font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.15); display: inline-flex; align-items: center; gap: 8px;">
+      <i class="fas fa-external-link-alt"></i> เปิดโฟลเดอร์เต็มใน Google Drive
+    </a>
+  </div>
+
+  <!-- แสดงรายการไฟล์จาก Google Drive ในหน้าเว็บทันที -->
+  <div style="background: #fff; border-radius: 8px; border: 1px solid #e0e6ed; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+    <iframe id="iframe-planning-drive" src="https://drive.google.com/embeddedfolderview?id=1Vx5WVROQs601bHDd-xNzzPy1m5OOYTZk#list" style="width: 100%; height: 72vh; border: none;"></iframe>
+  </div>
+</div>
