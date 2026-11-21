@@ -1,0 +1,54 @@
+<!-- 🌟 เพิ่ม CSS ไฟกระพริบไว้บรรทัดบนสุด -->
+<style>
+  @keyframes pulse-alert {
+    0% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.7; transform: scale(1.05); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+</style>
+
+<div style="padding: 20px; font-family:'Kanit', sans-serif;">
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 15px;">
+    <h2 style="margin: 0; color: #2c3e50;"><i class="fas fa-list-ol"></i> ทะเบียนประวัติการเบิกจ่ายทั้งหมด (ผง.2)</h2>
+    <div style="display: flex; gap: 10px; align-items: center;">
+      <select id="alldisb-year-filter" onchange="loadAllDisbursementsAdmin()" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #ccc; font-family: 'Kanit'; cursor: pointer;"></select>
+      <button onclick="loadAllDisbursementsAdmin()" style="background:#3498db; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; font-family:'Kanit';"><i class="fas fa-sync-alt"></i> รีเฟรช</button>
+    </div>
+  </div>
+
+  <!-- กล่องค้นหาอัจฉริยะ -->
+  <div style="margin-bottom: 15px; display: flex; gap: 10px; align-items: center; background: white; padding: 15px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); border: 1px solid #e0e6ed;">
+    <i class="fas fa-search" style="color: #95a5a6; font-size: 1.2rem;"></i>
+    <input type="text" id="search-alldisb-admin" onkeyup="filterAllDisbursementsAdmin()" placeholder="ค้นหา รหัสบิล, ชื่อโครงการ, ชื่อผู้เบิก..." style="width: 100%; max-width: 400px; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit'; font-size: 0.95rem; outline: none;">
+    <select id="filter-alldisb-status" onchange="filterAllDisbursementsAdmin()" style="padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit'; outline: none;">
+       <option value="all">-- ทุกสถานะ --</option>
+       <option value="รอ">กำลังดำเนินการ (รอ)</option>
+       <!-- 🌟 เพิ่ม Option ค้างเกินกำหนด ตรงนี้ -->
+       <option value="ค้าง">⚠️ ค้างเกิน 2 วัน</option>
+       <option value="อนุมัติ">อนุมัติแล้ว</option>
+       <option value="ตีกลับ">ตีกลับ / ไม่อนุมัติ</option>
+    </select>
+  </div>
+
+  <!-- ตารางข้อมูล (โค้ดส่วนตารางคงเดิม) -->
+  <div style="overflow-x: auto; background: white; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e0e6ed;">
+    <table style="width: 100%; border-collapse: collapse; min-width: 1350px; font-size: 0.85rem;">
+      <thead>
+        <tr style="background: #f4f6f8; color: #2c3e50; text-align: left; border-bottom: 2px solid #bdc3c7;">
+          <th style="padding: 12px; width: 12%;">วันที่ / รหัสคำขอ</th>
+          <th style="padding: 12px; width: 18%;">โครงการ / ผู้เบิก</th>
+          <th style="padding: 12px; width: 12%;">แหล่งงบประมาณ</th>
+          <th style="padding: 12px; text-align: right; width: 8%;">จัดสรร (บ.)</th>
+          <th style="padding: 12px; text-align: right; width: 8%;">เบิกก่อนหน้า</th>
+          <th style="padding: 12px; text-align: right; width: 8%; color: #c0392b;">ขอเบิกครั้งนี้</th>
+          <th style="padding: 12px; text-align: right; width: 8%; color: #27ae60;">คงเหลือ</th>
+          <th style="padding: 12px; width: 14%;">รายการพัสดุ</th>
+          <th style="padding: 12px; text-align: center; width: 12%;">สถานะ (ผง.2)</th>
+        </tr>
+      </thead>
+      <tbody id="alldisb-admin-tbody">
+        <tr><td colspan="9" style="text-align: center; padding: 40px;"><i class="fas fa-spinner fa-spin fa-2x" style="color: #3498db;"></i><br>กำลังดึงข้อมูล...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
