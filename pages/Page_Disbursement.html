@@ -272,7 +272,7 @@
   </div>
 </div>
 
-
+<script>
 // 🌟 ตัวดักจับ Observer เมื่อหน้าเว็บเปลี่ยนมาที่เมนู "เบิกจ่าย" ให้โหลดข้อมูลทันที 🌟
 var observerDisb = new MutationObserver((mutations) => {
   mutations.forEach((m) => { if (m.target.style.display === 'block') { loadDisbursementDashboardData(); } });
@@ -1333,3 +1333,4 @@ function openRecallDisbModal(reqId) {
       .recallOrCancelDisbursement(reqId, action, reason);
   });
 }
+</script>
