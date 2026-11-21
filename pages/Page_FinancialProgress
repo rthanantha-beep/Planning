@@ -1,0 +1,69 @@
+<!-- ========================================== -->
+    <!-- 🌟 หน้า: ภาพรวมความก้าวหน้าการเบิกจ่าย (Admin) 🌟 -->
+    <!-- ========================================== -->
+    <div id="page-financial-progress" class="page-section" style="display:none; padding: 20px; font-family:'Kanit', sans-serif;">
+      
+      <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px;">
+        <h2 style="color: #2c3e50; margin: 0;"><i class="fas fa-chart-line"></i> ภาพรวมความก้าวหน้าการเบิกจ่ายโครงการ</h2>
+        <button onclick="exportFinancialProgressExcel()" style="background: #27ae60; color: white; border: none; padding: 8px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-weight: bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+          <i class="fas fa-file-excel"></i> ดาวน์โหลด Excel
+        </button>
+      </div>
+
+      <!-- กล่องสรุปภาพรวม (Summary Cards) -->
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 15px; margin-bottom: 25px;">
+        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 5px solid #3498db; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+          <div style="color: #7f8c8d; font-size: 0.9rem; font-weight: bold;">งบประมาณรวมทั้งโรงเรียน</div>
+          <div id="fp-sum-budget" style="font-size: 1.8rem; font-weight: bold; color: #2c3e50; margin-top: 5px;">0</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 5px solid #27ae60; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+          <div style="color: #7f8c8d; font-size: 0.9rem; font-weight: bold;">เบิกจ่ายจริง (กระทบยอดแล้ว)</div>
+          <div id="fp-sum-spent" style="font-size: 1.8rem; font-weight: bold; color: #27ae60; margin-top: 5px;">0</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 5px solid #f39c12; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+          <div style="color: #7f8c8d; font-size: 0.9rem; font-weight: bold;">กันเงินไว้ (อยู่ระหว่างทำ ผง.2)</div>
+          <div id="fp-sum-pending" style="font-size: 1.8rem; font-weight: bold; color: #f39c12; margin-top: 5px;">0</div>
+        </div>
+        <div style="background: white; padding: 15px; border-radius: 8px; border-left: 5px solid #8e44ad; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
+          <div style="color: #7f8c8d; font-size: 0.9rem; font-weight: bold;">คงเหลือเบิกได้สุทธิ</div>
+          <div id="fp-sum-remaining" style="font-size: 1.8rem; font-weight: bold; color: #8e44ad; margin-top: 5px;">0</div>
+        </div>
+      </div>
+
+      <!-- แถบเครื่องมือค้นหา -->
+      <div style="background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: flex; gap: 15px; flex-wrap: wrap; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e0e6ed;">
+        <div style="flex: 1; min-width: 250px;">
+          <input type="text" id="fp-search-input" onkeyup="filterFinancialProgress()" placeholder="ค้นหา รหัส, ชื่อโครงการ, ชื่อเจ้าของ..." style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit';">
+        </div>
+        <div style="flex: 0.5; min-width: 150px;">
+          <select id="fp-status-filter" onchange="filterFinancialProgress()" style="width: 100%; padding: 8px 12px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit';">
+            <option value="all">-- ทุกสถานะ --</option>
+            <option value="active">มีการใช้จ่ายแล้ว</option>
+            <option value="zero">ยังไม่เริ่มใช้เงินเลย</option>
+            <option value="full">ใช้เงินหมดแล้ว</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- ตารางข้อมูล -->
+      <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e0e6ed;">
+        <div style="overflow-x: auto;">
+          <table style="width: 100%; border-collapse: collapse; min-width: 900px; font-size: 0.9rem;">
+            <thead>
+              <tr style="background: #f4f6f8; color: #2c3e50; border-bottom: 2px solid #bdc3c7;">
+                <th style="padding: 12px; text-align: left; width: 30%;">รหัส / ชื่อโครงการ</th>
+                <th style="padding: 12px; text-align: left; width: 15%;">เจ้าของโครงการ</th>
+                <th style="padding: 12px; text-align: right; width: 10%;">งบตั้งต้น</th>
+                <th style="padding: 12px; text-align: right; width: 10%;">เบิกจ่ายแล้ว</th>
+                <th style="padding: 12px; text-align: right; width: 10%;">กันเงินไว้</th>
+                <th style="padding: 12px; text-align: right; width: 10%;">คงเหลือสุทธิ</th>
+                <th style="padding: 12px; text-align: left; width: 15%;">ความก้าวหน้า</th>
+              </tr>
+            </thead>
+            <tbody id="fp-tbody">
+              <!-- ข้อมูลจะถูกโหลดมาตรงนี้ -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
