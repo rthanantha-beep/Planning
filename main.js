@@ -8510,29 +8510,30 @@ function deleteProject(projectId, projectName) {
     // 🌟 ฟังก์ชันออกจากระบบ (Logout)
     // ==========================================
     function logout() {
-      Swal.fire({
-        title: 'ออกจากระบบ?',
-        text: "คุณต้องการออกจากระบบเพื่อสลับบัญชีใช่หรือไม่?",
-        icon: 'question',
-        showCancelButton: true,
-        confirmButtonColor: '#e74c3c',
-        cancelButtonColor: '#bdc3c7',
-        confirmButtonText: 'ใช่, ออกจากระบบ',
-        cancelButtonText: 'ยกเลิก',
-        customClass: { container: 'Prompt-font' }
-      }).then((result) => {
-        if (result.isConfirmed) {
-          // 1. ลบข้อมูลตัวตนทั้งหมดออกจากเบราว์เซอร์
-          localStorage.removeItem('appToken');
-          localStorage.removeItem('sopon_preferred_email');
-          localStorage.removeItem('sopon_mobile_auth');
-          localStorage.removeItem('nongPhaenDee_lineUid');
+  Swal.fire({
+    title: 'ออกจากระบบ?',
+    text: "คุณต้องการออกจากระบบเพื่อสลับบัญชีใช่หรือไม่?",
+    icon: 'question',
+    showCancelButton: true,
+    confirmButtonColor: '#e74c3c',
+    cancelButtonColor: '#bdc3c7',
+    confirmButtonText: 'ใช่, ออกจากระบบ',
+    cancelButtonText: 'ยกเลิก',
+    customClass: { container: 'Prompt-font' }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      localStorage.removeItem('appToken');
+      localStorage.removeItem('sopon_preferred_email');
+      localStorage.removeItem('sopon_mobile_auth');
+      localStorage.removeItem('nongPhaenDee_lineUid');
 
-          // 2. รีโหลดกลับมาหน้าเดิม (ล้าง ?uid= บน URL ด้วย) เพื่อให้เด้งกล่องกรอกอีเมลใหม่
-          window.location.href = window.location.pathname;
-        }
-      });
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        google.accounts.id.disableAutoSelect();
+      }
+      window.location.href = window.location.pathname;
     }
+  });
+}
     // ==========================================
 // 🌟 ฟังก์ชันเปิดหน้าต่างตาราง AI วิเคราะห์เอกสารเชื่อมโยงกลยุทธ์ & QA
 // ==========================================
