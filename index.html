@@ -6,6 +6,7 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
   <link rel="stylesheet" href="./style.css">
   <script src="./gas-bridge.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -18,6 +19,15 @@
     <i class="fas fa-spinner fa-spin fa-3x" style="color:#6A1B9A; margin-bottom:20px;"></i>
     <h3 style="color:#333; font-family:'Kanit', sans-serif;">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</h3>
   </div>
+  <!-- หน้าต่างล็อกอินด้วย Google -->
+<div id="google-login-overlay" style="display:none; position:fixed; inset:0; background:linear-gradient(135deg, #f3e5f5, #e8eaf6); z-index:999999; flex-direction:column; justify-content:center; align-items:center; text-align:center; font-family:'Kanit', sans-serif;">
+  <div style="background:white; padding:40px 35px; border-radius:20px; box-shadow:0 10px 30px rgba(106,27,154,0.15); max-width:380px; width:90%;">
+    <i class="fas fa-school" style="font-size:3rem; color:#6A1B9A; margin-bottom:15px;"></i>
+    <h2 style="margin:0 0 8px 0; color:#2c3e50;">ระบบงานแผนงานออนไลน์</h2>
+    <p style="margin:0 0 25px 0; color:#7f8c8d; font-size:0.95rem;">กรุณาเข้าสู่ระบบด้วยบัญชี Google โรงเรียน (@sopon.ac.th)</p>
+    <div id="google-signin-btn" style="display:flex; justify-content:center;"></div>
+  </div>
+</div>
  <!-- หน้าจอแจ้งเตือนไม่มีสิทธิ์ -->
   <div id="unauthorized-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:999999; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
     <i class="fas fa-lock" style="font-size:5rem; color:#e74c3c; margin-bottom:20px;"></i>
@@ -616,41 +626,71 @@
     }
   }
 
+  function parseJwt(token) {
+    const base64Url = token.split('.')[1];
+    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
+      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
+    ).join(''));
+    return JSON.parse(jsonPayload);
+  }
+
+  // 2. ฟังก์ชันทำงานเมื่อผู้ใช้กดเลือกบัญชี Google สำเร็จ
+  function handleGoogleLogin(response) {
+    const payload = parseJwt(response.credential);
+    if (payload && payload.email) {
+      localStorage.setItem('sopon_preferred_email', payload.email.trim().toLowerCase());
+      location.reload();
+    }
+  }
+
+  // 3. ฟังก์ชันแสดงหน้าต่างปุ่ม Sign in with Google
+  function showGoogleLoginScreen() {
+    const loader = document.getElementById('loader-overlay');
+    if (loader) loader.style.display = 'none';
+
+    const loginBox = document.getElementById('google-login-overlay');
+    if (loginBox) loginBox.style.display = 'flex';
+
+    const renderBtn = () => {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        google.accounts.id.initialize({
+          client_id: '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', // 🔴 วาง Client ID ของคุณครูตรงนี้
+          callback: handleGoogleLogin
+        });
+        google.accounts.id.renderButton(
+          document.getElementById('google-signin-btn'),
+          { theme: 'outline', size: 'large', width: 280, text: 'signin_with', shape: 'pill' }
+        );
+      } else {
+        setTimeout(renderBtn, 200);
+      }
+    };
+    renderBtn();
+  }
+
+  // 4. ฟังก์ชันหลักเริ่มต้นระบบหน้า Desktop
   async function bootDesktopApp() {
-    // 🛡️ กันรันซ้ำ (แก้ปัญหาลูปวนไม่รู้จบ)
+    // กันรันซ้ำ
     if (window.__DESKTOP_BOOTED__) return;
     window.__DESKTOP_BOOTED__ = true;
 
-    // 1. เช็คว่ามีอีเมลหรือ Line UID หรือยัง ถ้ายังไม่มีให้เด้งถามก่อน
+    // เช็คว่าล็อกอินหรือยัง (มี uid จาก LINE หรือมีอีเมลในเครื่อง)
     const urlParams = new URLSearchParams(window.location.search);
     const hasAuth = urlParams.get('uid')
                  || localStorage.getItem('sopon_preferred_email')
                  || localStorage.getItem('nongPhaenDee_lineUid');
 
+    // ถ้ายังไม่ล็อกอิน -> โชว์หน้าปุ่ม Sign in with Google แล้วหยุดรอ
     if (!hasAuth) {
-      const loader = document.getElementById('loader-overlay');
-      if (loader) loader.style.display = 'none';
-
-      const { value: email } = await Swal.fire({
-        title: 'เข้าสู่ระบบงานแผนงาน',
-        input: 'email',
-        inputPlaceholder: 'กรอกอีเมลโรงเรียน เช่น name@sopon.ac.th',
-        confirmButtonText: 'เข้าสู่ระบบ',
-        allowOutsideClick: false,
-        allowEscapeKey: false
-      });
-
-      if (email) {
-        localStorage.setItem('sopon_preferred_email', email.trim().toLowerCase());
-        location.reload();
-      }
+      showGoogleLoginScreen();
       return;
     }
 
-    // 2. โหลด HTML ทุกหน้าย่อยพร้อมกัน
+    // ถ้าล็อกอินแล้ว -> โหลด HTML ทุกหน้าย่อยพร้อมกัน
     await Promise.all(PAGE_INCLUDES.map(([id, path]) => loadPageHTML(id, path)));
 
-    // 3. โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
+    // โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
     const mainScript = document.createElement('script');
     mainScript.src = './main.js';
     mainScript.onload = () => {
@@ -662,7 +702,7 @@
     document.body.appendChild(mainScript);
   }
 
-  // เริ่มระบบแค่ครั้งเดียวเท่านั้น ({ once: true })
+  // สั่งเริ่มระบบแค่ครั้งเดียว
   if (document.readyState === 'loading') {
     document.addEventListener('DOMContentLoaded', bootDesktopApp, { once: true });
   } else {
