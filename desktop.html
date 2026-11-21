@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <base target="_top">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
+  <?!= include('CSS'); ?>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  
+</head>
+<body>
+
+  <!-- หน้าจอโหลดข้อมูล -->
+ <div id="loader-overlay">
+    <i class="fas fa-spinner fa-spin fa-3x" style="color:#6A1B9A; margin-bottom:20px;"></i>
+    <h3 style="color:#333; font-family:'Kanit', sans-serif;">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</h3>
+  </div>
+ <!-- หน้าจอแจ้งเตือนไม่มีสิทธิ์ -->
+  <div id="unauthorized-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#f4f6f8; z-index:999999; flex-direction:column; justify-content:center; align-items:center; text-align:center;">
+    <i class="fas fa-lock" style="font-size:5rem; color:#e74c3c; margin-bottom:20px;"></i>
+    <h2 style="color:#333; font-family:'Kanit', sans-serif;">คุณไม่มีสิทธิ์เข้าใช้งานระบบ</h2>
+    <p style="color:#666; font-family:'Kanit', sans-serif;" id="unauthorized-email"></p>
+    <p style="color:#666; font-family:'Kanit', sans-serif;">กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มรายชื่อเข้าสู่ฐานข้อมูล</p>
+
+    <!-- ปุ่มสลับบัญชี Google -->
+    <a href="https://accounts.google.com/AccountChooser?continue=https://script.google.com/a/macros/sopon.ac.th/s/AKfycbw7fWIKyMF5lbol0UU8zM8RitAg_e9_VoQAyOx1JkgGuMs9G9uuzM2Rnv6qXar4LBSU/exec" target="_top" style="background:#3498db; color:white; padding:12px 25px; border-radius:8px; text-decoration:none; display:inline-block; font-weight:bold; margin-top:20px; font-family:'Kanit', sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position:relative; z-index:999999; pointer-events:auto;">
+      <i class="fas fa-sync-alt"></i> สลับบัญชี Google
+    </a>
+  </div>
+ <!-- ============================================== -->
+<!-- 1. แถบด้านซ้าย (Sidebar) -->
+<!-- ============================================== -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h3 style="margin:0 0 15px 0;">ระบบแผนงาน V2</h3>
+      <div id="user-fullname-display" style="font-size: 1rem; color: white; font-weight: 500;">งานแผนงานโรงเรียนโสภณศิริราษฎร์</div>
+      <div id="user-role-display" style="font-size: 0.8rem; color: #ce93d8; margin-top: 5px;">สิทธิ์: ผู้ดูแลระบบ (Admin/แผนงาน)</div>
+    </div>
+    
+    <div class="sidebar-menu">
+      <div class="menu-item active" onclick="showPage('page-dashboard')"><i class="fas fa-chart-pie"></i> หน้าแรก</div>
+      <div class="menu-item" onclick="showPage('page-calendar'); initCalendar();" id="menu-calendar"><i class="far fa-calendar-alt"></i> ปฏิทินปฏิบัติงาน</div>
+      <div class="menu-item" onclick="showPage('page-profile')"><i class="fas fa-user-circle"></i> โปรไฟล์ของฉัน</div>
+      
+      <div class="menu-category" id="cat-personal" style="display: block;">👤 พื้นที่ส่วนตัว</div>
+      <div id="menu-myprojects" class="menu-item" style="display: flex;" onclick="showPage('page-myprojects')"><i class="fas fa-folder"></i> โครงการของฉัน</div>
+      <div id="menu-disbursement" class="menu-item" style="display: none; justify-content: space-between; align-items: center;" onclick="showPage('page-disbursement'); loadDisbursementDashboardData();">
+        <div><i class="fas fa-file-invoice-dollar"></i> การเบิกจ่ายของฉัน</div>
+        <span id="badge-owner-disb" class="nav-badge" style="display: none; background: #e74c3c; color: white; padding: 2px 6px; border-radius: 10px; font-size: 0.75rem; font-weight: bold;">0</span>
+      </div>
+
+      <div class="menu-category" id="cat-approval" style="display: block;">✅ อนุมัติ &amp; ติดตาม</div>
+      <div id="menu-approve" class="menu-item" style="display: flex; justify-content: space-between; align-items: center;" onclick="showPage('page-approve')">
+        <div><i class="fas fa-clipboard-check"></i> พิจารณาโครงการ</div>
+        <span id="badge-approve" class="nav-badge" style="display: none;">0</span>
+      </div>
+      <!-- 🌟 พิจารณาเบิกจ่าย (ผง.2) -->
+      <div id="menu-disb-approve" class="menu-item" style="display: flex; justify-content: space-between; align-items: center;" onclick="showPage('page-disb-approve'); loadDisbApproveInbox();">
+        <div><i class="fas fa-search-dollar"></i> พิจารณาเบิกจ่าย (ผง.2)</div>
+        <span id="badge-disb" class="nav-badge" style="display: none;">0</span>
+      </div>
+      <div id="menu-allprojects" class="menu-item" style="display: flex;" onclick="showPage('page-allprojects')"><i class="fas fa-database"></i> โครงการทั้งหมด</div>
+       <div id="menu-amendment-docs" class="menu-item" style="display: flex; justify-content: space-between; align-items: center;" onclick="showPage('page-amendment-docs')">
+        <div><i class="fas fa-exchange-alt"></i> ทะเบียนคำร้อง (ผง.3)</div>
+      </div>
+      <div id="menu-all-disbursements" class="menu-item" style="display: flex; justify-content: space-between; align-items: center;" onclick="showPage('page-all-disbursements')">
+        <div><i class="fas fa-list-ol"></i> ประวัติเบิกจ่ายทั้งหมด</div>
+      </div>
+
+      <div class="menu-category" id="cat-finance" style="display: block;">💰 การเงิน &amp; พัสดุ</div>
+      <!-- 🌟 ตะกร้าใบขออนุมัติเบิกจ่าย (แก้ไขโครงสร้างให้ถูกต้อง ไม่ซ้ำซ้อน) -->
+      <div id="menu-supply-docs" class="menu-item" style="display: flex; justify-content: space-between; align-items: center;" onclick="showPage('page-supply-docs')">
+        <div><i class="fas fa-box-open"></i> ตะกร้าใบขออนุมัติเบิกจ่าย</div>
+        <span id="badge-supply" class="nav-badge" style="display: none;">0</span>
+      </div>
+      <div id="menu-reconciliation" class="menu-item" style="display: flex; justify-content: space-between; align-items: center;" onclick="showPage('page-reconciliation')">
+        <div><i class="fas fa-calculator"></i> กระทบยอดเคลียร์บิล</div>
+        <span id="badge-recon" class="nav-badge" style="display: inline-block;">0</span>
+      </div>
+      <div id="menu-budget-admin" class="menu-item" onclick="showPage('page-budget-admin')" style="display: flex;"><i class="fas fa-wallet"></i> จัดการงบกลาง</div>
+
+      <div class="menu-category" id="cat-strategy" style="display: block;">🎯 แผนงาน &amp; QA</div>
+      <div id="menu-strategy" class="menu-item" style="display: flex;" onclick="showPage('page-strategy')"><i class="fas fa-sitemap"></i> จัดการโครงสร้างแผนงาน</div>
+      <div id="menu-qa" class="menu-item" style="display: flex;" onclick="showPage('page-qa')"><i class="fas fa-check-double"></i> งานประกันคุณภาพ</div>
+      <div class="menu-item" id="menu-planning-docs" onclick="showPage('page-planning-docs')" style="display: flex;">
+        <i class="fas fa-folder-open" style="color: #f39c12;"></i>
+        <span>เอกสารงานแผนงาน</span>
+      </div>
+
+      <div class="menu-category" id="cat-admin" style="display: block;">⚙️ จัดการระบบ</div>
+      <div id="menu-admin" class="menu-item" style="display: flex;" onclick="showPage('page-admin')"><i class="fas fa-cogs"></i> จัดการระบบ (Admin)</div>
+      <button onclick="logout()" style="background: #e74c3c; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-family: 'Prompt'; font-weight: bold; width: 100%; margin-top: 20px;">
+        <i class="fas fa-sign-out-alt"></i> ออกจากระบบ
+      </button>
+    </div>
+  </div>
+
+
+<!-- ============================================== -->
+<!-- พื้นที่เนื้อหาหลักตรงกลาง (Main Content) -->
+<!-- ============================================== -->
+<div class="main-content">
+  <!-- 11. โครงการทั้งหมด -->
+  <div id="page-allprojects" class="page-section" style="display: none;">
+    <?!= include('Page_AllProjects'); ?>
+  </div>
+  <!-- 10. ตะกร้างานพัสดุ -->
+  <div id="page-supply-docs" class="page-section" style="display: none;">
+    <?!= include('Page_SupplyDocs'); ?>
+  </div>
+    <!-- 12. ตั้งค่าระบบ (Admin) -->
+  <div id="page-admin" class="page-section" style="display: none;">
+    <?!= include('Page_Settings'); ?>
+  </div>
+
+  <div id="page-amendment-docs" class="page-section" style="display: none;">
+    <?!= include('Page_AmendmentDocs'); ?>
+  </div>
+    
+  <!-- 1. หน้าแรก (Dashboard) -->
+  <div id="page-dashboard" class="page-section">
+    <?!= include('Page_Dashboard'); ?>
+  </div>
+
+  <div id="page-calendar" class="page-section" style="display: none;">
+    <?!= include('Page_Calendar'); ?>
+  </div>
+
+  <!-- 2. โปรไฟล์ของฉัน -->
+  <div id="page-profile" class="page-section" style="display: none;">
+    <?!= include('Page_Profile'); ?>
+  </div>
+
+  <!-- 3. จัดการงบประมาณ (สำหรับงานแผน) -->
+  <div id="page-budget-admin" class="page-section" style="display: none;">
+    <?!= include('Page_BudgetAdmin'); ?>
+  </div>
+<!-- 13. พิจารณาโครงการ -->
+  <div id="page-approve" class="page-section" style="display: none;">
+    <?!= include('Page_Approve'); ?>
+  </div>
+  <!-- 4. กระทบยอดเคลียร์บิล -->
+  <div id="page-reconciliation" class="page-section" style="display: none;">
+    <?!= include('Page_Reconciliation'); ?>
+  </div> 
+
+  <!-- หน้าประวัติเบิกจ่ายทั้งหมด -->
+  <div id="page-all-disbursements" class="page-section" style="display: none;">
+    <?!= include('Page_AllDisbursements'); ?>
+  </div>
+
+  <!-- 5. จัดการโครงสร้างแผนงาน -->
+  <div id="page-strategy" class="page-section" style="display: none;">
+    <?!= include('Page_Strategy'); ?>
+  </div>
+
+  <!-- 6. งานประกันคุณภาพ (QA) -->
+  <div id="page-qa" class="page-section" style="display: none;">
+    <?!= include('Page_QA'); ?>
+  </div>
+  <div id="page-planning-docs" class="page-section" style="display: none;">
+  <?!= include('Page_PlanningDocs'); ?>
+</div>
+
+  <!-- 7. พิจารณาเบิกจ่าย (ผง.2) -->
+  <div id="page-disb-approve" class="page-section" style="display: none;">
+    <?!= include('Page_DisbApprove'); ?>
+  </div>
+
+  <!-- 8. โครงการของฉัน -->
+  <div id="page-myprojects" class="page-section" style="display: none;">
+    <?!= include('Page_MyProjects'); ?>
+  </div>
+
+  <!-- 9. การเบิกจ่ายของฉัน -->
+  <div id="page-disbursement" class="page-section" style="display: none;">
+    <?!= include('Page_Disbursement'); ?>
+  </div>
+      
+  <!-- 14. รายงานความก้าวหน้าทางการเงิน -->
+  <div id="page-financial-progress" class="page-section" style="display: none;">
+    <?!= include('Page_FinancialProgress'); ?>
+  </div>
+
+</div>
+
+  <!-- ============================================== -->
+  <!-- 3. Modals รวมมิตรของระบบทั้งหมด -->
+  <!-- ============================================== -->
+  
+  <!-- Modal: ประวัติข้อเสนอแนะ -->
+  <div id="commentHistoryModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.6); z-index:9999; justify-content:center; align-items:center;">
+    <div style="background:white; width:90%; max-width:500px; border-radius:8px; box-shadow:0 4px 15px rgba(0,0,0,0.2); overflow:hidden; font-family:'Kanit', sans-serif;">
+      <div style="background:#f39c12; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; font-size:1.2rem;"><i class="fas fa-history"></i> ประวัติข้อเสนอแนะ</h3>
+        <button onclick="closeCommentHistoryModal()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      <div style="padding:20px;">
+        <p id="history-project-id-display" style="font-weight:bold; color:#e67e22; margin-top:0; border-bottom:1px dashed #ddd; padding-bottom:10px;"></p>
+        <div id="history-content" style="white-space:pre-wrap; font-size:0.95rem; color:#444; max-height:300px; overflow-y:auto; line-height:1.6;"></div>
+      </div>
+      <div style="padding:15px 20px; background:#f9f9f9; text-align:right;">
+        <button onclick="closeCommentHistoryModal()" style="background:#bbb; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer;"><i class="fas fa-times"></i> ปิดหน้าต่าง</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal: ขอแก้ไขโครงการ (ผง.3) -->
+<div id="amendmentModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2050; justify-content:center; align-items:center;">
+  <div class="modal-content" style="background:white; width:95%; max-width:1100px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.3); overflow:hidden; font-family:'Kanit', sans-serif; display:flex; flex-direction:column; max-height:95vh;">
+    
+    <!-- ส่วนหัว -->
+    <div style="background:#8e44ad; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.2rem;"><i class="fas fa-edit"></i> ยื่นคำร้องขอเปลี่ยนแปลงรายละเอียดโครงการ (ผง.3)</h3>
+      <button onclick="closeAmendmentModal()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    
+    <!-- พื้นที่เนื้อหา -->
+    <div style="padding:20px; overflow-y:auto; flex:1; background:#f9fbfc;">
+      <form id="amendmentForm">
+        <input type="hidden" id="amend-project-id" name="projectId">
+        
+        <!-- ข้อมูลโครงการ -->
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:15px; background:white; padding:15px; border-radius:8px; border-left:4px solid #8e44ad; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+          <div>
+             <div style="font-weight:bold; color:#8e44ad; font-size:1.1rem;" id="amend-project-id-display">รหัสโครงการ: -</div>
+             <div style="font-size:0.9rem; color:#7f8c8d; margin-top:5px;">ตำแหน่ง: ผู้รับผิดชอบกิจกรรม <strong id="amend-position-display" style="color:#2c3e50;"></strong></div>
+          </div>
+          <a id="amend-doc-link" href="#" target="_blank" style="background:#f4f6f8; color:#2980b9; padding:8px 15px; border-radius:20px; text-decoration:none; font-size:0.9rem; border:1px solid #d9e2ec; font-weight:bold;"><i class="fas fa-external-link-alt"></i> เปิดเอกสารโครงการเดิม (ผง.1)</a>
+        </div>
+
+        <!-- กล่องแจ้งเตือนถูกตีกลับ -->
+        <div id="amend-admin-feedback-box" style="display:none; background:#fdedec; border-left:4px solid #e74c3c; padding:12px; margin-bottom:15px; border-radius:4px;">
+          <strong style="color:#c0392b;"><i class="fas fa-exclamation-circle"></i> ข้อเสนอแนะ (ถูกส่งกลับแก้ไข):</strong>
+          <p id="amend-admin-feedback-text" style="margin:5px 0 0 0; color:#c0392b; font-size:0.95rem; white-space:pre-wrap;"></p>
+        </div>
+
+        <!-- เหตุผลความจำเป็น -->
+        <div style="margin-bottom: 20px; background:white; padding:15px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+          <label style="display:block; margin-bottom:8px; font-weight:bold; color:#2c3e50;">เหตุผลและความจำเป็นที่ขอเปลี่ยนแปลง <span style="color:red;">*</span></label>
+          <textarea name="requestReason" id="amend-reason" rows="2" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;" placeholder="ระบุเหตุผลในการขอแก้ไข..."></textarea>
+        </div>
+
+        <!-- ตารางเปรียบเทียบ รายละเอียดเดิม vs ใหม่ -->
+        <div style="background:white; padding:15px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1); margin-bottom:20px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+             <label style="font-weight:bold; color:#2c3e50; margin:0;"><i class="fas fa-table"></i> ตารางแสดงรายการที่ขอเปลี่ยนแปลง</label>
+             <button type="button" onclick="addAmendItemRow()" style="background:#27ae60; color:white; border:none; padding:5px 12px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-size:0.85rem; font-weight:bold;"><i class="fas fa-plus"></i> เพิ่มบรรทัด</button>
+          </div>
+          <div style="overflow-x:auto;">
+            <table style="width:100%; border-collapse:collapse; font-size:0.85rem; min-width:900px;">
+              <thead>
+                <tr style="color:white;">
+                  <th colspan="4" style="padding:8px; border:1px solid #ccc; text-align:center; width:45%; background:#7f8c8d;">รายละเอียดเดิม</th>
+                  <th colspan="4" style="padding:8px; border:1px solid #ccc; text-align:center; width:45%; background:#2980b9;">รายละเอียดใหม่</th>
+                  <th rowspan="2" style="padding:8px; border:1px solid #ccc; text-align:center; width:10%; background:#ecf0f1; color:#333;">ลบ</th>
+                </tr>
+                <tr style="background:#f4f6f8; color:#333;">
+                  <th style="padding:6px; border:1px solid #ccc;">รายการ</th>
+                  <th style="padding:6px; border:1px solid #ccc; width:60px;">จำนวน</th>
+                  <th style="padding:6px; border:1px solid #ccc; width:60px;">หน่วย</th>
+                  <th style="padding:6px; border:1px solid #ccc; width:80px;">ราคา/หน่วย</th>
+                  <th style="padding:6px; border:1px solid #ccc; border-left:3px solid #2980b9;">รายการ</th>
+                  <th style="padding:6px; border:1px solid #ccc; width:60px;">จำนวน</th>
+                  <th style="padding:6px; border:1px solid #ccc; width:60px;">หน่วย</th>
+                  <th style="padding:6px; border:1px solid #ccc; width:80px;">ราคา/หน่วย</th>
+                </tr>
+              </thead>
+              <tbody id="amend-items-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- การเปลี่ยนแปลงงบประมาณ -->
+        <div style="background:white; padding:15px; border-radius:8px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+           <label style="font-weight:bold; color:#2c3e50; display:block; margin-bottom:10px;"><i class="fas fa-coins"></i> การเปลี่ยนแปลงงบประมาณ <span style="color:red;">*</span></label>
+           <div style="display:flex; gap:20px; align-items:center; flex-wrap:wrap;">
+              <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size:1rem;">
+                <input type="radio" name="amendBudgetType" value="no_change" checked onchange="toggleAmendBudget()" style="transform: scale(1.2);"> ไม่ขอเพิ่มงบประมาณ
+              </label>
+              <label style="cursor:pointer; display:flex; align-items:center; gap:5px; font-size:1rem;">
+                <input type="radio" name="amendBudgetType" value="increase" onchange="toggleAmendBudget()" style="transform: scale(1.2);"> ขอเพิ่มงบประมาณ
+              </label>
+              
+              <div id="amend-budget-input-container" style="display:none; align-items:center; gap:10px; background:#fef9e7; padding:8px 15px; border-radius:6px; border:1px dashed #f39c12;">
+                 <span style="color:#d35400; font-weight:bold;">ระบุยอดที่ขอเพิ่ม:</span>
+                 <input type="number" id="amend-add-amount" placeholder="0.00" style="padding:6px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; width:120px; text-align:right; font-weight:bold; color:#d35400;"> บาท
+              </div>
+           </div>
+        </div>
+      </form>
+    </div>
+    
+    <!-- ปุ่มดำเนินการ -->
+    <div style="background:#ecf0f1; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <button type="button" onclick="closeAmendmentModal()" style="background:#bdc3c7; color:#333; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold;">ยกเลิก</button>
+      <div style="display:flex; gap:10px;">
+        <button type="button" id="btn-draft-amendment" onclick="submitAmendmentRequest('draft')" style="background:#f39c12; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-save"></i> บันทึกร่างคำร้อง</button>
+        <button type="button" id="btn-submit-amendment" onclick="submitAmendmentRequest('submit')" style="background:#8e44ad; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-paper-plane"></i> ยื่นคำร้อง (ผง.3)</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+<!-- Modal: สำหรับผู้บริหารและแอดมิน ตรวจสอบ ผง.3 -->
+<div id="amendReviewModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2050; justify-content:center; align-items:center;">
+  <div class="modal-content" style="background:white; width:95%; max-width:900px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.3); overflow:hidden; font-family:'Kanit', sans-serif; display:flex; flex-direction:column; max-height:95vh;">
+    
+    <div style="background:#8e44ad; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.2rem;"><i class="fas fa-search"></i> พิจารณาคำร้องขอเปลี่ยนแปลง (ผง.3)</h3>
+      <button onclick="document.getElementById('amendReviewModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    
+    <div style="padding:20px; overflow-y:auto; flex:1; background:#f4f6f8;">
+      <input type="hidden" id="amend-review-pid">
+      <input type="hidden" id="amend-review-role">
+      <input type="hidden" id="amend-review-rolename">
+      
+      <div style="background:white; padding:15px; border-radius:8px; border-left:4px solid #8e44ad; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <strong style="color:#8e44ad; font-size:1.1rem;" id="amend-review-title">-</strong>
+        <div style="color:#e67e22; font-size:0.95rem; margin-top:5px;"><i class="fas fa-comment-dots"></i> <b>เหตุผล:</b> <span id="amend-review-reason"></span></div>
+      </div>
+
+      <div style="background:white; padding:15px; border-radius:8px; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1); overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.85rem; min-width:600px;">
+          <thead>
+            <tr style="color:white;">
+              <th colspan="4" style="padding:8px; border:1px solid #ccc; text-align:center; width:50%; background:#7f8c8d;">รายละเอียดเดิม</th>
+              <th colspan="4" style="padding:8px; border:1px solid #ccc; text-align:center; width:50%; background:#2980b9;">รายละเอียดใหม่</th>
+            </tr>
+            <tr style="background:#f4f6f8; color:#333;">
+              <th style="padding:6px; border:1px solid #ccc;">รายการ</th><th style="padding:6px; border:1px solid #ccc;">จำนวน</th><th style="padding:6px; border:1px solid #ccc;">หน่วย</th><th style="padding:6px; border:1px solid #ccc;">ราคา</th>
+              <th style="padding:6px; border:1px solid #ccc; border-left:3px solid #2980b9;">รายการ</th><th style="padding:6px; border:1px solid #ccc;">จำนวน</th><th style="padding:6px; border:1px solid #ccc;">หน่วย</th><th style="padding:6px; border:1px solid #ccc;">ราคา</th>
+            </tr>
+          </thead>
+          <tbody id="amend-review-items-tbody"></tbody>
+        </table>
+      </div>
+
+      <!-- ส่วนแจ้งเรื่องการขอเพิ่มงบ -->
+      <div id="amend-review-budget-box" style="display:none; background:#fdf2e9; border:1px solid #f5b041; padding:15px; border-radius:8px; margin-bottom:15px;">
+         <strong style="color:#d35400; font-size:1.05rem;"><i class="fas fa-hand-holding-usd"></i> มีการขออนุมัติงบประมาณเพิ่มเติม: <span id="amend-review-add-amt" style="font-size:1.3rem;"></span> บาท</strong>
+         
+         <!-- แอดมินต้องเป็นคนเลือกแหล่งเงิน -->
+         <div id="amend-admin-source-select" style="margin-top:10px; display:none;">
+            <label style="font-weight:bold; color:#2c3e50;">โปรดระบุแหล่งเงินที่จะดึงมาสมทบ <span style="color:red;">*</span></label>
+            <select id="amend-budget-source" style="width:100%; padding:8px; font-family:'Kanit'; border:1px solid #ccc; border-radius:4px; margin-top:5px;"></select>
+         </div>
+         <!-- คนอื่นดูอย่างเดียว -->
+         <div id="amend-other-source-display" style="margin-top:10px; display:none; color:#2980b9; font-weight:bold;">
+            แหล่งงบประมาณที่งานแผนระบุ: <span id="amend-source-text"></span>
+         </div>
+      </div>
+
+      <!-- ส่วนบันทึกความเห็น -->
+      <div style="background:#fffcf3; border:1px solid #f39c12; border-radius:8px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <label style="font-weight:bold; color:#d35400;"><i class="fas fa-comment-dots"></i> ความเห็น / ข้อเสนอแนะ (บังคับกรอกกรณีตีกลับ)</label>
+        <textarea id="amend-review-comment" rows="2" style="width:100%; padding:10px; font-family:'Kanit'; border:1px solid #ccc; border-radius:4px; margin-top:5px; box-sizing:border-box;"></textarea>
+      </div>
+
+    </div>
+    
+    <div style="background:#ecf0f1; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <button onclick="document.getElementById('amendReviewModal').style.display='none'" style="background:#bdc3c7; color:#333; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold;">ปิดหน้าต่าง</button>
+      <div style="display:flex; gap:10px;">
+        <button onclick="submitAmendReview('reject')" style="background:#c0392b; color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-family:'Kanit';"><i class="fas fa-times"></i> ไม่อนุมัติ</button>
+        <button onclick="submitAmendReview('return')" style="background:#e67e22; color:white; border:none; padding:10px 15px; border-radius:6px; cursor:pointer; font-family:'Kanit';"><i class="fas fa-undo"></i> ตีกลับแก้ไข</button>
+        <button onclick="submitAmendReview('approve')" style="background:#27ae60; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-check-circle"></i> อนุมัติ / ส่งต่อ</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+  <!-- Modal: รายงานผลโครงการ -->
+  <div id="reportModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; justify-content:center; align-items:center;">
+    <div style="background:white; width:95%; max-width:800px; border-radius:10px; box-shadow:0 10px 25px rgba(0,0,0,0.3); overflow:hidden; font-family:'Kanit', sans-serif; display:flex; flex-direction:column; max-height:90vh;">
+      <div style="background:#2980b9; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+        <h3 style="margin:0; font-size:1.2rem;"><i class="fas fa-file-signature"></i> รายงานผลการดำเนินงานโครงการ</h3>
+        <button onclick="closeReportModal()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+      </div>
+      <div style="padding:20px; overflow-y:auto; flex:1; background:#f9fbfc;">
+        <form id="reportForm">
+          <input type="hidden" id="report-project-id" name="projectId">
+          <div style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:500;">ชื่อรายงานผล <span style="color:#7f8c8d; font-size:0.85rem;">(ระบบสร้างให้อัตโนมัติ)</span></label>
+            <input type="text" name="reportName" id="report-name-input" readonly style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; background-color:#f4f6f8; color:#2c3e50; font-weight:bold; box-sizing:border-box;">
+          </div>
+          <div style="margin-bottom:15px;">
+            <label style="display:block; margin-bottom:5px; font-weight:500;">สถานะการดำเนินงาน</label>
+            <select name="operationalStatus" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;">
+              <option value="ดำเนินการเสร็จสิ้น">ดำเนินการเสร็จสิ้น</option>
+              <option value="ไม่ได้ดำเนินการ/ยกเลิก">ไม่ได้ดำเนินการ/ยกเลิก</option>
+            </select>
+          </div>
+          <h4 style="color:#2c3e50; border-bottom:2px solid #ecf0f1; padding-bottom:5px; margin-top:25px;"><i class="fas fa-chart-line"></i> ผลการดำเนินงาน</h4>
+          
+          <div style="margin-bottom: 15px;">
+            <label style="display:block; margin-bottom:2px; font-weight:500;">1. ผลเชิงปริมาณ (Quantitative Result)</label>
+            <div style="font-size:0.8rem; color:#7f8c8d; margin-bottom:5px;"><i class="fas fa-info-circle"></i> เน้นตัวเลข วัดค่าได้ (ทำกับใคร จำนวนเท่าไหร่ บรรลุเป้ากี่เปอร์เซ็นต์)</div>
+            <textarea name="quantitativeResult" rows="2" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;" placeholder="ตัวอย่าง: นักเรียนชั้น ม.6 จำนวน 70 คน เข้าร่วมกิจกรรมสัมภาษณ์ชาวต่างชาติ คิดเป็นร้อยละ 100 ของเป้าหมายที่ตั้งไว้ และผ่านเกณฑ์ประเมิน 70 คน"></textarea>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <label style="display:block; margin-bottom:2px; font-weight:500;">2. ผลเชิงคุณภาพ (Qualitative Result)</label>
+            <div style="font-size:0.8rem; color:#7f8c8d; margin-bottom:5px;"><i class="fas fa-info-circle"></i> เน้นการเปลี่ยนแปลงพฤติกรรม ทักษะที่ได้รับ หรือระดับความพึงพอใจ</div>
+            <textarea name="qualitativeResult" rows="2" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;" placeholder="ตัวอย่าง: นักเรียนเกิดความกล้าแสดงออก มั่นใจในการสื่อสารภาษาอังกฤษในสถานการณ์จริง และมีความพึงพอใจต่อกิจกรรมในระดับดีมาก"></textarea>
+          </div>
+          
+          <div style="margin-bottom: 15px;">
+            <label style="display:block; margin-bottom:2px; font-weight:500;">3. สรุปผลสัมฤทธิ์ (Summary of Outcomes)</label>
+            <div style="font-size:0.8rem; color:#7f8c8d; margin-bottom:5px;"><i class="fas fa-info-circle"></i> บทสรุปภาพรวม โครงการคุ้มค่าและบรรลุวัตถุประสงค์หลักหรือไม่ เห็นควรจัดต่อในปีถัดไปหรือไม่</div>
+            <textarea name="summaryOfOutcomes" rows="3" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;" placeholder="ตัวอย่าง: โครงการบรรลุวัตถุประสงค์ในการยกระดับทักษะการสื่อสาร ส่งผลดีต่อความกระตือรือร้นในการเรียน ถือเป็นการใช้งบประมาณที่คุ้มค่า เห็นควรให้จัดต่อเนื่อง"></textarea>
+          </div>
+          
+          <div style="display:flex; gap:15px; margin-bottom:15px;">
+            <div style="flex:1;">
+              <label style="display:block; margin-bottom:2px; font-weight:500; color:#c0392b;">ปัญหาและอุปสรรค</label>
+              <div style="font-size:0.8rem; color:#7f8c8d; margin-bottom:5px;">(ถ้าไม่มีปัญหาให้ใส่คำว่า ไม่มี)</div>
+              <textarea name="problemsObstacles" rows="2" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;" placeholder="ตัวอย่าง: เวลาในการทำกิจกรรมแต่ละฐานน้อยเกินไป เนื่องจากฝนตก..."></textarea>
+            </div>
+            <div style="flex:1;">
+              <label style="display:block; margin-bottom:2px; font-weight:500; color:#27ae60;">ข้อเสนอแนะสำหรับการจัดครั้งต่อไป</label>
+              <div style="font-size:0.8rem; color:#7f8c8d; margin-bottom:5px;">(ถ้าไม่มีข้อเสนอแนะให้ใส่คำว่า ไม่มี -)</div>
+              <textarea name="suggestions" rows="2" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;" placeholder="ตัวอย่าง: ควรเผื่อเวลาสำรองสำหรับกิจกรรมฐานละ 15 นาที..."></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+      <div style="background:#f4f6f8; padding:15px 20px; display:flex; justify-content:space-between; align-items:center; border-top:1px solid #e0e0e0;">
+        <span id="report-status-badge" style="font-size:0.9rem; color:#7f8c8d; font-weight:bold;">สถานะ: กำลังสร้างใหม่</span>
+        <div>
+          <button type="button" onclick="closeReportModal()" style="background:#bbb; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit'; margin-right:5px;">ยกเลิก</button>
+          <button type="button" onclick="submitProjectReport('draft')" id="btn-draft-report" style="background:#f39c12; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit'; margin-right:5px;"><i class="fas fa-save"></i> บันทึกแบบร่าง</button>
+          <button type="button" onclick="submitProjectReport('submit')" id="btn-submit-report" style="background:#2980b9; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-paper-plane"></i> ส่งรายงานผล</button>
+        </div>
+      </div>
+    </div>
+  </div>
+<!-- ======================================================= -->
+<!-- Modal สำหรับแอดมิน/ผู้อนุมัติ ตรวจสอบคำขอเบิกจ่าย (ผง.2) -->
+<!-- ======================================================= -->
+<div id="disbReviewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2050; justify-content:center; align-items:center;">
+  
+  <!-- กล่องหลัก (ความกว้างพอดี ไม่บีบอัดข้อความ) -->
+  <div style="background:white; width:95%; max-width:1000px; border-radius:10px; overflow:hidden; font-family:'Kanit', sans-serif; display:flex; flex-direction:column; max-height:95vh; box-shadow:0 10px 25px rgba(0,0,0,0.3);">
+    
+    <!-- ส่วนหัว (Header) -->
+    <div style="background:#8e44ad; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.3rem;"><i class="fas fa-search"></i> รายละเอียดคำขอเบิกจ่าย (ผง.2)</h3>
+      <button onclick="document.getElementById('disbReviewModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;"><i class="fas fa-times"></i></button>
+    </div>
+
+    <!-- พื้นที่เนื้อหา (Scrollable) -->
+    <div style="padding:20px; overflow-y:auto; flex:1; background:#f4f6f8;">
+      
+      <!-- ฟิลด์ซ่อนสำหรับเก็บ ReqID -->
+      <input type="hidden" id="review-req-id">
+
+      <!-- 1. ข้อมูลทั่วไป -->
+      <div style="background:white; border-radius:8px; padding:15px; margin-bottom:15px; border-top:4px solid #3498db; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <table style="width:100%; font-size:0.95rem;">
+          <tr>
+            <td style="padding:5px 0; color:#7f8c8d; width:150px;">วันที่ส่งคำขอ:</td>
+            <td style="font-weight:bold; color:#2c3e50;" id="review-date"></td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#7f8c8d;">โครงการ:</td>
+            <td style="font-weight:bold; color:#2c3e50;" id="review-project-name"></td>
+          </tr>
+          <tr>
+            <td style="padding:5px 0; color:#7f8c8d;">ผู้ขอเบิก:</td>
+            <td style="font-weight:bold; color:#2c3e50;" id="review-owner"></td>
+          </tr>
+        </table>
+      </div>
+
+      <!-- 2. กล่องความประสงค์ & เอกสารแนบ -->
+      <div style="display:flex; gap:15px; margin-bottom:15px; flex-wrap:wrap;">
+        <div style="flex:2; min-width:300px; background:#eaf2f8; border-radius:8px; padding:15px; border-left:4px solid #2980b9;">
+           <div style="font-size:0.85rem; color:#7f8c8d; font-weight:bold; margin-bottom:5px;">สรุปความประสงค์:</div>
+           <div id="review-objective-text" style="font-size:1rem; color:#2c3e50; line-height:1.5;"></div>
+        </div>
+        <div style="flex:1; min-width:250px; background:white; border-radius:8px; padding:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+           <div style="font-size:0.85rem; color:#7f8c8d; font-weight:bold; margin-bottom:10px;">เอกสารประกอบการพิจารณา:</div>
+           <div id="review-doc-link"></div>
+        </div>
+      </div>
+
+      <!-- 3. สถานะการเงินโครงการ -->
+      <div style="background:white; border-radius:8px; padding:20px; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <h4 style="margin-top:0; color:#d35400; border-bottom:2px solid #fdebd0; padding-bottom:8px;"><i class="fas fa-wallet"></i> สถานะการเงินโครงการ</h4>
+        
+        <!-- ป้ายแหล่งงบประมาณตัวโตๆ (สำหรับงานพัสดุ) -->
+        <div style="background: #fffdf5; border: 2px dashed #f39c12; padding: 15px; border-radius: 8px; margin-bottom: 15px; text-align: center; box-shadow: inset 0 0 10px rgba(243, 156, 18, 0.1);">
+            <div style="font-size: 0.95rem; color: #d35400; font-weight: bold; margin-bottom: 5px;"><i class="fas fa-tags"></i> แหล่งงบประมาณที่ใช้เบิก:</div>
+            <div id="review-funding-source" style="font-size: 1.8rem; color: #c0392b; font-weight: 900; text-shadow: 1px 1px 0px rgba(0,0,0,0.1);">-</div>
+        </div>
+
+        <table style="width:100%; font-size:1rem; border-collapse: collapse;">
+          <tr>
+            <td style="padding:4px 0; color:#7f8c8d; width:60%;">งบประมาณที่ได้รับจัดสรร:</td>
+            <td style="text-align:right; font-weight:bold; color:#2980b9;" id="review-fin-allocated"></td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0; color:#7f8c8d;">เบิกไปแล้ว:</td>
+            <td style="text-align:right; font-weight:bold; color:#e74c3c;" id="review-fin-used"></td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0; color:#7f8c8d;">คงเหลือก่อนเบิกครั้งนี้:</td>
+            <td style="text-align:right; font-weight:bold; color:#27ae60;" id="review-fin-balance-before"></td>
+          </tr>
+          <tr>
+            <td style="padding:4px 0; color:#7f8c8d; border-bottom:1px dashed #ccc; padding-bottom:10px;">ยอดขอเบิกครั้งนี้:</td>
+            <td style="text-align:right; font-weight:bold; color:#d35400; border-bottom:1px dashed #ccc; padding-bottom:10px;" id="review-fin-request"></td>
+          </tr>
+          <!-- คงเหลือหลังเบิก -->
+          <tr style="background:#f4f6f8;">
+            <td style="padding:8px 10px; color:#2c3e50; font-weight:bold; border-radius:4px 0 0 4px; border-top:1px solid #d9e2ec;">คงเหลือหลังเบิก:</td>
+            <td style="text-align:right; font-weight:bold; padding:8px 10px; border-radius:0px 4px 4px 0px; font-size:1.1rem; border-top:1px solid #d9e2ec;" id="review-fin-balance-after"></td>
+          </tr>
+        </table>
+        
+        <!-- กรณีเงินพอ -->
+        <div id="review-normal-box" style="display:none; margin-top:15px; text-align:center; padding:10px; background:#e9f7ef; color:#27ae60; font-weight:bold; border-radius:4px;">
+           <i class="fas fa-check-circle"></i> งบประมาณในโครงการเพียงพอ
+        </div>
+        <!-- กรณีเงินไม่พอ (ต้องท็อปอัพ) -->
+        <div id="review-topup-box" style="display:none; margin-top:15px; padding:15px; background:#fdedec; border:1px solid #e74c3c; border-radius:4px;">
+           <div style="color:#c0392b; font-weight:bold; margin-bottom:5px; text-align:center;"><i class="fas fa-exclamation-triangle"></i> งบประมาณในโครงการไม่เพียงพอ!</div>
+           <div style="font-size:0.9rem; color:#333; text-align:center;">
+             หักจากงบโครงการ <span id="review-fin-from-proj" style="font-weight:bold; color:#2980b9;"></span> 
+             + ขอใช้งบอำนวยการสมทบ <span id="review-fin-topup" style="font-weight:bold; color:#e74c3c;"></span>
+           </div>
+        </div>
+      </div>
+
+      <!-- 4. รายการสิ่งของ -->
+      <div style="background:white; border-radius:8px; padding:20px; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+        <h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:8px;"><i class="fas fa-box-open"></i> รายการ</h4>
+        <div style="overflow-x:auto;">
+          <table style="width: 100%; border-collapse: collapse; font-family: 'Kanit';">
+            <thead>
+              <tr style="background: #34495e; color: white;">
+                <th style="padding: 10px; text-align: left; border-radius: 4px 0 0 0;">รายการ</th>
+                <th style="padding: 10px; text-align: center; width: 20%;">จำนวน</th>
+                <th style="padding: 10px; text-align: right; width: 20%;">ราคา/หน่วย</th>
+                <th style="padding: 10px; text-align: right; width: 20%; border-radius: 0 4px 0 0;">รวม (บาท)</th>
+              </tr>
+            </thead>
+            <tbody id="review-items-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- 5. คณะกรรมการ -->
+      <div style="background:white; border-radius:8px; padding:15px; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+         <h4 style="margin-top:0; color:#2c3e50; border-bottom:2px solid #eee; padding-bottom:8px;"><i class="fas fa-users"></i> คณะกรรมการตรวจรับ</h4>
+         <ul id="review-committee-list" style="margin:0; padding-left:20px; font-size:0.95rem; color:#34495e;"></ul>
+      </div>
+
+      <!-- 6. ประวัติความเห็น (Audit Trail) -->
+      <div id="review-comment-history" style="display:none; margin-bottom:15px;">
+         <h4 style="margin-top:0; color:#2c3e50; font-size:1.05rem;"><i class="fas fa-history"></i> บันทึกความเห็นจากผู้ตรวจสอบ (Audit Trail)</h4>
+         <div id="history-content-blocks"></div>
+      </div>
+
+      <!-- 7. กล่องบันทึกผลการตรวจสอบ (เฉพาะด่านตัวเอง) -->
+      <div style="background:#fffcf3; border:1px solid #f39c12; border-radius:8px; padding:20px; box-shadow:0 2px 5px rgba(243,156,18,0.2);">
+        <h4 style="margin-top:0; color:#d35400; margin-bottom:15px;"><i class="fas fa-comment-dots"></i> บันทึกผลการตรวจสอบ</h4>
+        
+        <!-- ด่าน 1: งานแผนงาน -->
+        <div id="review-plan-action-section" style="display:none; margin-bottom:15px; background:white; padding:15px; border-radius:6px; border-left:4px solid #3498db;">
+           <div style="font-weight:bold; color:#2980b9; margin-bottom:10px;"><i class="fas fa-tasks"></i> ความเห็นงานแผนงาน:</div>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="checkbox" id="chk-plan-exist" checked> มีโครงการในแผนปฏิบัติการ</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="plan_budget" id="chk-budget-ok" value="ok" checked> งบประมาณเพียงพอ</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="plan_budget" id="chk-budget-not-ok" value="not_ok"> งบประมาณไม่เพียงพอ (ขออนุมัติโอนงบสมทบเข้าโครงการ)</label>
+           
+           <div id="plan-topup-section" style="display:none; margin-top:10px; padding-left:25px;">
+              <span style="font-size:0.9rem; color:#e74c3c;">ระบุยอดงบอำนวยการสมทบ:</span>
+              <input type="number" id="plan-topup-amount" class="swal2-input" style="width:150px; height:35px; font-size:1rem; margin-left:10px;"> บาท
+           </div>
+        </div>
+
+        <!-- ด่าน 2: งานพัสดุ -->
+        <div id="review-supply-action-section" style="display:none; margin-bottom:15px; background:white; padding:15px; border-radius:6px; border-left:4px solid #9b59b6;">
+           <div style="font-weight:bold; color:#8e44ad; margin-bottom:10px;"><i class="fas fa-boxes"></i> ความเห็นงานพัสดุ:</div>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="supply_action" id="chk-supply-ok" value="ok" checked> เห็นควรอนุมัติให้ดำเนินการได้ตามระเบียบ</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer; color:#e74c3c;"><input type="radio" name="supply_action" id="chk-supply-not-ok" value="not_ok"> ไม่เห็นควรอนุมัติให้ดำเนินการ</label>
+        </div>
+
+        <!-- ด่าน 3: งานการเงิน -->
+        <div id="review-finance-action-section" style="display:none; margin-bottom:15px; background:white; padding:15px; border-radius:6px; border-left:4px solid #f1c40f;">
+           <div style="font-weight:bold; color:#f39c12; margin-bottom:10px;"><i class="fas fa-coins"></i> ความเห็นงานการเงิน:</div>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="finance_action" id="chk-finance-ok" value="ok" checked> เห็นควรให้ดำเนินการ</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer; color:#e74c3c;"><input type="radio" name="finance_action" id="chk-finance-not-ok" value="not_ok"> ไม่เห็นควรให้ดำเนินการ</label>
+        </div>
+
+        <!-- ด่าน 4: รองผู้อำนวยการ -->
+        <div id="review-a2-action-section" style="display:none; margin-bottom:15px; background:white; padding:15px; border-radius:6px; border-left:4px solid #34495e;">
+           <div style="font-weight:bold; color:#2c3e50; margin-bottom:10px;"><i class="fas fa-user-tie"></i> ความเห็นรองผู้อำนวยการ:</div>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="a2_action" id="chk-a2-ok" value="ok" checked> เห็นควรอนุมัติ</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer; color:#e74c3c;"><input type="radio" name="a2_action" id="chk-a2-not-ok" value="not_ok"> ไม่เห็นควรอนุมัติ</label>
+        </div>
+
+        <!-- ด่าน 5: ผู้อำนวยการ -->
+        <div id="review-a3-action-section" style="display:none; margin-bottom:15px; background:white; padding:15px; border-radius:6px; border-left:4px solid #e74c3c;">
+           <div style="font-weight:bold; color:#c0392b; margin-bottom:10px;"><i class="fas fa-stamp"></i> คำสั่งผู้อำนวยการ:</div>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="a3_action" id="chk-a3-ok" value="ok" checked> อนุมัติ</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer; color:#e74c3c;"><input type="radio" name="a3_action" id="chk-a3-not-ok" value="not_ok"> ไม่อนุมัติ</label>
+        </div>
+
+        <!-- ช่องพิมพ์เหตุผลเพิ่มเติม -->
+        <textarea id="review-comment" class="swal2-textarea" style="width:100%; height:80px; margin-top:10px; font-size:1rem; font-family:'Kanit';" placeholder="ระบุข้อเสนอแนะ หรือเหตุผลเพิ่มเติม... (บังคับกรอกกรณีตีกลับ)"></textarea>
+      </div>
+      
+    </div>
+
+    <!-- ส่วนท้าย (Footer Buttons) -->
+    <div style="background:#ecf0f1; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <button onclick="document.getElementById('disbReviewModal').style.display='none'" style="background:#bdc3c7; color:#333; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold;">ปิดหน้าต่าง</button>
+      <div style="display:flex; gap:10px;">
+        <button onclick="submitDisbReview('return')" style="background:#e74c3c; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:1rem;"><i class="fas fa-undo"></i> ส่งกลับไปแก้ไข</button>
+        <button onclick="submitDisbReview('approve')" style="background:#27ae60; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:1rem;"><i class="fas fa-check-circle"></i> บันทึกและส่งต่อ</button>
+      </div>
+    </div>
+    
+  </div>
+</div>
+
+  
+
+  <?!= include('JS'); ?>
+</body>
+<!-- 🌟 ปุ่มลอยสำหรับเรียกน้องแผนดี (เปลี่ยนเป็นรูปภาพ) 🌟 -->
+
+<div id="phaendee-btn" style="position:fixed; bottom:20px; right:20px; width:100px; height:100px; z-index:9999; transition:transform 0.2s; filter: drop-shadow(0 4px 6px rgba(0,0,0,0.3));">
+  
+  <!-- 🔴 ปุ่มกากบาท สำหรับซ่อนไอคอนทิ้ง (รีเฟรชเพื่อเรียกกลับ) -->
+  <div onclick="document.getElementById('phaendee-btn').style.display='none'; document.getElementById('phaendee-chat-box').style.display='none'; event.stopPropagation();" title="ซ่อนน้องแผนดี" style="position:absolute; top:0; right:0; background:#e74c3c; color:white; width:24px; height:24px; border-radius:50%; display:flex; justify-content:center; align-items:center; cursor:pointer; font-weight:bold; font-family:sans-serif; z-index:10000; box-shadow: 0 2px 4px rgba(0,0,0,0.2); font-size:14px;">
+    &times;
+  </div>
+
+  <!-- รูปน้องแผนดี (คลิกที่รูปเพื่อเปิดแชท) -->
+  <img src="https://raw.githubusercontent.com/rthanantha-beep/school-assets/refs/heads/main/Untitled%20design.png" onclick="togglePhaenDeeChat()" alt="น้องแผนดี" style="width:100%; height:100%; object-fit:contain; cursor:pointer;" onmouseover="this.parentElement.style.transform='scale(1.1)'" onmouseout="this.parentElement.style.transform='scale(1)'">
+  
+</div>
+
+<!-- 🌟 หน้าต่างแชทน้องแผนดี 🌟 -->
+<div id="phaendee-chat-box" style="display:none; position:fixed; bottom:95px; right:20px; width:350px; height:500px; background:white; border-radius:12px; box-shadow:0 5px 25px rgba(0,0,0,0.2); z-index:9999; flex-direction:column; overflow:hidden; font-family:'Kanit', sans-serif;">
+  
+  <div style="background:linear-gradient(135deg, #8e44ad, #9b59b6); color:white; padding:15px; display:flex; justify-content:space-between; align-items:center;">
+    <h4 style="margin:0; font-size:1.1rem; display:flex; align-items:center; gap:10px;">
+      <!-- 🔴 ใส่ลิงก์รูปอีกครั้งที่นี่ สำหรับโชว์บนหัวแชท -->
+      <img src="https://raw.githubusercontent.com/rthanantha-beep/school-assets/refs/heads/main/chathead.png" style="width:30px; height:30px; border-radius:50%; background:white; padding:2px;">
+      คุยกับ "น้องแผนดี"
+    </h4>
+    <button onclick="togglePhaenDeeChat()" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+  </div>
+  
+  <div id="phaendee-messages" style="flex:1; padding:15px; overflow-y:auto; background:#f4f6f8; display:flex; flex-direction:column; gap:15px; font-size:0.95rem;">
+    <!-- ข้อความทักทายแรก พร้อมรูปโปรไฟล์ -->
+    <div style="display:flex; gap:10px; align-items:flex-end;">
+      <!-- 🔴 ใส่ลิงก์รูปอีกครั้งที่นี่ -->
+      <img src="https://raw.githubusercontent.com/rthanantha-beep/school-assets/refs/heads/main/chathead.png" style="width:35px; height:35px; border-radius:50%; border:2px solid #8e44ad; background:white;">
+      <div style="align-self:flex-start; background:white; border:1px solid #e0e6ed; color:#2c3e50; padding:12px 15px; border-radius:15px 15px 15px 0; box-shadow:0 2px 5px rgba(0,0,0,0.05); max-width:75%;">
+        สวัสดีครับคุณครู! น้องแผนดีพร้อมช่วยแนะนำเรื่องการเขียนโครงการ งานงบประมาณ หรือเช็คสถานะงานให้ครับ มีอะไรให้น้องแผนดีช่วยไหมครับ? 💜
+      </div>
+    </div>
+  </div>
+  
+  <div style="padding:10px; border-top:1px solid #ecf0f1; display:flex; gap:10px; background:white;">
+    <input type="text" id="phaendee-input" placeholder="พิมพ์ถามน้องแผนดี..." style="flex:1; padding:10px 15px; border:1px solid #bdc3c7; border-radius:20px; font-family:'Kanit'; outline:none; font-size:0.95rem;" onkeypress="if(event.key === 'Enter') sendToPhaenDee()">
+    <button onclick="sendToPhaendee()" style="background:#8e44ad; color:white; border:none; width:45px; height:45px; border-radius:50%; cursor:pointer; font-size:1.1rem; box-shadow:0 2px 5px rgba(142,68,173,0.3);"><i class="fas fa-paper-plane"></i></button>
+  </div>
+</div>
+</html>
