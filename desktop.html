@@ -617,6 +617,10 @@
   }
 
   async function bootDesktopApp() {
+    // 🛡️ กันรันซ้ำ (แก้ปัญหาลูปวนไม่รู้จบ)
+    if (window.__DESKTOP_BOOTED__) return;
+    window.__DESKTOP_BOOTED__ = true;
+
     // 1. เช็คว่ามีอีเมลหรือ Line UID หรือยัง ถ้ายังไม่มีให้เด้งถามก่อน
     const urlParams = new URLSearchParams(window.location.search);
     const hasAuth = urlParams.get('uid')
@@ -650,7 +654,6 @@
     const mainScript = document.createElement('script');
     mainScript.src = './main.js';
     mainScript.onload = () => {
-      // กระตุ้นให้ DOMContentLoaded และ window.onload ใน main.js ทำงาน
       document.dispatchEvent(new Event('DOMContentLoaded'));
       if (typeof window.onload === 'function') {
         window.onload();
@@ -659,9 +662,9 @@
     document.body.appendChild(mainScript);
   }
 
-  // เริ่มระบบทันทีเมื่อโครงสร้าง desktop.html พร้อม
+  // เริ่มระบบแค่ครั้งเดียวเท่านั้น ({ once: true })
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootDesktopApp);
+    document.addEventListener('DOMContentLoaded', bootDesktopApp, { once: true });
   } else {
     bootDesktopApp();
   }
