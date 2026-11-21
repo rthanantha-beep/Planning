@@ -1,0 +1,86 @@
+<div style="padding: 20px; font-family:'Kanit', sans-serif;">
+  <!-- 🌟 ส่วนหัว และ Progress Bar -->
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom: 15px;">
+    <div>
+      <h2 style="color: #2c3e50; margin:0;"><i class="fas fa-award" style="color:#27ae60;"></i> จัดการงานประกันคุณภาพ (QA Mapping)</h2>
+      <p style="color:#7f8c8d; margin:5px 0 0 0; font-size:0.95rem;">จับคู่โครงการกับมาตรฐานการศึกษา เพื่อรองรับการประเมิน</p>
+    </div>
+    <!-- ปุ่มสกัดไฟล์ Excel ให้ AI (ใช้ฟังก์ชันเดิมที่เราสร้างไว้ได้เลย) -->
+    <button onclick="exportAIMappingExcel()" style="background: linear-gradient(135deg, #8e44ad, #3498db); color: white; border: none; padding: 10px 18px; border-radius: 6px; cursor: pointer; font-weight: bold; box-shadow: 0 3px 6px rgba(0,0,0,0.15);">
+      <i class="fas fa-robot"></i> สกัดข้อมูล Excel ให้ AI ช่วยวิเคราะห์
+    </button>
+  </div>
+
+  <div style="background: white; padding: 15px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); margin-bottom: 20px;">
+    <div style="display:flex; justify-content:space-between; margin-bottom: 5px; font-weight: bold; color: #34495e;">
+      <span>ความคืบหน้าการจับคู่มาตรฐาน</span>
+      <span id="qa-progress-text">0 / 0 โครงการ (0%)</span>
+    </div>
+    <div style="background: #ecf0f1; border-radius: 10px; height: 12px; overflow: hidden;">
+      <div id="qa-progress-bar" style="background: #27ae60; height: 100%; width: 0%; transition: width 0.5s ease;"></div>
+    </div>
+  </div>
+
+<!-- 🌟 พื้นที่ 3 คอลัมน์ (ซ้าย:รายชื่อ | กลาง:เอกสาร | ขวา:มาตรฐาน QA) -->
+<div style="display:flex; height: 75vh; min-height: 600px; background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); border: 1px solid #e0e0e0; overflow: hidden; font-family: 'Kanit';">
+    
+    <!-- 📌 คอลัมน์ 1 (ซ้าย 25%): รายชื่อโครงการ -->
+    <div style="width: 25%; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; background: #fdfefe;">
+      <div style="padding: 15px; border-bottom: 1px solid #eee; background: #f4f6f8;">
+        <select id="qa-filter-status" onchange="renderQAList()" style="width: 100%; padding: 8px; margin-bottom: 10px; border-radius: 4px; border: 1px solid #ccc; font-family:'Kanit';">
+          <option value="ALL">📋 โครงการทั้งหมด</option>
+          <option value="UNMAPPED">❌ ยังไม่จับคู่</option>
+          <option value="MAPPED">✅ จับคู่แล้ว</option>
+        </select>
+        <select id="qa-filter-dept" onchange="renderQAList()" style="width: 100%; padding: 8px; border-radius: 4px; border: 1px solid #ccc; font-family:'Kanit';">
+          <option value="ALL">🏢 ทุกกลุ่มบริหารงาน</option>
+        </select>
+      </div>
+      <div id="qa-project-list" style="flex: 1; overflow-y: auto; padding: 10px;"></div>
+    </div>
+
+    <!-- 📌 คอลัมน์ 2 (กลาง 40%): ข้อมูลที่มาและเป้าหมาย -->
+    <div style="width: 40%; border-right: 1px solid #e0e0e0; display: flex; flex-direction: column; background: #fff;">
+      <div id="qa-empty-doc" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#bdc3c7;">
+        <i class="fas fa-file-alt fa-3x" style="margin-bottom: 15px;"></i>
+        <p>รอเลือกโครงการ...</p>
+      </div>
+      <div id="qa-detail-doc" style="display:none; flex:1; flex-direction:column;">
+        <div style="padding: 15px; background: #fafafa; border-bottom: 1px solid #eee;">
+          <h4 id="qa-dt-name" style="margin: 0 0 5px 0; color: #2c3e50; line-height: 1.4;">ชื่อโครงการ</h4>
+          <p style="margin: 0; color: #7f8c8d; font-size: 0.85rem;">รหัส: <span id="qa-dt-id"></span> | <span id="qa-dt-dept"></span></p>
+          <input type="hidden" id="qa-dt-docid">
+        </div>
+        <div style="flex: 1; overflow-y: auto; padding: 15px;">
+          <h4 style="margin:0 0 10px 0; color:#34495e;"><i class="fas fa-search"></i> ข้อมูลจากเอกสารโครงการ</h4>
+          <div id="qa-doc-content" style="background: #fdfefe; border: 1px solid #e2e2e2; padding: 15px; border-radius: 4px; font-size: 0.95rem; color: #444; white-space: pre-wrap; line-height: 1.6;">
+            กำลังดึงข้อมูล...
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 📌 คอลัมน์ 3 (ขวา 35%): เลือกมาตรฐาน QA -->
+    <div style="width: 35%; display: flex; flex-direction: column; background: #f9fbfd; height: 100%;">
+      <div id="qa-empty-std" style="flex:1; display:flex; flex-direction:column; justify-content:center; align-items:center; color:#bdc3c7;">
+        <i class="fas fa-check-square fa-3x" style="margin-bottom: 15px;"></i>
+        <p>รอเลือกโครงการ...</p>
+      </div>
+      
+      <!-- 🌟 บังคับ overflow: hidden เพื่อไม่ให้ทะลุกรอบ -->
+      <div id="qa-detail-std" style="display:none; flex:1; flex-direction:column; padding: 15px; overflow: hidden;">
+        <h4 style="margin: 0 0 10px 0; color: #8e44ad; flex-shrink: 0;"><i class="fas fa-link"></i> เลือกจับคู่มาตรฐานการศึกษา</h4>
+        
+        <!-- 🌟 เพิ่ม min-height: 0 และล็อค flex ให้อยู่ในกรอบเพื่อสร้าง Scrollbar -->
+        <div id="qa-checkbox-container" style="flex: 1; overflow-y: auto; min-height: 0; background: white; border: 1px solid #ecf0f1; padding: 10px; border-radius: 4px; margin-bottom: 15px;">
+          <!-- Checkbox เรียงลงมา -->
+        </div>
+        
+        <button onclick="saveQAMapping()" id="btn-save-qa" style="flex-shrink: 0; background:#27ae60; color:white; border:none; padding:12px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; width: 100%; font-size: 1rem;">
+          <i class="fas fa-save"></i> บันทึกข้อมูล
+        </button>
+      </div>
+    </div>
+
+</div>
+</div>
