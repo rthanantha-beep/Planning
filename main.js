@@ -4494,12 +4494,9 @@ function loadSupplyDocsDashboard() {
   google.script.run
     .withSuccessHandler(function(res) {
       globalSupplyDocsData = res.data || [];
-      globalSupplyDocsData.sort((a, b) => b.reqId.localeCompare(a.reqId));
 
-      let pendingHtml = ''; let completedHtml = '';
-
-      globalSupplyDocsData.forEach((item) => {
-        // รวมข้อความ MatchedItems จากทุกบิลของคำขอนี้ เพื่อเช็คว่ารายการไหนมีบิลแล้ว
+      // ฟังก์ชันย่อยสร้าง HTML ของแต่ละแถว (ซ่อนรายละเอียดเป็น default ทั้งหมด)
+      const buildSupplyRowHtml = (item, isPending) => {
         const bills = item.bills || [];
         const allMatchedText = bills.map(b => b.matchedItems || '').join(' | ');
 
@@ -4520,7 +4517,6 @@ function loadSupplyDocsDashboard() {
         }
         itemsListHtml += '</ul>';
 
-        // 🌟 สร้างกล่องแสดงบิลที่ครูแนบเข้ามา (ให้พัสดุกดดูเทียบกับบิลตัวจริงได้เลย)
         let attachedBillsHtml = '';
         if (bills.length > 0) {
           let billBtns = bills.map((b, idx) => `
@@ -4572,11 +4568,11 @@ function loadSupplyDocsDashboard() {
         let objectiveText = item.objective || "การดำเนินงานของโครงการ";
         let fundingText = (item.fundingSource && item.fundingSource !== '-') ? item.fundingSource : "งบประมาณที่ได้รับจัดสรร";
 
-        let isPending = (item.docStatus === 'รอจัดทำเอกสาร' || !item.docStatus);
-        let displayStyle = isPending ? 'table-row' : 'none';
-        let iconClass = isPending ? 'fa-chevron-up' : 'fa-chevron-down';
+        // 🔒 ซ่อนรายละเอียดเป็น Default ทั้งหมด
+        let displayStyle = 'none';
+        let iconClass = 'fa-chevron-down';
 
-        let rowHtml = `
+        return `
           <tr style="border-top: 2px solid #ecf0f1; background:${isPending ? '#fff' : '#f9fbfc'}; transition: 0.2s;">
             <td style="padding: 12px; cursor: pointer; width:10%;" onclick="toggleSupplyCard('${item.reqId}')">
               <div style="color:#7f8c8d; font-size:0.8rem;"><i class="far fa-clock"></i> ${item.timestamp.split(' ')[0]}</div>
@@ -4614,9 +4610,48 @@ function loadSupplyDocsDashboard() {
               </div>
             </td>
           </tr>`;
+      };
 
-        if (isPending) pendingHtml += rowHtml; else completedHtml += rowHtml;
-      });
+      // แยกกลุ่มข้อมูล
+      const pendingItems = globalSupplyDocsData.filter(item => item.docStatus === 'รอจัดทำเอกสาร' || !item.docStatus);
+      const completedItems = globalSupplyDocsData.filter(item => item.docStatus && item.docStatus !== 'รอจัดทำเอกสาร');
+
+      // แยกกลุ่ม Pending เป็น 2 ส่วน + เรียงมาก่อนอยู่บน (Ascending)
+      const pendingWithBills = pendingItems
+        .filter(item => item.bills && item.bills.length > 0)
+        .sort((a, b) => a.reqId.localeCompare(b.reqId));
+
+      const pendingNoBills = pendingItems
+        .filter(item => !item.bills || item.bills.length === 0)
+        .sort((a, b) => a.reqId.localeCompare(b.reqId));
+
+      // แท็บจัดทำแล้ว เรียงใหม่สุดอยู่บนเหมือนเดิม
+      completedItems.sort((a, b) => b.reqId.localeCompare(a.reqId));
+
+      // ประกอบ HTML แท็บ "รอจัดทำเอกสาร" แยกเป็น 2 ส่วนชัดเจน
+      let pendingHtml = '';
+      if (pendingWithBills.length > 0) {
+        pendingHtml += `
+          <tr style="background:#e9f7ef; border-top:2px solid #27ae60; border-bottom:2px solid #a9dfbf;">
+            <td colspan="6" style="padding:10px 15px; font-weight:bold; color:#1e8449; font-size:0.95rem;">
+              <i class="fas fa-receipt"></i> ส่วนที่ 1: รายการที่แนบบิลแล้ว (${pendingWithBills.length} รายการ) — เรียงตามลำดับมาก่อนอยู่บน
+            </td>
+          </tr>`;
+        pendingWithBills.forEach(item => { pendingHtml += buildSupplyRowHtml(item, true); });
+      }
+
+      if (pendingNoBills.length > 0) {
+        pendingHtml += `
+          <tr style="background:#fef5e7; border-top:3px solid #e67e22; border-bottom:2px solid #fad7a0;">
+            <td colspan="6" style="padding:10px 15px; font-weight:bold; color:#d35400; font-size:0.95rem;">
+              <i class="far fa-clock"></i> ส่วนที่ 2: รายการที่ยังไม่ได้แนบบิล (${pendingNoBills.length} รายการ) — เรียงตามลำดับมาก่อนอยู่บน
+            </td>
+          </tr>`;
+        pendingNoBills.forEach(item => { pendingHtml += buildSupplyRowHtml(item, true); });
+      }
+
+      let completedHtml = '';
+      completedItems.forEach(item => { completedHtml += buildSupplyRowHtml(item, false); });
 
       tbodyPending.innerHTML = pendingHtml || '<tr><td colspan="6" style="text-align: center; padding: 30px; color:#95a5a6;">ไม่มีคิวงานรอจัดทำเอกสาร</td></tr>';
       tbodyCompleted.innerHTML = completedHtml || '<tr><td colspan="6" style="text-align: center; padding: 30px; color:#95a5a6;">ยังไม่มีงานที่ออกเอกสารแล้ว</td></tr>';
