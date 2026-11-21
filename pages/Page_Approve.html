@@ -1,0 +1,360 @@
+<!-- ========================================== -->
+<!-- โซนสำหรับด่าน Admin (ตรวจสอบหลักการ) -->
+<!-- ========================================== -->
+<div id="section-admin-screening" style="display: none;">
+    <div class="card" style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h2 style="color: #9b59b6; margin-top: 0;"><i class="fas fa-clipboard-check"></i> พิจารณาโครงการ</h2>
+        <p style="color: #666;">รายการโครงการที่รออนุมัติหลักการ (Principal Screening)</p>
+
+        <table style="width: 100%; border-collapse: collapse; text-align: left; margin-top: 20px; font-size: 0.95rem;">
+            <thead>
+                <tr style="background-color: #f4f6f8; border-bottom: 2px solid #e0e0e0; color: #34495e;">
+                    <th style="padding: 12px; width: 12%;">รหัสโครงการ</th>
+                    <th style="padding: 12px; width: 28%;">ชื่อโครงการ</th>
+                    <th style="padding: 12px; width: 15%;">ผู้เสนอ</th>
+                    <th style="padding: 12px; width: 20%;">งบประมาณที่ได้รับ</th>
+                    <th style="padding: 12px; width: 10%; text-align: center;">เอกสาร</th>
+                    <th style="padding: 12px; width: 15%; text-align: center;">จัดการ</th>
+                </tr>
+            </thead>
+            <tbody id="approve-projects-tbody">
+                <tr><td colspan="6" style="text-align: center; padding: 20px;">กำลังโหลดข้อมูล...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- ตาราง: คำร้องขอเปลี่ยนแปลงรายละเอียด -->
+    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 20px;">
+        <h3 style="color: #8e44ad; border-bottom: 2px solid #8e44ad; padding-bottom: 10px; margin-top: 0;">
+            <i class="fas fa-clipboard-check"></i> คำร้องขอเปลี่ยนแปลงรายละเอียด (รอแอดมินกลั่นกรอง)
+        </h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                <thead>
+                    <tr style="background-color: #f4f6f8; color: #34495e; text-align: left; border-bottom: 2px solid #bdc3c7;">
+                        <th style="padding: 12px;">รหัสโครงการ</th>
+                        <th style="padding: 12px;">ชื่อโครงการ</th>
+                        <th style="padding: 12px;">ผู้เสนอ</th>
+                        <th style="padding: 12px;">เหตุผลที่ขอแก้ไข</th>
+                        <th style="padding: 12px; text-align: center;">เอกสารแนบ</th>
+                        <th style="padding: 12px; text-align: center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="amend-admin-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+<!-- 🌟 1. กล่องแสดงรายงานที่รอตรวจ (สำหรับแอดมิน) -->
+<div id="section-admin-report-review" style="display: none; margin-top: 40px;">
+  <h3 style="color: #27ae60; border-bottom: 2px solid #2ecc71; padding-bottom: 10px;">
+    <i class="fas fa-file-signature"></i> รายงานผลโครงการ (รอตรวจสอบ)
+  </h3>
+  <div style="background: white; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-radius: 8px; border: 1px solid #e0e6ed; overflow: hidden;">
+    <table style="width: 100%; border-collapse: collapse;">
+      <thead>
+        <tr style="background: #e9f7ef; color: #27ae60; text-align: left;">
+          <th style="padding: 12px; width: 15%;">รหัสโครงการ</th>
+          <th style="padding: 12px; width: 35%;">ชื่อโครงการ</th>
+          <th style="padding: 12px; width: 20%;">ผู้รับผิดชอบ</th>
+          <th style="padding: 12px; text-align: center; width: 15%;">สถานะ</th>
+          <th style="padding: 12px; text-align: center; width: 15%;">พิจารณา</th>
+        </tr>
+      </thead>
+      <tbody id="admin-report-tbody">
+        <tr><td colspan="5" style="text-align: center; padding: 30px;"><i class="fas fa-spinner fa-spin fa-2x" style="color: #27ae60;"></i></td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- 🌟 2. หน้าต่าง Modal สำหรับกดตรวจรายงาน -->
+<div id="reportReviewModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:99999; justify-content:center; align-items:center;">
+  <div style="background:white; width:90%; max-width:700px; border-radius:10px; overflow:hidden; font-family:'Kanit';">
+    <div style="background:#27ae60; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0;"><i class="fas fa-search"></i> ตรวจสอบรายงานผลโครงการ</h3>
+      <button onclick="document.getElementById('reportReviewModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    <div style="padding:20px; max-height:70vh; overflow-y:auto; font-size: 0.95rem;">
+      <p><strong style="color:#27ae60;">รหัสโครงการ:</strong> <span id="rev-rep-id"></span></p>
+      <div style="background:#f9fbfc; padding:12px; border-radius:6px; margin-bottom:15px; border: 1px solid #e0e6ed;">
+         <strong>ชื่อรายงาน:</strong> <span id="rev-rep-name" style="color:#2c3e50;"></span><br>
+         <strong style="margin-top:5px; display:inline-block;">สถานะการดำเนินงาน:</strong> <span id="rev-rep-exec" style="color:#e67e22;"></span>
+      </div>
+      <div style="margin-bottom:10px;"><strong>ผลเชิงปริมาณ:</strong><div id="rev-rep-quan" style="background:#fff; padding:8px; border:1px solid #ddd; border-radius:4px; white-space:pre-wrap; margin-top:5px;"></div></div>
+      <div style="margin-bottom:10px;"><strong>ผลเชิงคุณภาพ:</strong><div id="rev-rep-qual" style="background:#fff; padding:8px; border:1px solid #ddd; border-radius:4px; white-space:pre-wrap; margin-top:5px;"></div></div>
+      <div style="margin-bottom:10px;"><strong>สรุปผลสัมฤทธิ์:</strong><div id="rev-rep-sum" style="background:#fff; padding:8px; border:1px solid #ddd; border-radius:4px; white-space:pre-wrap; margin-top:5px; color:#27ae60; font-weight:500;"></div></div>
+      <div style="margin-bottom:10px;"><strong>ปัญหาและอุปสรรค:</strong><div id="rev-rep-prob" style="background:#fff; padding:8px; border:1px solid #ddd; border-radius:4px; white-space:pre-wrap; margin-top:5px; color:#c0392b;"></div></div>
+      <div style="margin-bottom:15px;"><strong>ข้อเสนอแนะ:</strong><div id="rev-rep-sugg" style="background:#fff; padding:8px; border:1px solid #ddd; border-radius:4px; white-space:pre-wrap; margin-top:5px; color:#2980b9;"></div></div>
+      
+      <hr style="border:0; border-top:1px dashed #ccc; margin:15px 0;">
+      <label style="font-weight:bold; color:#e74c3c;">ความเห็นแอดมิน (บังคับกรอก กรณีต้องการตีกลับให้แก้ไข):</label>
+      <textarea id="rev-rep-comment" rows="2" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; margin-top:5px; box-sizing:border-box;" placeholder="ระบุสิ่งที่ต้องแก้ไข (ถ้าผ่านก็เว้นว่างไว้ได้ครับ)..."></textarea>
+    </div>
+    <div style="padding:15px 20px; background:#f4f6f8; display:flex; justify-content:space-between; border-top: 1px solid #e0e6ed;">
+      <button onclick="document.getElementById('reportReviewModal').style.display='none'" style="background:#bdc3c7; color:white; border:none; padding:8px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit';">ปิดหน้าต่าง</button>
+      <div style="display:flex; gap:10px;">
+        <button onclick="submitReportReview('return')" style="background:#f39c12; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; font-family:'Kanit';"><i class="fas fa-undo"></i> ตีกลับให้แก้ไข</button>
+        <button onclick="submitReportReview('approve')" style="background:#27ae60; color:white; border:none; padding:8px 15px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-check-circle"></i> อนุมัติรายงานสมบูรณ์</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ========================================== -->
+<!-- โซนสำหรับด่าน A1 (หัวหน้างาน/กลุ่มสาระ) -->
+<!-- ========================================== -->
+<div id="section-a1-approval" style="display: none; margin-top: 20px;">
+    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h3 style="color: #00bcd4; border-bottom: 2px solid #00bcd4; padding-bottom: 10px; margin-top: 0;">
+            <i class="fas fa-user-check"></i> พิจารณาความเห็นชอบ (หัวหน้างาน/กลุ่มสาระ)
+        </h3>
+        <p style="color: #7f8c8d; font-size: 0.95rem; margin-bottom: 20px;">รายการโครงการที่รอการพิจารณาความเห็นชอบจากคุณ</p>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                <thead>
+                    <tr style="background-color: #f4f6f8; color: #34495e; text-align: left; border-bottom: 2px solid #bdc3c7;">
+                        <th style="padding: 12px;">รหัสโครงการ</th>
+                        <th style="padding: 12px;">ชื่อโครงการ</th>
+                        <th style="padding: 12px;">ผู้เสนอ</th>
+                        <th style="padding: 12px;">งบประมาณที่ได้รับ</th>
+                        <th style="padding: 12px; text-align: center;">เอกสาร</th>
+                        <th style="padding: 12px; text-align: center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="a1-projects-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- โซนสำหรับด่าน A2 (รองผู้อำนวยการ) -->
+<!-- ========================================== -->
+<div id="section-a2-approval" style="display: none; margin-top: 20px;">
+    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h3 style="color: #2980b9; border-bottom: 2px solid #2980b9; padding-bottom: 10px; margin-top: 0;">
+            <i class="fas fa-user-tie"></i> พิจารณาความเห็นชอบ (รองผู้อำนวยการ)
+        </h3>
+        <p style="color: #7f8c8d; font-size: 0.95rem; margin-bottom: 20px;">รายการโครงการที่ผ่านการกลั่นกรองและรอความเห็นชอบจากคุณ</p>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                <thead>
+                    <tr style="background-color: #f4f6f8; color: #34495e; text-align: left; border-bottom: 2px solid #bdc3c7;">
+                        <th style="padding: 12px;">รหัสโครงการ</th>
+                        <th style="padding: 12px;">ชื่อโครงการ</th>
+                        <th style="padding: 12px;">ผู้เสนอ</th>
+                        <th style="padding: 12px;">งบประมาณที่ได้รับ</th>
+                        <th style="padding: 12px; text-align: center;">เอกสาร</th>
+                        <th style="padding: 12px; text-align: center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="a2-projects-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- โซนสำหรับด่าน A3 (ผู้อำนวยการสถานศึกษา) -->
+<!-- ========================================== -->
+<div id="section-a3-approval" style="display: none; margin-top: 20px;">
+    <!-- กล่องที่ 1: อนุมัติโครงการใหม่ -->
+    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-bottom: 20px;">
+        <h3 style="color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 10px; margin-top: 0;">
+            <i class="fas fa-stamp"></i> อนุมัติโครงการ (ผู้อำนวยการสถานศึกษา)
+        </h3>
+        <p style="color: #7f8c8d; font-size: 0.95rem; margin-bottom: 20px;">รายการโครงการที่ผ่านการกลั่นกรองทุกขั้นตอนและรอการอนุมัติขั้นสุดท้าย</p>
+        
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                <thead>
+                    <tr style="background-color: #f4f6f8; color: #34495e; text-align: left; border-bottom: 2px solid #bdc3c7;">
+                        <th style="padding: 12px;">รหัสโครงการ</th>
+                        <th style="padding: 12px;">ชื่อโครงการ</th>
+                        <th style="padding: 12px;">ผู้เสนอ</th>
+                        <th style="padding: 12px;">งบประมาณที่ได้รับ</th>
+                        <th style="padding: 12px; text-align: center;">เอกสาร</th>
+                        <th style="padding: 12px; text-align: center;">จัดการ</th>
+                    </tr>
+                </thead>
+                <tbody id="a3-projects-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <!-- กล่องที่ 2: คำร้องขอเปลี่ยนแปลงรายละเอียด (ผอ.) -->
+    <div style="background: white; border-radius: 10px; padding: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.05);">
+        <h3 style="color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 10px; margin-top: 0;">
+            <i class="fas fa-exchange-alt"></i> คำร้องขอเปลี่ยนแปลงรายละเอียด (รอ ผอ. อนุมัติ)
+        </h3>
+        <div style="overflow-x: auto;">
+            <table style="width: 100%; border-collapse: collapse; font-size: 0.95rem;">
+                <thead>
+                    <tr style="background-color: #f4f6f8; color: #34495e; text-align: left; border-bottom: 2px solid #bdc3c7;">
+                        <th style="padding: 12px;">รหัสโครงการ</th>
+                        <th style="padding: 12px;">ชื่อโครงการ</th>
+                        <th style="padding: 12px;">เหตุผลที่ขอแก้ไข</th>
+                        <th style="padding: 12px; text-align: center;">ความเห็นแอดมิน</th>
+                        <th style="padding: 12px; text-align: center;">เอกสารแนบ</th>
+                        <th style="padding: 12px; text-align: center;">พิจารณา</th>
+                    </tr>
+                </thead>
+                <tbody id="amend-a3-tbody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 🌟 โซนรวบรวมหน้าต่าง Popup (Modals) ทั้งหมด 🌟 -->
+<!-- ========================================== -->
+
+<!-- Modal Admin (พิจารณาอนุมัติหลักการ) -->
+<div id="screeningModal" class="modal-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:2000; justify-content:center; align-items:center;">
+  <div class="modal-content" style="background:white; padding:20px; border-radius:10px; width:90%; max-width: 650px; max-height: 90vh; overflow-y: auto; font-family:'Kanit', sans-serif;">
+    <h3 style="margin-top: 0; color: #9b59b6;"><i class="fas fa-edit"></i> บันทึกผลอนุมัติหลักการ และจัดสรรงบ</h3>
+    <p id="screening-project-id" style="font-weight: bold; color: #555;"></p>
+
+    <form id="screeningForm">
+      <input type="hidden" id="screen-id" name="projectId">
+      
+      <div style="background: #fdf2e9; padding: 12px; border-radius: 6px; border: 1px solid #f5b041; margin-bottom: 15px;">
+        <label style="cursor: pointer; font-weight: bold; color: #d35400; display:flex; align-items:center; gap:10px;">
+          <input type="checkbox" name="useCentralBudget" id="useCentralBudget" value="true" style="transform: scale(1.2);">
+          <i class="fas fa-hand-holding-usd"></i> โยกเงินจากงบอำนวยการกลาง (BUDGET-ADM) มาให้โครงการนี้
+        </label>
+      </div>
+
+      <!-- 🌟 ระบบจัดสรรงบประมาณแบบแยกแหล่งเงิน 🌟 -->
+      <div style="background: #fdfefe; padding: 15px; border: 1px solid #e0e6ed; border-radius: 6px; margin-bottom: 15px;">
+        <label style="font-weight:bold; color:#2c3e50; display:block; margin-bottom:10px;">
+          <i class="fas fa-coins"></i> การจัดสรรงบประมาณ (ระบุยอดเงินแยกตามแหล่ง) <span style="color:red;">*</span>
+        </label>
+        
+        <div id="dynamic-funding-container">
+          <!-- แถวจะถูกสร้างด้วย JavaScript -->
+        </div>
+        
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #bdc3c7;">
+          <button type="button" onclick="addFundingRow()" style="background: #34495e; color: white; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: 'Kanit'; font-size: 0.85rem;">
+            <i class="fas fa-plus"></i> เพิ่มแหล่งเงิน
+          </button>
+          <div style="font-weight: bold; color: #d35400; font-size: 1.1rem;">
+            ยอดจัดสรรรวม: <span id="total-allocated-display">0</span> บาท
+          </div>
+        </div>
+        <!-- ซ่อนช่องรับค่าเอาไว้ส่งไปหลังบ้าน -->
+        <input type="hidden" name="approvedBudget" id="hidden-approved-budget" value="0">
+        <input type="hidden" name="budgetSource" id="hidden-budget-source" value="">
+      </div>
+
+      <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <div class="form-group" style="flex: 1;">
+          <label style="font-weight:bold;">ไตรมาสที่ดำเนินการ <span style="color:red;">*</span></label>
+          <select name="quarter" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit';">
+            <option value="">-- เลือกไตรมาส --</option>
+            <option value="1">1 (ต.ค. - ธ.ค.)</option>
+            <option value="2">2 (ม.ค. - มี.ค.)</option>
+            <option value="3">3 (เม.ย. - มิ.ย.)</option>
+            <option value="4">4 (ก.ค. - ก.ย.)</option>
+            <option value="5">5 (ตลอดปีงบประมาณ)</option>
+          </select>
+        </div>
+        <div class="form-group" style="flex: 1;">
+          <label style="font-weight:bold;">ประเภทโครงการ <span style="color:red;">*</span></label>
+          <select name="projectType" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit';">
+            <option value="">-- เลือกประเภทโครงการ --</option>
+            <option value="งบพัฒนาคุณภาพการศึกษา">งบพัฒนาคุณภาพการศึกษา</option>
+            <option value="งบบริหารจัดการ">งบบริหารจัดการ</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: flex; gap: 15px; margin-bottom: 15px;">
+        <div style="flex: 1;">
+           <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">เดือนที่เริ่มต้น <span style="color:red;">*</span></label>
+           <select name="startDate" id="screen-start-date" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit'; box-sizing: border-box; background: #fdfefe; cursor: pointer;"></select>
+        </div>
+        <div style="flex: 1;">
+           <label style="display: block; margin-bottom: 5px; font-weight: bold; color: #2c3e50;">เดือนที่สิ้นสุด <span style="color:red;">*</span></label>
+           <select name="endDate" id="screen-end-date" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit'; box-sizing: border-box; background: #fdfefe; cursor: pointer;"></select>
+        </div>
+      </div>
+
+      <div class="form-group" style="margin-top: 15px;">
+        <label style="font-weight:bold;">ข้อเสนอแนะ / เหตุผล</label>
+        <textarea name="adminComments" id="admin-comment-box" rows="3" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-family: 'Kanit';" placeholder="ระบุเหตุผล หากไม่อนุมัติหรือต้องการส่งให้กลับไปแก้ไข..."></textarea>
+      </div>
+
+      <div style="display: flex; justify-content: flex-end; gap: 10px; margin-top: 20px;">
+        <button type="button" onclick="closeScreeningModal()" style="padding:10px 15px; border-radius:4px; border:none; background:#ecf0f1; cursor:pointer;">ยกเลิก</button>
+        <button type="button" onclick="processScreening('reject')" style="background: #c0392b; color: white; border: none; padding:10px 15px; border-radius:4px; cursor:pointer;"><i class="fas fa-ban"></i> ไม่อนุมัติ</button>
+        <button type="button" onclick="processScreening('return')" style="background: #f39c12; color: white; border: none; padding:10px 15px; border-radius:4px; cursor:pointer;"><i class="fas fa-undo"></i> ส่งกลับแก้ไข</button>
+        <button type="button" onclick="processScreening('approve')" style="background: #2ecc71; color: white; border: none; padding:10px 15px; border-radius:4px; cursor:pointer; font-weight:bold;"><i class="fas fa-check-circle"></i> อนุมัติ (ส่ง A1)</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal A1 -->
+<div id="a1Modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: white; width: 90%; max-width: 500px; border-radius: 12px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-family: 'Kanit', sans-serif;">
+        <h3 style="margin-top: 0; color: #00bcd4; border-bottom: 2px solid #00bcd4; padding-bottom: 10px;"><i class="fas fa-edit"></i> บันทึกผลการพิจารณา (A1)</h3>
+        <form id="a1Form">
+            <input type="hidden" id="a1-project-id" name="projectId">
+            <p id="a1-project-id-display" style="font-weight: bold; color: #34495e; margin-bottom: 15px;">รหัสโครงการ: -</p>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">ข้อเสนอแนะ / เหตุผลที่ให้แก้ไข</label>
+                <textarea id="a1-comment" name="comment" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit'; box-sizing: border-box;" placeholder="ระบุข้อเสนอแนะ... (จำเป็นต้องกรอกหากส่งกลับแก้ไข)"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeA1Modal()" style="background: #ecf0f1; color: #333; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';">ยกเลิก</button>
+                <button type="button" onclick="processA1('reject')" style="background: #e74c3c; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';"><i class="fas fa-times-circle"></i> ส่งกลับแก้ไข</button>
+                <button type="button" onclick="processA1('approve')" style="background: #00bcd4; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';"><i class="fas fa-check-circle"></i> เห็นชอบโครงการ</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal A2 -->
+<div id="a2Modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: white; width: 90%; max-width: 500px; border-radius: 12px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-family: 'Kanit', sans-serif;">
+        <h3 style="margin-top: 0; color: #2980b9; border-bottom: 2px solid #2980b9; padding-bottom: 10px;"><i class="fas fa-edit"></i> บันทึกผลการพิจารณา (A2)</h3>
+        <form id="a2Form">
+            <input type="hidden" id="a2-project-id" name="projectId">
+            <p id="a2-project-id-display" style="font-weight: bold; color: #34495e; margin-bottom: 15px;">รหัสโครงการ: -</p>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">ข้อเสนอแนะ / เหตุผลที่ให้แก้ไข</label>
+                <textarea id="a2-comment" name="comment" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit'; box-sizing: border-box;" placeholder="ระบุข้อเสนอแนะ... (จำเป็นต้องกรอกหากส่งกลับแก้ไข)"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeA2Modal()" style="background: #ecf0f1; color: #333; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';">ยกเลิก</button>
+                <button type="button" onclick="processA2('reject')" style="background: #e74c3c; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';"><i class="fas fa-times-circle"></i> ส่งกลับแก้ไข</button>
+                <button type="button" onclick="processA2('approve')" style="background: #2980b9; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';"><i class="fas fa-check-circle"></i> เห็นชอบโครงการ</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Modal A3 -->
+<div id="a3Modal" style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.6); z-index: 9999; justify-content: center; align-items: center;">
+    <div style="background: white; width: 90%; max-width: 500px; border-radius: 12px; padding: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.2); font-family: 'Kanit', sans-serif;">
+        <h3 style="margin-top: 0; color: #27ae60; border-bottom: 2px solid #27ae60; padding-bottom: 10px;"><i class="fas fa-stamp"></i> บันทึกผลการพิจารณา (A3)</h3>
+        <form id="a3Form">
+            <input type="hidden" id="a3-project-id" name="projectId">
+            <p id="a3-project-id-display" style="font-weight: bold; color: #34495e; margin-bottom: 15px;">รหัสโครงการ: -</p>
+            <div style="margin-bottom: 20px;">
+                <label style="display: block; margin-bottom: 8px; font-weight: bold; color: #555;">ข้อเสนอแนะ / เหตุผลที่ให้แก้ไข</label>
+                <textarea id="a3-comment" name="comment" rows="4" style="width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; font-family: 'Kanit'; box-sizing: border-box;" placeholder="ระบุข้อเสนอแนะ... (จำเป็นต้องกรอกหากส่งกลับแก้ไข)"></textarea>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 10px;">
+                <button type="button" onclick="closeA3Modal()" style="background: #ecf0f1; color: #333; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';">ยกเลิก</button>
+                <button type="button" onclick="processA3('reject')" style="background: #e74c3c; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';"><i class="fas fa-times-circle"></i> ส่งกลับแก้ไข</button>
+                <button type="button" onclick="processA3('approve')" style="background: #27ae60; color: white; border: none; padding: 10px 15px; border-radius: 6px; cursor: pointer; font-family: 'Kanit';"><i class="fas fa-check-circle"></i> อนุมัติสมบูรณ์</button>
+            </div>
+        </form>
+    </div>
+</div>
