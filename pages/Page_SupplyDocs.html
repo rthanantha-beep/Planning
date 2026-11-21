@@ -1,0 +1,296 @@
+<!-- ============================================== -->
+<!-- 1. ส่วนตารางแสดงข้อมูล (แบบมีแท็บ) -->
+<!-- ============================================== -->
+<div class="card" style="width: 100%; padding: 20px; background: white; border-radius: 10px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); margin-top: 20px;">
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #8e44ad; padding-bottom: 10px; margin-bottom: 20px;">
+      <h2 style="margin: 0; color: #2c3e50;"><i class="fas fa-box-open"></i> ตะกร้าเอกสาร ผง.2 (ผอ. อนุมัติแล้ว)</h2>
+      <button type="button" onclick="loadSupplyDocsDashboard()" style="background: #ecf0f1; color: #333; border: none; padding: 6px 12px; border-radius: 4px; cursor: pointer; font-family: 'Kanit';"><i class="fas fa-sync"></i> โหลดข้อมูลใหม่</button>
+  </div>
+
+  <!-- 🌟 ช่องค้นหาด่วน (งานพัสดุ) 🌟 -->
+  <div style="display: flex; gap: 10px; align-items: center; margin-bottom: 15px; background: #f8f9fa; padding: 12px 15px; border-radius: 8px; border: 1px solid #e0e6ed;">
+    <i class="fas fa-search" style="color: #8e44ad; font-size: 1.1rem;"></i>
+    <input type="text" id="supply-search-input" oninput="filterSupplyDocsTable()" 
+      placeholder="ค้นหาด้วย เลขที่เอกสาร (REQ-...), ชื่อผู้ขอเบิก, ชื่อโครงการ หรือรายการที่ขอเบิก..." 
+      style="flex: 1; padding: 8px 12px; border: 1px solid #bdc3c7; border-radius: 6px; font-family: 'Kanit'; font-size: 0.95rem; outline: none;">
+    <button type="button" onclick="clearSupplySearch()" style="background: #bdc3c7; color: #2c3e50; border: none; padding: 8px 14px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-size: 0.85rem; font-weight: bold;">
+      <i class="fas fa-times"></i> ล้างคำค้น
+    </button>
+  </div>
+  <!-- 🌟 ส่วนปุ่ม Tabs สลับหน้าจอ 🌟 -->
+  <div style="display: flex; gap: 10px; margin-bottom: 20px; border-bottom: 1px solid #ddd; padding-bottom: 10px;">
+    <button id="tab-btn-pending" onclick="switchSupplyTab('pending')" style="background: #e67e22; color: white; border: none; padding: 10px 20px; border-radius: 6px 6px 0 0; cursor: pointer; font-family: 'Kanit'; font-weight: bold; font-size: 1rem;"><i class="fas fa-hourglass-half"></i> คิวงาน: รอจัดทำเอกสาร</button>
+    <button id="tab-btn-completed" onclick="switchSupplyTab('completed')" style="background: transparent; color: #7f8c8d; border: none; padding: 10px 20px; border-radius: 6px 6px 0 0; cursor: pointer; font-family: 'Kanit'; font-weight: bold; font-size: 1rem;"><i class="fas fa-check-circle"></i> จัดทำเอกสารเรียบร้อยแล้ว</button>
+  </div>
+
+  <!-- 🌟 เนื้อหา Tab 1: รอจัดทำเอกสาร 🌟 -->
+  <div id="tab-content-pending" style="display: block;">
+    <div style="background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; border-top: 4px solid #e67e22;">
+      <table style="width: 100%; border-collapse: collapse; font-family: 'Kanit', sans-serif; font-size: 0.95rem;">
+        <thead>
+          <tr style="background: #fdf2e9; color: #333; text-align: left;">
+            <th style="padding: 12px; width: 10%;">วัน/เวลา</th>
+            <th style="padding: 12px; width: 52%;" colspan="2">ข้อมูลโครงการ</th>
+            <th style="padding: 12px; width: 10%; text-align: right;">ยอดรวม</th>
+            <th style="padding: 12px; width: 12%; text-align: center;">สถานะ</th>
+            <th style="padding: 12px; width: 16%; text-align: center;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="supply-docs-pending-tbody">
+          <tr><td colspan="6" style="text-align: center; padding: 40px; color:#e67e22;">กำลังดึงข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- 🌟 เนื้อหา Tab 2: จัดทำเอกสารเรียบร้อยแล้ว 🌟 -->
+  <div id="tab-content-completed" style="display: none;">
+    <div style="background: white; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); overflow: hidden; border-top: 4px solid #2ecc71;">
+      <table style="width: 100%; border-collapse: collapse; font-family: 'Kanit', sans-serif; font-size: 0.95rem;">
+        <thead>
+          <tr style="background: #f4fdf7; color: #333; text-align: left;">
+            <th style="padding: 12px; width: 10%;">วัน/เวลา</th>
+            <th style="padding: 12px; width: 52%;" colspan="2">ข้อมูลโครงการ</th>
+            <th style="padding: 12px; width: 10%; text-align: right;">ยอดรวม</th>
+            <th style="padding: 12px; width: 12%; text-align: center;">สถานะ</th>
+            <th style="padding: 12px; width: 16%; text-align: center;">จัดการ</th>
+          </tr>
+        </thead>
+        <tbody id="supply-docs-completed-tbody">
+          <tr><td colspan="6" style="text-align: center; padding: 40px; color:#27ae60;">กำลังดึงข้อมูล...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+
+<!-- ============================================== -->
+<!-- 2. ส่วนหน้าต่าง Modal ซ่อนไว้ (พัสดุกรอกข้อมูล) -->
+<!-- ============================================== -->
+<div id="supplyDocModal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.7); z-index:9999; justify-content:center; align-items:center;">
+  <div style="background:white; width:95%; max-width:900px; border-radius:10px; overflow:hidden; font-family:'Kanit', sans-serif; display:flex; flex-direction:column; max-height:95vh;">
+    
+    <div style="background:#8e44ad; color:white; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <h3 style="margin:0; font-size:1.2rem;"><i class="fas fa-file-word"></i> สร้างเอกสารจัดซื้อจัดจ้าง (ผง.2) - ระบบเลขไทยอัตโนมัติ</h3>
+      <button onclick="document.getElementById('supplyDocModal').style.display='none'" style="background:none; border:none; color:white; font-size:1.5rem; cursor:pointer;">&times;</button>
+    </div>
+    
+    <div style="padding:20px; overflow-y:auto; flex:1; background:#f4f6f8;">
+      <input type="hidden" id="gen-req-id">
+      <input type="hidden" id="gen-action-type">
+
+      <!-- 1. ข้อมูลวันที่รายงาน และ ทะเบียนคุม -->
+      <div style="background:white; padding:15px; border-radius:8px; border-left:4px solid #8e44ad; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+         <h4 style="margin:0 0 10px 0; color:#8e44ad;"><i class="fas fa-calendar-alt"></i> 1. ข้อมูลวันที่ขออนุมัติ และ ทะเบียนใบตรวจรับ</h4>
+         <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">วันที่รายงานขอซื้อ/ขอจ้าง (ผง.2):</label>
+               <input type="date" id="gen-req-date" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            </div>
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">เลขทะเบียนใบตรวจรับ (เช่น 123/2569):</label>
+               <input type="text" id="gen-rec-reg-no" placeholder="ระบุเลขทะเบียนคุม..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            </div>
+         </div>
+      </div>
+
+      <!-- 2. ข้อมูลร้านค้า และ ประเภทการสั่งซื้อ -->
+      <div style="background:white; padding:15px; border-radius:8px; border-left:4px solid #2980b9; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+         <h4 style="margin:0 0 10px 0; color:#2980b9;"><i class="fas fa-store"></i> 2. ข้อมูลคู่ค้า และ การสั่งซื้อ/สั่งจ้าง</h4>
+         <input list="vendor-options" id="gen-vendor" placeholder="เลือกร้านค้าเดิม หรือ พิมพ์ชื่อร้านใหม่..." style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; margin-bottom:10px; box-sizing:border-box;">
+         <datalist id="vendor-options"></datalist>
+         
+         <div style="display:flex; gap:10px; margin-bottom:10px;">
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">ประเภทการสั่งซื้อ/สั่งจ้าง:</label>
+               <select id="gen-contract-type" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+                 <option value="ตกลง">ตกลงซื้อ / ตกลงจ้าง (ไม่มีเลขที่)</option>
+                 <option value="ใบสั่ง">ใบสั่งซื้อ / ใบสั่งจ้าง</option>
+                 <option value="สัญญา">สัญญาซื้อขาย / สัญญาจ้าง</option>
+               </select>
+            </div>
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">เลขที่ใบสั่ง/สัญญา (ถ้ามี):</label>
+               <input type="text" id="gen-contract-no" placeholder="เลขที่เอกสาร..." style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            </div>
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">วันที่ทำใบสั่ง/สัญญา:</label>
+               <input type="date" id="gen-contract-date" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            </div>
+         </div>
+
+         <div style="display:flex; gap:10px;">
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">วันที่ส่งมอบพัสดุ/งาน:</label>
+               <input type="date" id="gen-delivery-date" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            </div>
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">วันที่คณะกรรมการตรวจรับ:</label>
+               <input type="date" id="gen-receipt-date" style="width:100%; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            </div>
+         </div>
+      </div>
+
+      <!-- 3. ข้อมูลเอกสารใบเสร็จ (ของร้านค้า) -->
+      <div style="background:white; padding:15px; border-radius:8px; border-left:4px solid #e67e22; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+         <h4 style="margin:0 0 10px 0; color:#d35400;"><i class="fas fa-receipt"></i> 3. ข้อมูลเอกสารใบเสร็จ (จากร้านค้า)</h4>
+         <div style="display:flex; gap:10px;">
+            <select id="gen-receipt-type" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+              <option value="ใบส่งสินค้า">ใบส่งสินค้า</option>
+              <option value="ใบเสร็จรับเงิน">ใบเสร็จรับเงิน</option>
+              <option value="บิลเงินสด">บิลเงินสด</option>
+              <option value="ใบส่งมอบงาน">ใบส่งมอบงาน</option>
+            </select>
+            <input type="text" id="gen-book-no" placeholder="เล่มที่ (ถ้ามี)" style="width:80px; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            <input type="text" id="gen-bill-no" placeholder="เลขที่บิลร้านค้า" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+         </div>
+      </div>
+
+      <!-- 4. รายการพัสดุและยอดเงิน -->
+      <div style="background:white; padding:15px; border-radius:8px; border-left:4px solid #16a085; margin-bottom:15px; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <h4 style="margin:0; color:#16a085;"><i class="fas fa-boxes"></i> 4. รายการพัสดุ (ปรับแก้ได้)</h4>
+            <button type="button" onclick="addGenItemRow()" style="background:#1abc9c; color:white; border:none; padding:5px 10px; border-radius:4px; font-family:'Kanit'; cursor:pointer; font-size:0.85rem;"><i class="fas fa-plus"></i> เพิ่มรายการ</button>
+         </div>
+         
+         <div style="overflow-x:auto; margin-bottom:10px;">
+             <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+                 <thead>
+                     <tr style="background:#ecf0f1; color:#2c3e50;">
+                         <th style="padding:8px; border:1px solid #bdc3c7; text-align:left;">ชื่อรายการพัสดุ/งานจ้าง</th>
+                         <th style="padding:8px; border:1px solid #bdc3c7; width:60px;">จำนวน</th>
+                         <th style="padding:8px; border:1px solid #bdc3c7; width:70px;">หน่วย</th>
+                         <th style="padding:8px; border:1px solid #bdc3c7; width:100px;">ราคา/หน่วย</th>
+                         <th style="padding:8px; border:1px solid #bdc3c7; width:40px;">ลบ</th>
+                     </tr>
+                 </thead>
+                 <tbody id="gen-items-tbody"></tbody>
+             </table>
+         </div>
+
+         <div style="display:flex; gap:15px; align-items:flex-end;">
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">ยอดเงินรวมทั้งสิ้น (บาท):</label>
+               <input type="number" id="gen-grand-total" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; font-weight:bold; color:#c0392b; box-sizing:border-box;">
+            </div>
+            <div style="flex:1;">
+               <label style="font-size:0.85rem; color:#7f8c8d;">ภาษีมูลค่าเพิ่ม VAT (บาท):</label>
+               <input type="number" id="gen-vat-amount" value="0" oninput="calcGenTotal()" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;">
+            </div>
+         </div>
+      </div>
+
+      <!-- 5. ข้อมูลการจ่ายเงิน -->
+      <div style="background:white; padding:15px; border-radius:8px; border-left:4px solid #27ae60; box-shadow:0 1px 3px rgba(0,0,0,0.1);">
+         <h4 style="margin:0 0 10px 0; color:#27ae60;"><i class="fas fa-money-bill-wave"></i> 5. ข้อมูลการจ่ายเงิน</h4>
+         <select id="gen-pay-method" style="width:100%; padding:10px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; margin-bottom:10px;">
+            <option value="สำรองจ่าย">จ่ายเงินส่วนตัวไปก่อน (สำรองจ่าย)</option>
+            <option value="ยืมเงิน">ยืมเงินทดรองไปก่อน</option>
+         </select>
+         <div style="display:flex; gap:10px;">
+            <input type="text" id="gen-payer" placeholder="ชื่อผู้จ่ายเงิน / ผู้ยืมเงิน" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit';">
+            <input type="date" id="gen-pay-date" style="flex:1; padding:8px; border:1px solid #ccc; border-radius:4px; font-family:'Kanit'; box-sizing:border-box;">
+         </div>
+      </div>
+    </div>
+    
+    <div style="background:#ecf0f1; padding:15px 20px; display:flex; justify-content:space-between; align-items:center;">
+      <span style="font-size:0.85rem; color:#7f8c8d;">* ข้อมูลทั้งหมดจะถูกบันทึกไว้แก้ไขภายหลัง และถูกแปลงเป็นเลขไทยอัตโนมัติ</span>
+      <div style="display:flex; gap:10px;">
+        <button onclick="document.getElementById('supplyDocModal').style.display='none'" style="background:#bdc3c7; color:#333; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold;">ยกเลิก</button>
+        <button id="btn-generate-word" onclick="executeGenerateWord()" style="background:#8e44ad; color:white; border:none; padding:10px 20px; border-radius:6px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-magic"></i> สร้างเอกสาร Word</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================== -->
+<!-- 3. โค้ด JavaScript สำหรับควบคุมการสลับแท็บ -->
+<!-- ============================================== -->
+<script>
+  function switchSupplyTab(tabName) {
+    const btnPending = document.getElementById('tab-btn-pending');
+    const btnCompleted = document.getElementById('tab-btn-completed');
+    const contentPending = document.getElementById('tab-content-pending');
+    const contentCompleted = document.getElementById('tab-content-completed');
+
+    if (tabName === 'pending') {
+      contentPending.style.display = 'block';
+      contentCompleted.style.display = 'none';
+      
+      btnPending.style.background = '#e67e22';
+      btnPending.style.color = 'white';
+      
+      btnCompleted.style.background = 'transparent';
+      btnCompleted.style.color = '#7f8c8d';
+    } else {
+      contentPending.style.display = 'none';
+      contentCompleted.style.display = 'block';
+      
+      btnPending.style.background = 'transparent';
+      btnPending.style.color = '#7f8c8d';
+      
+      btnCompleted.style.background = '#2ecc71';
+      btnCompleted.style.color = 'white';
+    }
+  }
+  function filterSupplyDocsTable() {
+    const keyword = (document.getElementById('supply-search-input')?.value || '').trim().toLowerCase();
+
+    const filterTbody = (tbodyId, isPendingTab) => {
+      const tbody = document.getElementById(tbodyId);
+      if (!tbody) return 0;
+
+      const rows = Array.from(tbody.querySelectorAll('tr'));
+      let visibleCount = 0;
+
+      for (let i = 0; i < rows.length; i++) {
+        const mainRow = rows[i];
+        const detailRow = rows[i + 1];
+
+        // ตรวจสอบว่าเป็นคู่แถวข้อมูล (แถวหลัก + แถวรายละเอียด supply-detail-...)
+        if (detailRow && detailRow.id && detailRow.id.startsWith('supply-detail-')) {
+          const combinedText = (mainRow.innerText + ' ' + detailRow.innerText).toLowerCase();
+          const isMatch = !keyword || combinedText.includes(keyword);
+
+          if (isMatch) {
+            mainRow.style.display = 'table-row';
+            // ถ้ากำลังพิมพ์ค้นหา ให้กางรายละเอียดออกอัตโนมัติเพื่อดูรายการที่ตรงคำค้น
+            detailRow.style.display = keyword ? 'table-row' : (isPendingTab ? 'table-row' : 'none');
+            visibleCount++;
+          } else {
+            mainRow.style.display = 'none';
+            detailRow.style.display = 'none';
+          }
+          i++; // ข้าม detailRow เพราะจัดการคู่กันไปแล้ว
+        }
+      }
+      return visibleCount;
+    };
+
+    const pendingCount = filterTbody('supply-docs-pending-tbody', true);
+    const completedCount = filterTbody('supply-docs-completed-tbody', false);
+
+    // อัปเดตตัวเลขจำนวนที่พบไว้บนปุ่ม Tab ให้เห็นทันที
+    const btnPending = document.getElementById('tab-btn-pending');
+    const btnCompleted = document.getElementById('tab-btn-completed');
+    if (btnPending) {
+      btnPending.innerHTML = `<i class="fas fa-hourglass-half"></i> คิวงาน: รอจัดทำเอกสาร${keyword ? ` (พบ ${pendingCount})` : ''}`;
+    }
+    if (btnCompleted) {
+      btnCompleted.innerHTML = `<i class="fas fa-check-circle"></i> จัดทำเอกสารเรียบร้อยแล้ว${keyword ? ` (พบ ${completedCount})` : ''}`;
+    }
+  }
+
+  function clearSupplySearch() {
+    const input = document.getElementById('supply-search-input');
+    if (input) {
+      input.value = '';
+      filterSupplyDocsTable();
+      input.focus();
+    }
+  }
+</script>
