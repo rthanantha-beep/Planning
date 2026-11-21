@@ -1,0 +1,28 @@
+<div style="padding: 20px; font-family:'Kanit', sans-serif;">
+  <h2 style="color: #8e44ad; border-bottom: 2px solid #8e44ad; padding-bottom: 10px; margin-top: 0;">
+    <i class="fas fa-exchange-alt"></i> ทะเบียนคำร้องขอเปลี่ยนแปลง (ผง.3)
+  </h2>
+  
+  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+    <div style="color: #666;">ประวัติการยื่นคำร้องขอเปลี่ยนแปลงรายละเอียดโครงการทั้งหมด</div>
+    <select id="amendment-year-filter" onchange="loadAmendmentDocs()" style="padding: 8px 15px; border-radius: 6px; border: 1px solid #ccc; font-family: 'Kanit'; cursor: pointer;"></select>
+  </div>
+
+  <div style="background: white; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #e0e6ed; overflow-x: auto;">
+    <table style="width: 100%; border-collapse: collapse; font-size: 0.9rem; min-width: 1000px;">
+      <thead>
+        <tr style="background: #f4f6f8; color: #2c3e50; border-bottom: 2px solid #bdc3c7; text-align: left;">
+          <th style="padding: 12px; width: 10%;">รหัสโครงการ</th>
+          <th style="padding: 12px; width: 20%;">ชื่อโครงการ</th>
+          <th style="padding: 12px; width: 15%;">ผู้ยื่นคำร้อง</th>
+          <th style="padding: 12px; width: 25%;">เหตุผลที่ขอเปลี่ยนแปลง</th>
+          <th style="padding: 12px; width: 15%; text-align: center;">สถานะคำร้อง</th>
+          <th style="padding: 12px; width: 15%; text-align: center;">พิมพ์ ผง.3</th>
+        </tr>
+      </thead>
+      <tbody id="amendment-docs-tbody">
+        <tr><td colspan="6" style="text-align: center; padding: 40px; color:#8e44ad;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>กำลังดึงข้อมูลคำร้อง...</td></tr>
+      </tbody>
+    </table>
+  </div>
+</div>
