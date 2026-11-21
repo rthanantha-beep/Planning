@@ -259,7 +259,7 @@
           if (isMatch) {
             mainRow.style.display = 'table-row';
             // ถ้ากำลังพิมพ์ค้นหา ให้กางรายละเอียดออกอัตโนมัติเพื่อดูรายการที่ตรงคำค้น
-            detailRow.style.display = keyword ? 'table-row' : (isPendingTab ? 'table-row' : 'none');
+            detailRow.style.display = keyword ? 'table-row' : 'none';
             visibleCount++;
           } else {
             mainRow.style.display = 'none';
