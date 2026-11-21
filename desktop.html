@@ -4,7 +4,8 @@
 <head>
   <base target="_top">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" />
-  <?!= include('CSS'); ?>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./gas-bridge.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -102,88 +103,24 @@
 <!-- พื้นที่เนื้อหาหลักตรงกลาง (Main Content) -->
 <!-- ============================================== -->
 <div class="main-content">
-  <!-- 11. โครงการทั้งหมด -->
-  <div id="page-allprojects" class="page-section" style="display: none;">
-    <?!= include('Page_AllProjects'); ?>
-  </div>
-  <!-- 10. ตะกร้างานพัสดุ -->
-  <div id="page-supply-docs" class="page-section" style="display: none;">
-    <?!= include('Page_SupplyDocs'); ?>
-  </div>
-    <!-- 12. ตั้งค่าระบบ (Admin) -->
-  <div id="page-admin" class="page-section" style="display: none;">
-    <?!= include('Page_Settings'); ?>
-  </div>
-
-  <div id="page-amendment-docs" class="page-section" style="display: none;">
-    <?!= include('Page_AmendmentDocs'); ?>
-  </div>
-    
-  <!-- 1. หน้าแรก (Dashboard) -->
-  <div id="page-dashboard" class="page-section">
-    <?!= include('Page_Dashboard'); ?>
-  </div>
-
-  <div id="page-calendar" class="page-section" style="display: none;">
-    <?!= include('Page_Calendar'); ?>
-  </div>
-
-  <!-- 2. โปรไฟล์ของฉัน -->
-  <div id="page-profile" class="page-section" style="display: none;">
-    <?!= include('Page_Profile'); ?>
-  </div>
-
-  <!-- 3. จัดการงบประมาณ (สำหรับงานแผน) -->
-  <div id="page-budget-admin" class="page-section" style="display: none;">
-    <?!= include('Page_BudgetAdmin'); ?>
-  </div>
-<!-- 13. พิจารณาโครงการ -->
-  <div id="page-approve" class="page-section" style="display: none;">
-    <?!= include('Page_Approve'); ?>
-  </div>
-  <!-- 4. กระทบยอดเคลียร์บิล -->
-  <div id="page-reconciliation" class="page-section" style="display: none;">
-    <?!= include('Page_Reconciliation'); ?>
-  </div> 
-
-  <!-- หน้าประวัติเบิกจ่ายทั้งหมด -->
-  <div id="page-all-disbursements" class="page-section" style="display: none;">
-    <?!= include('Page_AllDisbursements'); ?>
-  </div>
-
-  <!-- 5. จัดการโครงสร้างแผนงาน -->
-  <div id="page-strategy" class="page-section" style="display: none;">
-    <?!= include('Page_Strategy'); ?>
-  </div>
-
-  <!-- 6. งานประกันคุณภาพ (QA) -->
-  <div id="page-qa" class="page-section" style="display: none;">
-    <?!= include('Page_QA'); ?>
-  </div>
-  <div id="page-planning-docs" class="page-section" style="display: none;">
-  <?!= include('Page_PlanningDocs'); ?>
-</div>
-
-  <!-- 7. พิจารณาเบิกจ่าย (ผง.2) -->
-  <div id="page-disb-approve" class="page-section" style="display: none;">
-    <?!= include('Page_DisbApprove'); ?>
-  </div>
-
-  <!-- 8. โครงการของฉัน -->
-  <div id="page-myprojects" class="page-section" style="display: none;">
-    <?!= include('Page_MyProjects'); ?>
-  </div>
-
-  <!-- 9. การเบิกจ่ายของฉัน -->
-  <div id="page-disbursement" class="page-section" style="display: none;">
-    <?!= include('Page_Disbursement'); ?>
-  </div>
-      
-  <!-- 14. รายงานความก้าวหน้าทางการเงิน -->
-  <div id="page-financial-progress" class="page-section" style="display: none;">
-    <?!= include('Page_FinancialProgress'); ?>
-  </div>
-
+  <div id="page-allprojects" class="page-section" style="display: none;"></div>
+  <div id="page-supply-docs" class="page-section" style="display: none;"></div>
+  <div id="page-admin" class="page-section" style="display: none;"></div>
+  <div id="page-amendment-docs" class="page-section" style="display: none;"></div>
+  <div id="page-dashboard" class="page-section"></div>
+  <div id="page-calendar" class="page-section" style="display: none;"></div>
+  <div id="page-profile" class="page-section" style="display: none;"></div>
+  <div id="page-budget-admin" class="page-section" style="display: none;"></div>
+  <div id="page-approve" class="page-section" style="display: none;"></div>
+  <div id="page-reconciliation" class="page-section" style="display: none;"></div>
+  <div id="page-all-disbursements" class="page-section" style="display: none;"></div>
+  <div id="page-strategy" class="page-section" style="display: none;"></div>
+  <div id="page-qa" class="page-section" style="display: none;"></div>
+  <div id="page-planning-docs" class="page-section" style="display: none;"></div>
+  <div id="page-disb-approve" class="page-section" style="display: none;"></div>
+  <div id="page-myprojects" class="page-section" style="display: none;"></div>
+  <div id="page-disbursement" class="page-section" style="display: none;"></div>
+  <div id="page-financial-progress" class="page-section" style="display: none;"></div>
 </div>
 
   <!-- ============================================== -->
@@ -631,7 +568,104 @@
 
   
 
-  <?!= include('JS'); ?>
+<script>
+  const PAGE_INCLUDES = [
+    ['page-allprojects',        './pages/Page_AllProjects.html'],
+    ['page-supply-docs',        './pages/Page_SupplyDocs.html'],
+    ['page-admin',              './pages/Page_Settings.html'],
+    ['page-amendment-docs',     './pages/Page_AmendmentDocs.html'],
+    ['page-dashboard',          './pages/Page_Dashboard.html'],
+    ['page-calendar',           './pages/Page_Calendar.html'],
+    ['page-profile',            './pages/Page_Profile.html'],
+    ['page-budget-admin',       './pages/Page_BudgetAdmin.html'],
+    ['page-approve',            './pages/Page_Approve.html'],
+    ['page-reconciliation',     './pages/Page_Reconciliation.html'],
+    ['page-all-disbursements',  './pages/Page_AllDisbursements'],
+    ['page-strategy',           './pages/Page_Strategy.html'],
+    ['page-qa',                 './pages/Page_QA.html'],
+    ['page-planning-docs',      './pages/Page_PlanningDocs'],
+    ['page-disb-approve',       './pages/Page_DisbApprove.html'],
+    ['page-myprojects',         './pages/Page_MyProjects.html'],
+    ['page-disbursement',       './pages/Page_Disbursement.html'],
+    ['page-financial-progress', './pages/Page_FinancialProgress']
+  ];
+
+  async function loadPageHTML(containerId, filePath) {
+    try {
+      const res = await fetch(filePath);
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      const html = await res.text();
+      const container = document.getElementById(containerId);
+      if (!container) return;
+
+      container.innerHTML = html;
+
+      // สั่งรัน <script> ที่ฝังอยู่ในไฟล์หน้าย่อย
+      container.querySelectorAll('script').forEach(oldScript => {
+        const newScript = document.createElement('script');
+        if (oldScript.src) {
+          newScript.src = oldScript.src;
+        } else {
+          newScript.textContent = oldScript.textContent;
+        }
+        document.body.appendChild(newScript);
+        oldScript.remove();
+      });
+    } catch (err) {
+      console.error(`❌ โหลดหน้า ${filePath} ไม่สำเร็จ:`, err);
+    }
+  }
+
+  async function bootDesktopApp() {
+    // 1. เช็คว่ามีอีเมลหรือ Line UID หรือยัง ถ้ายังไม่มีให้เด้งถามก่อน
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAuth = urlParams.get('uid')
+                 || localStorage.getItem('sopon_preferred_email')
+                 || localStorage.getItem('nongPhaenDee_lineUid');
+
+    if (!hasAuth) {
+      const loader = document.getElementById('loader-overlay');
+      if (loader) loader.style.display = 'none';
+
+      const { value: email } = await Swal.fire({
+        title: 'เข้าสู่ระบบงานแผนงาน',
+        input: 'email',
+        inputPlaceholder: 'กรอกอีเมลโรงเรียน เช่น name@sopon.ac.th',
+        confirmButtonText: 'เข้าสู่ระบบ',
+        allowOutsideClick: false,
+        allowEscapeKey: false
+      });
+
+      if (email) {
+        localStorage.setItem('sopon_preferred_email', email.trim().toLowerCase());
+        location.reload();
+      }
+      return;
+    }
+
+    // 2. โหลด HTML ทุกหน้าย่อยพร้อมกัน
+    await Promise.all(PAGE_INCLUDES.map(([id, path]) => loadPageHTML(id, path)));
+
+    // 3. โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
+    const mainScript = document.createElement('script');
+    mainScript.src = './main.js';
+    mainScript.onload = () => {
+      // กระตุ้นให้ DOMContentLoaded และ window.onload ใน main.js ทำงาน
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      if (typeof window.onload === 'function') {
+        window.onload();
+      }
+    };
+    document.body.appendChild(mainScript);
+  }
+
+  // เริ่มระบบทันทีเมื่อโครงสร้าง desktop.html พร้อม
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootDesktopApp);
+  } else {
+    bootDesktopApp();
+  }
+</script>
 </body>
 <!-- 🌟 ปุ่มลอยสำหรับเรียกน้องแผนดี (เปลี่ยนเป็นรูปภาพ) 🌟 -->
 
