@@ -8509,7 +8509,7 @@ function deleteProject(projectId, projectName) {
     function logout() {
       Swal.fire({
         title: 'ออกจากระบบ?',
-        text: "คุณต้องการออกจากระบบใช่หรือไม่?",
+        text: "คุณต้องการออกจากระบบเพื่อสลับบัญชีใช่หรือไม่?",
         icon: 'question',
         showCancelButton: true,
         confirmButtonColor: '#e74c3c',
@@ -8519,11 +8519,14 @@ function deleteProject(projectId, projectName) {
         customClass: { container: 'Prompt-font' }
       }).then((result) => {
         if (result.isConfirmed) {
-          // 1. ลบตั๋ว Token ออกจากเบราว์เซอร์
+          // 1. ลบข้อมูลตัวตนทั้งหมดออกจากเบราว์เซอร์
           localStorage.removeItem('appToken');
-          
-          // 2. เด้งผู้ใช้กลับไปที่หน้าล็อกอิน (เพื่อให้ Node.js บังคับล็อกอินใหม่)
-          window.location.href = '/login'; 
+          localStorage.removeItem('sopon_preferred_email');
+          localStorage.removeItem('sopon_mobile_auth');
+          localStorage.removeItem('nongPhaenDee_lineUid');
+
+          // 2. รีโหลดกลับมาหน้าเดิม (ล้าง ?uid= บน URL ด้วย) เพื่อให้เด้งกล่องกรอกอีเมลใหม่
+          window.location.href = window.location.pathname;
         }
       });
     }
