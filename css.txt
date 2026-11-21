@@ -1,0 +1,318 @@
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap');
+
+  :root {
+    --primary-color: #6A1B9A;
+    --primary-hover: #4A148C;
+    --sidebar-width: 260px;
+    --bg-color: #f4f6f8;
+    --text-color: #333;
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: 'Kanit', sans-serif;
+    margin: 0;
+    padding: 0;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    height: 100vh;
+    overflow: hidden;
+  }
+@media screen and (max-width: 768px) {
+      .sidebar {
+        display: none !important;
+      }
+      .main-content {
+        margin-left: 0 !important;
+        width: 100% !important;
+      }
+    }
+  /* 1. แถบเมนูด้านซ้าย (Sidebar) */
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: var(--sidebar-width);
+    height: 100vh;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-hover) 100%);
+    color: white;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    z-index: 100;
+  }
+
+  .sidebar-header {
+    padding: 20px;
+    text-align: center;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+
+  .sidebar-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .sidebar-user {
+    font-size: 0.85rem;
+    color: #e1bee7;
+    margin-top: 5px;
+    word-break: break-all;
+  }
+
+  .sidebar-menu {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px 0;
+  }
+
+  .menu-category {
+    font-size: 0.75rem;
+    color: #95a5a6;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin: 15px 15px 5px 15px;
+    padding-bottom: 5px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    letter-spacing: 0.5px;
+  }
+
+  .menu-item {
+    padding: 12px 20px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: background 0.3s;
+  }
+
+  .menu-item:hover, .menu-item.active {
+    background-color: rgba(255,255,255,0.15);
+    border-left: 4px solid #fff;
+  }
+
+  .nav-badge {
+    background-color: #e74c3c;
+    color: white;
+    border-radius: 12px;
+    padding: 2px 7px;
+    font-size: 0.75rem;
+    font-weight: bold;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+  }
+
+  /* 2. พื้นที่เนื้อหาหลัก (Main Content) */
+  .main-content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+    height: 100vh;
+    overflow-y: auto;
+    padding: 20px;
+  }
+
+  .page-section {
+    display: none;
+    opacity: 1 !important;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .card {
+    background: white;
+    padding: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+
+  /* ========================================================= */
+  /* 🌟 จุดที่ใส่ pointer-events: none; เพื่อปลดล็อกการคลิกหน้าจอ */
+  /* ========================================================= */
+
+  /* จุดที่ 1: ฉากบังหน้าจอตอนโหลด/ตรวจสอบสิทธิ์ */
+  #loader-overlay,
+  #unauthorized-overlay {
+    display: none;
+    pointer-events: none; /* 🌟 เคลียร์ให้คลิกทะลุได้เสมอเมื่อไม่ได้สั่งเปิด */
+  }
+
+  #loader-overlay.active,
+  #unauthorized-overlay.active {
+    display: flex !important;
+    pointer-events: auto !important; /* เปิดให้รับการกดเมื่อเปิดใช้งาน */
+  }
+
+  /* จุดที่ 2: ฉากหลังป๊อบอัพ (Modal Overlay) */
+.modal-overlay {
+  display: none; /* 🌟 สำคัญ: ต้องเป็น none ไว้ก่อนเสมอ */
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0,0,0,0.5);
+  z-index: 10000;
+  justify-content: center;
+  align-items: center;
+}
+
+/* สร้าง class แยกสำหรับการสั่งเปิดผ่าน JS */
+.modal-overlay.show {
+  display: flex !important;
+}
+
+  .modal-overlay.active,
+  .modal-overlay.show {
+    display: flex !important;
+    pointer-events: auto !important; /* คืนค่าการคลิกเมื่อสั่งแสดง Modal */
+  }
+
+  /* จุดที่ 3: ฉากหลังแถบเมนู (Sidebar Overlay) */
+ .sidebar-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none; /* 🌟 บังคับให้คลิกทะลุแผ่นใสได้ */
+  z-index: 99;
+}
+
+  .sidebar-overlay.active {
+    pointer-events: auto !important;
+  }
+
+  /* ========================================================= */
+
+  /* ฟอร์มและปุ่มกด */
+  .form-group {
+    margin-bottom: 15px; 
+    text-align: left;
+  }
+
+  .form-group label {
+    display: block; 
+    margin-bottom: 5px; 
+    font-weight: 500; 
+    color: #333;
+  }
+
+  .form-group input, .form-group select {
+    width: 100%; 
+    padding: 10px; 
+    border: 1px solid #ccc; 
+    border-radius: 4px;
+    box-sizing: border-box; 
+    font-family: 'Kanit', sans-serif; 
+    font-size: 16px;
+  }
+
+  .btn-custom {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 24px;
+    font-size: 16px;
+    font-family: 'Kanit', sans-serif;
+    font-weight: 500;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+  }
+
+  .btn-submit {
+    background: linear-gradient(135deg, #1abc9c, #16a085);
+    color: white;
+    box-shadow: 0 4px 10px rgba(26, 188, 156, 0.2);
+  }
+
+  .btn-submit:hover {
+    background: linear-gradient(135deg, #16a085, #149077);
+    box-shadow: 0 6px 15px rgba(26, 188, 156, 0.4);
+    transform: translateY(-2px);
+  }
+
+  .btn-submit:disabled {
+    background: #bdc3c7;
+    box-shadow: none;
+    cursor: not-allowed;
+    transform: none;
+  }
+
+  .btn-cancel {
+    background: #f1f3f5;
+    color: #555;
+    border: 1px solid #ced4da;
+  }
+
+  .btn-cancel:hover {
+    background: #e9ecef;
+    color: #333;
+    border-color: #adb5bd;
+  }
+ #loader-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: white;
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#loader-overlay {
+    display: flex;
+    position: fixed;
+    inset: 0;
+    background: white;
+    z-index: 9999;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+}
+
+#loader-overlay.hidden {
+    display: none !important;
+}
+/* 🌟 บังคับให้ SweetAlert2 เด้งมาอยู่หน้าสุด (ทะลุ Modal ทุกตัว) */
+  .swal2-container {
+    z-index: 100000 !important;
+  }
+  button:active,
+.btn-custom:active, 
+.btn-submit:active, 
+.btn-cancel:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.15) !important;
+  opacity: 0.9;
+  transition: transform 0.1s ease, box-shadow 0.1s ease;
+}
+<style>
+    /* 🌟 Skeleton Loading Effect สำหรับ Desktop */
+    .skeleton {
+      background: #e2e5e7;
+      background-image: linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.6), rgba(255, 255, 255, 0));
+      background-size: 200px 100%;
+      background-repeat: no-repeat;
+      display: inline-block;
+      animation: shimmer 1.5s infinite linear;
+    }
+    @keyframes shimmer {
+      0% { background-position: -200px 0; }
+      100% { background-position: calc(200px + 100%) 0; }
+    }
+    /* ให้ Skeleton ใน Sidebar ดูมืดๆ กลืนกับพื้นหลังเข้ม */
+    .skeleton-dark {
+      background: rgba(255, 255, 255, 0.1);
+      background-image: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.05), rgba(255,255,255,0));
+    }
+  </style>
+</style>
