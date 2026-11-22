@@ -403,7 +403,7 @@ function loadMyProjects() {
              let safeReqPayload = encodeURIComponent(String(p.reqPayload || "")).replace(/'/g, "%27");
              let isReturned = p.reqStatus && p.reqStatus.includes('ส่งกลับแก้ไข');
              let btnColor = isReturned ? '#e74c3c' : '#8e44ad';
-             let btnText = isReturned ? '<i class="fas fa-exclamation-circle"></i> แก้ไขคำร้อง' : '<i class="fas fa-exchange-alt"></i> เปลี่ยนแปลง (ผง.3)';
+             let btnText = isReturned ? '<i class="fas fa-exclamation-circle"></i> แก้ไขคำร้อง' : '<i class="fas fa-exchange-alt"></i> เปลี่ยนแปลงรายละเอียดโครงการ';
              // ปุ่มรอง (ผง.3)
              amendBtn = `<button onclick="openAmendmentModal('${p.id}', '${safeProjectName}', '${p.url}', '${safeReqPayload}')" style="${btnOutlineStyle} border: 1px solid ${btnColor}; color: ${btnColor};" onmouseover="this.style.background='${btnColor}15'" onmouseout="this.style.background='transparent'">${btnText}</button>`;
              
@@ -10135,7 +10135,7 @@ function triggerNewFiscalYear() {
     'menu-strategy': 'โครงสร้างแผนงาน',
     'menu-qa': 'งานประกันคุณภาพ (QA)',
     'menu-financial-progress': 'ภาพรวมการเบิกจ่าย',
-    'menu-amendment-docs': 'ทะเบียนคำร้อง (ผง.3)',
+    'menu-amendment-docs': 'ทะเบียนคำร้องปรับเปลี่ยนรายละเอียดโครงการ (ผง.3)',
     'menu-all-disbursements': 'ประวัติเบิกจ่ายทั้งหมด'
   };
   // ==========================================
