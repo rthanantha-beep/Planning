@@ -4459,28 +4459,6 @@ function submitDisbReview(action) {
 }
 
 // ==========================================
-// 🌟 1. ฟังก์ชันสลับแท็บหน้าพัสดุ
-// ==========================================
-function switchSupplyTab(tabId) {
-  const btnPending = document.getElementById('btn-tab-pending');
-  const btnCompleted = document.getElementById('btn-tab-completed');
-  const tabPending = document.getElementById('supply-tab-pending');
-  const tabCompleted = document.getElementById('supply-tab-completed');
-
-  if (tabId === 'pending') {
-    btnPending.style.background = '#8e44ad'; btnPending.style.color = 'white'; btnPending.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    btnCompleted.style.background = '#f4f6f8'; btnCompleted.style.color = '#7f8c8d'; btnCompleted.style.boxShadow = 'none';
-    tabPending.style.display = 'block';
-    tabCompleted.style.display = 'none';
-  } else {
-    btnCompleted.style.background = '#27ae60'; btnCompleted.style.color = 'white'; btnCompleted.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-    btnPending.style.background = '#f4f6f8'; btnPending.style.color = '#7f8c8d'; btnPending.style.boxShadow = 'none';
-    tabPending.style.display = 'none';
-    tabCompleted.style.display = 'block';
-  }
-}
-
-// ==========================================
 // 🌟 2. อัปเดตฟังก์ชันโหลดตะกร้าพัสดุ (ใส่ปุ่มใหม่)
 // ==========================================
 function loadSupplyDocsDashboard() {
