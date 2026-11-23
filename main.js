@@ -11359,6 +11359,8 @@ function openSupplyDocModal(reqId, actionType) {
       let itemsToLoad = [];
       if (data && data.history && data.history.items && data.history.items.length > 0) {
         itemsToLoad = data.history.items;
+      } else if (data && data.original && data.original.items && data.original.items.length > 0) {
+        itemsToLoad = data.original.items;
       } else if (cachedReq && cachedReq.items && cachedReq.items.length > 0) {
         itemsToLoad = cachedReq.items.filter(it => it.name !== '#SYS_VAT#' && it.name !== '#SYS_SHIPPING#');
       }
@@ -11412,10 +11414,10 @@ function openSupplyDocModal(reqId, actionType) {
         if (vatItem) originalVat = Number(vatItem.price) || 0;
       }
 
-      document.getElementById('gen-vat-amount').value = (data && data.history && data.history.vat !== undefined)
-        ? data.history.vat
-        : originalVat;
-
+      document.getElementById('gen-vat-amount').value =
+  (data && data.history && data.history.vat !== undefined)
+    ? data.history.vat
+    : ((data && data.original && data.original.vat) ? data.original.vat : 0);
       // คำนวณยอดรวมให้ตรงกับรายการในตาราง + VAT เสมอ
       if (data && data.history && data.history.grandTotal) {
         document.getElementById('gen-grand-total').value = data.history.grandTotal;
