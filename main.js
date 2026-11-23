@@ -5145,21 +5145,20 @@ function openReconActionModal(reqId, requestedTotal) {
       </head>
       <body>
         <table>
-          <tr><td colspan="7" style="font-size: 18px; font-weight: bold; text-align: center;">รายละเอียดขอจัดซื้อ/จัดจ้างพัสดุ</td></tr>
-          <tr><td colspan="2" class="title-row">รหัสคำขอ:</td><td colspan="5">${item.reqId}</td></tr>
-          <tr><td colspan="2" class="title-row">ชื่อโครงการ:</td><td colspan="5">${item.projectName}</td></tr>
-          <tr><td colspan="2" class="title-row">สังกัด/งาน:</td><td colspan="5">${item.projectSection || '-'}</td></tr>
-          <tr><td colspan="2" class="title-row">ผู้ขอเบิก:</td><td colspan="5">${item.requesterName}</td></tr>
-          <tr><td colspan="2" class="title-row">ความประสงค์:</td><td colspan="5">${item.actionType || '-'} ${item.itemCategory || '-'} เพื่อ ${item.objective || '-'}</td></tr>
-          <tr><td colspan="2" class="title-row">แหล่งงบประมาณ:</td><td colspan="5">${item.fundingSource || '-'}</td></tr>
-          <tr><td colspan="2" class="title-row">คณะกรรมการตรวจรับ:</td><td colspan="5">1. ${item.comm1 || '-'} | 2. ${item.comm2 || '-'} | 3. ${item.comm3 || '-'}</td></tr>
-          <tr><td colspan="7"></td></tr>
+          <tr><td colspan="6" style="font-size: 18px; font-weight: bold; text-align: center;">รายละเอียดขอจัดซื้อ/จัดจ้างพัสดุ</td></tr>
+          <tr><td colspan="2" class="title-row">รหัสคำขอ:</td><td colspan="4">${item.reqId}</td></tr>
+          <tr><td colspan="2" class="title-row">ชื่อโครงการ:</td><td colspan="4">${item.projectName}</td></tr>
+          <tr><td colspan="2" class="title-row">สังกัด/งาน:</td><td colspan="4">${item.projectSection || '-'}</td></tr>
+          <tr><td colspan="2" class="title-row">ผู้ขอเบิก:</td><td colspan="4">${item.requesterName}</td></tr>
+          <tr><td colspan="2" class="title-row">ความประสงค์:</td><td colspan="4">${item.actionType || '-'} ${item.itemCategory || '-'} เพื่อ ${item.objective || '-'}</td></tr>
+          <tr><td colspan="2" class="title-row">แหล่งงบประมาณ:</td><td colspan="4">${item.fundingSource || '-'}</td></tr>
+          <tr><td colspan="2" class="title-row">คณะกรรมการตรวจรับ:</td><td colspan="4">1. ${item.comm1 || '-'} | 2. ${item.comm2 || '-'} | 3. ${item.comm3 || '-'}</td></tr>
+          <tr><td colspan="6"></td></tr>
           <tr class="header-row">
             <th>ลำดับ</th>
             <th>รายการพัสดุ</th>
             <th>แหล่งงบประมาณ</th>
-            <th>จำนวน</th>
-            <th>หน่วยนับ</th>
+            <th>จำนวน/หน่วยนับ</th>
             <th>ราคา/หน่วย (บาท)</th>
             <th>จำนวนเงินรวม (บาท)</th>
           </tr>
@@ -5172,25 +5171,25 @@ function openReconActionModal(reqId, requestedTotal) {
             let lineTotal = Number(it.qty) * Number(it.price);
             sum += lineTotal;
             let itemSrc = it.fundingSource || fallbackSrc;
+            let qtyWithUnit = `${it.qty} ${it.unit || ''}`.trim();
             tableHtml += `
           <tr>
             <td align="center">${idx + 1}</td>
             <td>${it.name}</td>
             <td align="center">${itemSrc}</td>
-            <td align="center">${it.qty}</td>
-            <td align="center">${it.unit}</td>
+            <td align="center">${qtyWithUnit}</td>
             <td align="right">${Number(it.price).toFixed(2)}</td>
             <td align="right">${lineTotal.toFixed(2)}</td>
           </tr>
         `;
         });
     } else {
-        tableHtml += `<tr><td colspan="7" align="center">ไม่มีข้อมูลรายการสิ่งของ</td></tr>`;
+        tableHtml += `<tr><td colspan="6" align="center">ไม่มีข้อมูลรายการสิ่งของ</td></tr>`;
     }
 
     tableHtml += `
           <tr>
-            <td colspan="6" align="right" class="title-row">รวมเป็นเงินทั้งสิ้น (บาท)</td>
+            <td colspan="5" align="right" class="title-row">รวมเป็นเงินทั้งสิ้น (บาท)</td>
             <td align="right" class="title-row" style="color: red;">${sum.toFixed(2)}</td>
           </tr>
         </table>
