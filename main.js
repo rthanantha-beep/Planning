@@ -11467,66 +11467,98 @@ function filterGenItemsBySource() {
 }
 // สั่งสร้างเอกสาร
 function executeGenerateWord() {
-    const btn = document.getElementById('btn-generate-word');
-    
-    // กวาดรายการพัสดุ
-    const itemNames = document.querySelectorAll('.gen-item-name');
-    const itemQtys = document.querySelectorAll('.gen-item-qty');
-    const itemUnits = document.querySelectorAll('.gen-item-unit');
-    const itemPrices = document.querySelectorAll('.gen-item-price');
-    let itemsList = [];
-    for(let i=0; i<itemNames.length; i++) {
-        if(itemNames[i].value.trim() !== '') {
-            itemsList.push({ name: itemNames[i].value, qty: Number(itemQtys[i].value) || 0, unit: itemUnits[i].value, price: Number(itemPrices[i].value) || 0 });
-        }
+  const btn = document.getElementById('btn-generate-word');
+
+  // กวาดรายการพัสดุจากตาราง
+  const itemNames = document.querySelectorAll('.gen-item-name');
+  const itemQtys = document.querySelectorAll('.gen-item-qty');
+  const itemUnits = document.querySelectorAll('.gen-item-unit');
+  const itemPrices = document.querySelectorAll('.gen-item-price');
+  let itemsList = [];
+  for (let i = 0; i < itemNames.length; i++) {
+    if (itemNames[i].value.trim() !== '') {
+      itemsList.push({
+        name: itemNames[i].value.trim(),
+        qty: Number(itemQtys[i].value) || 0,
+        unit: itemUnits[i].value.trim(),
+        price: Number(itemPrices[i].value) || 0
+      });
     }
-    
-    if(itemsList.length === 0) { Swal.fire('ข้อผิดพลาด', 'กรุณาระบุพัสดุอย่างน้อย 1 รายการ', 'warning'); return; }
+  }
 
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังผสานเอกสาร...';
-    btn.disabled = true;
+  if (itemsList.length === 0) {
+    Swal.fire('ข้อผิดพลาด', 'กรุณาระบุพัสดุอย่างน้อย 1 รายการ', 'warning');
+    return;
+  }
 
-    const payload = {
-        reqId: document.getElementById('gen-req-id').value,
-        actionType: document.getElementById('gen-action-type').value,
-        reqDate: document.getElementById('gen-req-date').value,
-        recRegNo: document.getElementById('gen-rec-reg-no').value || "-",
-        
-        vendor: document.getElementById('gen-vendor').value || "...........................................",
-        contractType: document.getElementById('gen-contract-type').value,
-        contractNo: document.getElementById('gen-contract-no').value || "-",
-        contractDate: document.getElementById('gen-contract-date').value,
-        
-        deliveryDate: document.getElementById('gen-delivery-date').value,
-        receiptDate: document.getElementById('gen-receipt-date').value, // หรือ dueDate เดิม
-        
-        receiptType: document.getElementById('gen-receipt-type').value,
-        bookNo: document.getElementById('gen-book-no').value || "-",
-        billNo: document.getElementById('gen-bill-no').value || "-",
-        
-        payMethod: document.getElementById('gen-pay-method').value,
-        payer: document.getElementById('gen-payer').value || "...........................................",
-        payDate: document.getElementById('gen-pay-date').value,
-        
-        grandTotal: Number(document.getElementById('gen-grand-total').value),
-        vatAmount: Number(document.getElementById('gen-vat-amount').value),
-        items: itemsList
-    };
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> กำลังผสานเอกสาร...';
+  btn.disabled = true;
 
-    google.script.run
-        .withSuccessHandler(url => {
-            btn.innerHTML = '<i class="fas fa-magic"></i> สร้างเอกสาร Word';
-            btn.disabled = false;
-            document.getElementById('supplyDocModal').style.display = 'none';
-            Swal.fire('สำเร็จ!', 'ดาวน์โหลดไฟล์เรียบร้อย', 'success');
-            window.location.href = url; 
-        })
-        .withFailureHandler(err => {
-            Swal.fire('ผิดพลาด', err.message, 'error');
-            btn.innerHTML = '<i class="fas fa-magic"></i> สร้างเอกสาร Word';
-            btn.disabled = false;
-        })
-        .generateProcurementWord(payload);
+  const reqId = document.getElementById('gen-req-id').value;
+  const cachedReq = (typeof globalSupplyDocsData !== 'undefined')
+    ? globalSupplyDocsData.find(d => d.reqId === reqId)
+    : null;
+
+  // ถ้ามีการเลือกกรองเฉพาะบัญชีงบประมาณ ให้ใช้ชื่อบัญชีนั้นลงในเอกสาร Word
+  const selectedSourceEl = document.getElementById('gen-source-filter');
+  let finalFundingSource = (cachedReq && cachedReq.fundingSource && cachedReq.fundingSource !== '-')
+    ? cachedReq.fundingSource
+    : "งบประมาณที่ได้รับจัดสรร";
+  if (selectedSourceEl && selectedSourceEl.value && selectedSourceEl.value !== 'ALL') {
+    finalFundingSource = selectedSourceEl.value;
+  }
+
+  const payload = {
+    reqId: reqId,
+    actionType: document.getElementById('gen-action-type').value,
+    reqDate: document.getElementById('gen-req-date').value,
+    recRegNo: document.getElementById('gen-rec-reg-no').value || "-",
+
+    vendor: document.getElementById('gen-vendor').value || "...........................................",
+    contractType: document.getElementById('gen-contract-type').value,
+    contractNo: document.getElementById('gen-contract-no').value || "-",
+    contractDate: document.getElementById('gen-contract-date').value,
+
+    deliveryDate: document.getElementById('gen-delivery-date').value,
+    receiptDate: document.getElementById('gen-receipt-date').value,
+
+    receiptType: document.getElementById('gen-receipt-type').value,
+    bookNo: document.getElementById('gen-book-no').value || "-",
+    billNo: document.getElementById('gen-bill-no').value || "-",
+
+    payMethod: document.getElementById('gen-pay-method').value,
+    payer: document.getElementById('gen-payer').value || "...........................................",
+    payDate: document.getElementById('gen-pay-date').value,
+
+    grandTotal: Number(document.getElementById('gen-grand-total').value) || 0,
+    vatAmount: Number(document.getElementById('gen-vat-amount').value) || 0,
+    items: itemsList,
+
+    // แนบข้อมูลจริงของคำขอเบิกไปให้ Code.gs ใช้แทนข้อมูลจำลอง
+    requester: cachedReq ? (cachedReq.requesterName || "-") : "-",
+    section: cachedReq ? (cachedReq.projectSection || "-") : "-",
+    projectName: cachedReq ? (cachedReq.projectName || "-") : "-",
+    fundingSource: finalFundingSource,
+    objective: cachedReq ? (cachedReq.objective || "การดำเนินงานของโครงการ") : "-",
+    comm1: cachedReq ? (cachedReq.comm1 || "-") : "-",
+    comm2: cachedReq ? (cachedReq.comm2 || "-") : "-",
+    comm3: cachedReq ? (cachedReq.comm3 || "-") : "-"
+  };
+
+  google.script.run
+    .withSuccessHandler(url => {
+      btn.innerHTML = '<i class="fas fa-magic"></i> สร้างเอกสาร Word';
+      btn.disabled = false;
+      document.getElementById('supplyDocModal').style.display = 'none';
+      Swal.fire('สำเร็จ!', 'ดาวน์โหลดไฟล์เรียบร้อย', 'success');
+      window.location.href = url;
+    })
+    .withFailureHandler(err => {
+      Swal.fire('ผิดพลาด', err.message, 'error');
+      btn.innerHTML = '<i class="fas fa-magic"></i> สร้างเอกสาร Word';
+      btn.disabled = false;
+    })
+    .generateProcurementWord(payload);
 }
 // 🌟 1. ฟังก์ชันวาดตารางตะกร้างานเจ้าของโครงการ
 function renderOwnerApprovals(approvals) {
