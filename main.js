@@ -11355,7 +11355,7 @@ function openSupplyDocModal(reqId, actionType) {
         document.getElementById('gen-pay-date').value = dReceipt;
       }
 
-      // 🌟 ดึงรายการพัสดุ (ถ้ามีประวัติใช้ประวัติ ถ้าไม่มีให้ดึงรายการจริงที่ครูขอเบิก)
+      // ดึงรายการจริงที่ครูขอเบิก (ถ้าเคยแก้ไขไว้แล้วให้ใช้ประวัติ)
       let itemsToLoad = [];
       if (data && data.history && data.history.items && data.history.items.length > 0) {
         itemsToLoad = data.history.items;
@@ -11363,7 +11363,6 @@ function openSupplyDocModal(reqId, actionType) {
         itemsToLoad = cachedReq.items.filter(it => it.name !== '#SYS_VAT#' && it.name !== '#SYS_SHIPPING#');
       }
 
-      // 🌟 ยุบรวมกลุ่มบัญชีตามชื่อตัวหลัง (อำนวยการ-รายหัว -> เงินอุดหนุนรายหัว)
       window.currentGenItemsWithSource = itemsToLoad.map(it => {
         let rawSrc = it.fundingSource || sourceByName[it.name] || "";
         return {
@@ -11406,13 +11405,23 @@ function openSupplyDocModal(reqId, actionType) {
         addGenItemRow();
       }
 
-      document.getElementById('gen-vat-amount').value = (data && data.history && data.history.vat !== undefined) ? data.history.vat : 0;
+      // ดึง VAT จริงจากรายการขอเบิก (ถ้ามี)
+      let originalVat = 0;
+      if (cachedReq && cachedReq.items) {
+        const vatItem = cachedReq.items.find(it => it.name === '#SYS_VAT#');
+        if (vatItem) originalVat = Number(vatItem.price) || 0;
+      }
 
-      // 🌟 ดึงยอดเงินรวมทั้งสิ้นจากประวัติ หรือยอดจริงของคำขอเบิก
-      let gTotal = 0;
-      if (data && data.history && data.history.grandTotal) gTotal = data.history.grandTotal;
-      else if (cachedReq && cachedReq.total) gTotal = Number(cachedReq.total) || 0;
-      document.getElementById('gen-grand-total').value = gTotal;
+      document.getElementById('gen-vat-amount').value = (data && data.history && data.history.vat !== undefined)
+        ? data.history.vat
+        : originalVat;
+
+      // คำนวณยอดรวมให้ตรงกับรายการในตาราง + VAT เสมอ
+      if (data && data.history && data.history.grandTotal) {
+        document.getElementById('gen-grand-total').value = data.history.grandTotal;
+      } else {
+        calcGenTotal();
+      }
 
       document.getElementById('supplyDocModal').style.display = 'flex';
     })
@@ -11423,7 +11432,6 @@ function openSupplyDocModal(reqId, actionType) {
     })
     .getProcurementDataWithOriginal(reqId);
 }
-
 function filterGenItemsBySource() {
   const selectedGroup = document.getElementById('gen-source-filter')?.value || 'ALL';
   const tbody = document.getElementById('gen-items-tbody');
