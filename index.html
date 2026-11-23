@@ -523,12 +523,12 @@
         <div id="review-plan-action-section" style="display:none; margin-bottom:15px; background:white; padding:15px; border-radius:6px; border-left:4px solid #3498db;">
            <div style="font-weight:bold; color:#2980b9; margin-bottom:10px;"><i class="fas fa-tasks"></i> ความเห็นงานแผนงาน:</div>
            <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="checkbox" id="chk-plan-exist" checked> มีโครงการในแผนปฏิบัติการ</label>
-           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="plan_budget" id="chk-budget-ok" value="ok" checked> งบประมาณเพียงพอ</label>
-           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="plan_budget" id="chk-budget-not-ok" value="not_ok"> งบประมาณไม่เพียงพอ (ขออนุมัติโอนงบสมทบเข้าโครงการ)</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="plan_budget" id="chk-budget-ok" value="ok" checked onchange="togglePlanTopup()"> งบประมาณเพียงพอ</label>
+           <label style="display:block; margin-bottom:5px; cursor:pointer;"><input type="radio" name="plan_budget" id="chk-budget-not-ok" value="not_ok" onchange="togglePlanTopup()"> งบประมาณไม่เพียงพอ (ขออนุมัติโอนงบสมทบเข้าโครงการ)</label>
            
            <div id="plan-topup-section" style="display:none; margin-top:10px; padding-left:25px;">
               <span style="font-size:0.9rem; color:#e74c3c;">ระบุยอดงบอำนวยการสมทบ:</span>
-              <input type="number" id="plan-topup-amount" class="swal2-input" style="width:150px; height:35px; font-size:1rem; margin-left:10px;"> บาท
+              <input type="number" id="plan-topup-amount" step="any" min="0" class="swal2-input" style="width:150px; height:35px; font-size:1rem; margin-left:10px;"> บาท
            </div>
         </div>
 
