@@ -11311,7 +11311,11 @@ function openSupplyDocModal(reqId, actionType) {
     const dataList = document.getElementById('vendor-options');
     if (dataList) {
       dataList.innerHTML = '';
-      vendors.forEach(v => { let option = document.createElement('option'); option.value = v; dataList.appendChild(option); });
+      vendors.forEach(v => {
+        let option = document.createElement('option');
+        option.value = v;
+        dataList.appendChild(option);
+      });
     }
   }).getVendorList();
 
@@ -11329,7 +11333,8 @@ function openSupplyDocModal(reqId, actionType) {
 
       let today = new Date();
       let dReceipt = today.toISOString().split('T')[0];
-      let dReq = new Date(today); dReq.setDate(dReq.getDate() - 7);
+      let dReq = new Date(today);
+      dReq.setDate(dReq.getDate() - 7);
       let dReqStr = dReq.toISOString().split('T')[0];
 
       if (data && data.history) {
@@ -11355,16 +11360,17 @@ function openSupplyDocModal(reqId, actionType) {
         document.getElementById('gen-pay-date').value = dReceipt;
       }
 
-      // ดึงรายการจริงที่ครูขอเบิก (ถ้าเคยแก้ไขไว้แล้วให้ใช้ประวัติ)
+      // 1. ดึงรายการพัสดุ (เรียงลำดับ: ประวัติที่เคยแก้ -> ชีต Disbursement_Items -> ข้อมูลหน้าเว็บ)
       let itemsToLoad = [];
       if (data && data.history && data.history.items && data.history.items.length > 0) {
         itemsToLoad = data.history.items;
       } else if (data && data.original && data.original.items && data.original.items.length > 0) {
-        itemsToLoad = data.original.items;
+        itemsToLoad = data.original.items.filter(it => it.name !== '#SYS_VAT#' && it.name !== '#SYS_SHIPPING#');
       } else if (cachedReq && cachedReq.items && cachedReq.items.length > 0) {
         itemsToLoad = cachedReq.items.filter(it => it.name !== '#SYS_VAT#' && it.name !== '#SYS_SHIPPING#');
       }
 
+      // 2. จัดกลุ่มบัญชีงบประมาณ
       window.currentGenItemsWithSource = itemsToLoad.map(it => {
         let rawSrc = it.fundingSource || sourceByName[it.name] || "";
         return {
@@ -11401,13 +11407,14 @@ function openSupplyDocModal(reqId, actionType) {
         }
       }
 
+      // 3. วาดแถวรายการพัสดุลงตาราง
       if (window.currentGenItemsWithSource.length > 0) {
         window.currentGenItemsWithSource.forEach(it => addGenItemRow(it.name, it.qty, it.unit, it.price));
       } else {
         addGenItemRow();
       }
 
-      // ดึง VAT จริงจากรายการขอเบิก (ถ้ามี)
+      // 4. ดึงค่า VAT (เรียงลำดับ: ประวัติที่เคยแก้ -> ชีต Disbursement_Items -> ข้อมูลหน้าเว็บ)
       let originalVat = 0;
       if (cachedReq && cachedReq.items) {
         const vatItem = cachedReq.items.find(it => it.name === '#SYS_VAT#');
@@ -11415,10 +11422,11 @@ function openSupplyDocModal(reqId, actionType) {
       }
 
       document.getElementById('gen-vat-amount').value =
-  (data && data.history && data.history.vat !== undefined)
-    ? data.history.vat
-    : ((data && data.original && data.original.vat) ? data.original.vat : 0);
-      // คำนวณยอดรวมให้ตรงกับรายการในตาราง + VAT เสมอ
+        (data && data.history && data.history.vat !== undefined)
+          ? data.history.vat
+          : ((data && data.original && data.original.vat) ? data.original.vat : originalVat);
+
+      // 5. คำนวณยอดเงินรวมทั้งสิ้นให้ตรงกับรายการในตาราง + VAT
       if (data && data.history && data.history.grandTotal) {
         document.getElementById('gen-grand-total').value = data.history.grandTotal;
       } else {
