@@ -694,7 +694,7 @@
 
     // โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
     const mainScript = document.createElement('script');
-    mainScript.src = './main.js';
+    mainScript.src = './main.js?v=' + Date.now();
     mainScript.onload = () => {
       document.dispatchEvent(new Event('DOMContentLoaded'));
       if (typeof window.onload === 'function') {
