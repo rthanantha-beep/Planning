@@ -3943,7 +3943,7 @@ function openDisbReviewModal(index) {
   // --- 5. จัดการระบบตัดยอด และ ดึงงบส่วนกลาง ---
   let topupAmt = 0;
   if (item.adminComm?.includes('งบอำนวยการสมทบ')) {
-    const matchTopup = item.adminComm.match(/งบอำนวยการสมทบ\s*([\d,]+)/);
+    const matchTopup = item.adminComm.match(/งบอำนวยการสมทบ\s*([\d,.]+)/);
     if (matchTopup) topupAmt = Number(matchTopup[1].replace(/,/g, ''));
   } else if (balanceAfter < 0) {
     topupAmt = balanceBefore <= 0 ? requestAmt : requestAmt - balanceBefore;
@@ -4076,18 +4076,30 @@ function openDisbReviewModal(index) {
   allSections.forEach(id => { if (el(id)) el(id).style.display = 'none'; });
 
   if (isPlanRole) {
-    if (el('review-plan-action-section')) el('review-plan-action-section').style.display = 'block';
+  if (el('review-plan-action-section')) el('review-plan-action-section').style.display = 'block';
 
-    // 🌟 กล่องสรุปยอดแยกตามแหล่งเงินอัตโนมัติ (คำนวณจาก Dropdown ท้ายแต่ละรายการด้านบน)
-    let splitBox = el('plan-split-container');
-    if (!splitBox) {
-      splitBox = document.createElement('div');
-      splitBox.id = 'plan-split-container';
-      splitBox.style.cssText = 'margin:10px 0; padding:12px; background:#eaf2f8; border-radius:6px; border-left:4px solid #2980b9;';
-      el('review-plan-action-section').insertBefore(splitBox, el('review-plan-action-section').firstChild);
-    }
-    updateItemSourceSummary();
+  // 🌟 รีเซ็ตและตั้งค่าสถานะงบประมาณ + ยอดสมทบอัตโนมัติตามยอดคงเหลือจริง
+  const chkExist = el('chk-plan-exist');
+  const chkOk = el('chk-budget-ok');
+  const chkNotOk = el('chk-budget-not-ok');
+  if (chkExist) chkExist.checked = true;
+  if (topupAmt > 0) {
+    if (chkNotOk) chkNotOk.checked = true;
+  } else {
+    if (chkOk) chkOk.checked = true;
   }
+  togglePlanTopup();
+
+  // 🌟 กล่องสรุปยอดแยกตามแหล่งเงินอัตโนมัติ (คำนวณจาก Dropdown ท้ายแต่ละรายการด้านบน)
+  let splitBox = el('plan-split-container');
+  if (!splitBox) {
+    splitBox = document.createElement('div');
+    splitBox.id = 'plan-split-container';
+    splitBox.style.cssText = 'margin:10px 0; padding:12px; background:#eaf2f8; border-radius:6px; border-left:4px solid #2980b9;';
+    el('review-plan-action-section').insertBefore(splitBox, el('review-plan-action-section').firstChild);
+  }
+  updateItemSourceSummary();
+}
   else if (roleText.includes('พัสดุ')) { if (el('review-supply-action-section')) el('review-supply-action-section').style.display = 'block'; }
   else if (roleText.includes('งบประมาณ') || roleText.includes('การเงิน')) { if (el('review-finance-action-section')) el('review-finance-action-section').style.display = 'block'; }
   else if (roleText.includes('รอง')) { if (el('review-a2-action-section')) el('review-a2-action-section').style.display = 'block'; }
@@ -4325,8 +4337,17 @@ function submitDisbReview(action) {
       if (document.getElementById('chk-plan-exist') && document.getElementById('chk-plan-exist').checked) planOpinion += "✓ มีโครงการในแผนปฏิบัติการ \n";
       if (document.getElementById('chk-budget-ok') && document.getElementById('chk-budget-ok').checked) planOpinion += "✓ งบประมาณเพียงพอ \n";
       if (document.getElementById('chk-budget-not-ok') && document.getElementById('chk-budget-not-ok').checked) {
-        topupAmount = Number(document.getElementById('plan-topup-amount').value) || 0;
-        planOpinion += `⚠ งบประมาณไม่เพียงพอ (เสนอขอใช้งบอำนวยการสมทบ ${topupAmount.toLocaleString()} บาท) \n`;
+        topupAmount = Number(document.getElementById('plan-topup-amount')?.value) || 0;
+        if (topupAmount <= 0) {
+          Swal.fire({
+            icon: 'warning',
+            title: 'กรุณาระบุยอดงบสมทบ',
+            text: 'คุณเลือก "งบประมาณไม่เพียงพอ" กรุณาระบุยอดงบอำนวยการสมทบให้มากกว่า 0 บาทครับ',
+            confirmButtonColor: '#e74c3c'
+          });
+          return;
+        }
+        planOpinion += `⚠ งบประมาณไม่เพียงพอ (เสนอขอใช้งบอำนวยการสมทบ ${topupAmount.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} บาท) \n`;
       }
       comment = planOpinion + (comment ? "\nหมายเหตุเพิ่มเติม: " + comment : "");
     } else if (action === 'return' || action === 'cancel') {
@@ -4909,32 +4930,32 @@ function loadMyDisbursements() {
 // 🌟 ฟังก์ชันอัปเดตช่องกรอกเงินสมทบให้อัตโนมัติ (ตอนแอดมินแผนงานติ๊ก)
 // ==========================================
 function togglePlanTopup() {
-   const topupSection = document.getElementById('plan-topup-section');
-   const topupInput = document.getElementById('plan-topup-amount');
-   const chkNotOk = document.getElementById('chk-budget-not-ok');
-   
-   const elBalBefore = document.getElementById('review-fin-balance-before');
-   const elReq = document.getElementById('review-fin-request');
-   
-   if (chkNotOk && topupSection && topupInput) {
-       if (chkNotOk.checked) {
-          topupSection.style.display = 'block';
-          if (elBalBefore && elReq) {
-             let balBefore = Number(elBalBefore.innerText.replace(/,/g, ''));
-             let reqAmt = Number(elReq.innerText.replace(/,/g, ''));
-             
-             // 🌟 ลอจิกแนะนำยอดสมทบอัตโนมัติ
-             let suggestedTopup = 0;
-             if (balBefore <= 0) suggestedTopup = reqAmt;
-             else if (balBefore < reqAmt) suggestedTopup = reqAmt - balBefore;
-             
-             topupInput.value = suggestedTopup;
-          }
-       } else {
-          topupSection.style.display = 'none';
-          topupInput.value = 0;
-       }
-   }
+  const topupSection = document.getElementById('plan-topup-section');
+  const topupInput = document.getElementById('plan-topup-amount');
+  const chkNotOk = document.getElementById('chk-budget-not-ok');
+
+  const elBalBefore = document.getElementById('review-fin-balance-before');
+  const elReq = document.getElementById('review-fin-request');
+
+  if (chkNotOk && topupSection && topupInput) {
+    if (chkNotOk.checked) {
+      topupSection.style.display = 'block';
+      if (elBalBefore && elReq) {
+        const balBefore = Number(String(elBalBefore.innerText || '0').replace(/,/g, '')) || 0;
+        const reqAmt = Number(String(elReq.innerText || '0').replace(/,/g, '')) || 0;
+
+        // 🌟 ลอจิกแนะนำยอดสมทบอัตโนมัติ (ปัดเศษ 2 ตำแหน่ง)
+        let suggestedTopup = 0;
+        if (balBefore <= 0) suggestedTopup = reqAmt;
+        else if (balBefore < reqAmt) suggestedTopup = reqAmt - balBefore;
+
+        topupInput.value = Number(suggestedTopup.toFixed(2));
+      }
+    } else {
+      topupSection.style.display = 'none';
+      topupInput.value = 0;
+    }
+  }
 }
 
   // ==========================================
