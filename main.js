@@ -11355,11 +11355,12 @@ function openSupplyDocModal(reqId, actionType) {
         document.getElementById('gen-pay-date').value = dReceipt;
       }
 
+      // 🌟 ดึงรายการพัสดุ (ถ้ามีประวัติใช้ประวัติ ถ้าไม่มีให้ดึงรายการจริงที่ครูขอเบิก)
       let itemsToLoad = [];
       if (data && data.history && data.history.items && data.history.items.length > 0) {
         itemsToLoad = data.history.items;
-      } else if (data && data.original && data.original.items && data.original.items.length > 0) {
-        itemsToLoad = data.original.items;
+      } else if (cachedReq && cachedReq.items && cachedReq.items.length > 0) {
+        itemsToLoad = cachedReq.items.filter(it => it.name !== '#SYS_VAT#' && it.name !== '#SYS_SHIPPING#');
       }
 
       // 🌟 ยุบรวมกลุ่มบัญชีตามชื่อตัวหลัง (อำนวยการ-รายหัว -> เงินอุดหนุนรายหัว)
@@ -11407,9 +11408,10 @@ function openSupplyDocModal(reqId, actionType) {
 
       document.getElementById('gen-vat-amount').value = (data && data.history && data.history.vat !== undefined) ? data.history.vat : 0;
 
+      // 🌟 ดึงยอดเงินรวมทั้งสิ้นจากประวัติ หรือยอดจริงของคำขอเบิก
       let gTotal = 0;
       if (data && data.history && data.history.grandTotal) gTotal = data.history.grandTotal;
-      else if (data && data.original && data.original.grandTotal) gTotal = data.original.grandTotal;
+      else if (cachedReq && cachedReq.total) gTotal = Number(cachedReq.total) || 0;
       document.getElementById('gen-grand-total').value = gTotal;
 
       document.getElementById('supplyDocModal').style.display = 'flex';
