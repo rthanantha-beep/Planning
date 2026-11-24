@@ -11689,3 +11689,223 @@ function getMultipleFilesBase64(files) {
         });
     }));
 }
+// =========================================================================
+// ระบบสร้างรายงานผลการดำเนินงานรอบ 6 เดือน (พร้อมวางในเล่มรายงาน)
+// =========================================================================
+function openSixMonthReportModal(periodMode = '6M') {
+  const yr = (typeof currentFiscalYear !== 'undefined' && currentFiscalYear)
+    ? String(currentFiscalYear).replace(/^25/, '')
+    : '70';
+
+  Swal.fire({
+    title: 'กำลังประมวลผลรายงานรอบ 6 เดือน...',
+    allowOutsideClick: false,
+    didOpen: () => Swal.showLoading()
+  });
+
+  google.script.run
+    .withSuccessHandler(res => {
+      const s = res.summary;
+      const fmt = n => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+      const pct = n => s.totalProjects > 0 ? ((n / s.totalProjects) * 100).toFixed(1) : '0.0';
+
+      // สร้างตารางสรุปตามกลุ่มงาน
+      const sectionRows = res.sections.map((sec, idx) => `
+        <tr>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${idx + 1}</td>
+          <td style="border:1px solid #000; padding:6px;">${sec.section}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.count}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.completed}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.inProgress}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.notStarted}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(sec.allocated)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(sec.spent)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(sec.remaining)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.percent.toFixed(2)}%</td>
+        </tr>
+      `).join('');
+
+      // สร้างตารางรายโครงการ
+      const projectRows = res.projects.map((p, idx) => `
+        <tr>
+          <td style="border:1px solid #000; padding:5px; text-align:center;">${idx + 1}</td>
+          <td style="border:1px solid #000; padding:5px; text-align:center; white-space:nowrap;">${p.pid}</td>
+          <td style="border:1px solid #000; padding:5px;">${p.name}<br><span style="font-size:13pt; color:#444;">(${p.section})</span></td>
+          <td style="border:1px solid #000; padding:5px;">${p.owner}</td>
+          <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.allocated)}</td>
+          <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.spent)}</td>
+          <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.remaining)}</td>
+          <td style="border:1px solid #000; padding:5px; text-align:center;">${p.status}</td>
+          <td style="border:1px solid #000; padding:5px;">${p.note}</td>
+        </tr>
+      `).join('');
+
+      const reportHtml = `
+        <div id="six-month-report-content" style="font-family:'TH Sarabun New','Sarabun',sans-serif; font-size:16pt; line-height:1.45; color:#000; text-align:left; background:#fff; padding:20px;">
+          <div style="text-align:center; font-weight:bold; font-size:18pt; margin-bottom:12px;">
+            รายงานผลการดำเนินงานตามแผนปฏิบัติการประจำปีงบประมาณ พ.ศ. ${s.fyFull}<br>
+            ${s.periodLabel}
+          </div>
+
+          <p style="font-weight:bold; margin:12px 0 6px 0;">1. บทสรุปภาพรวมผลการดำเนินงาน</p>
+          <p style="text-indent:2.5em; text-align:justify; margin:0 0 10px 0;">
+            โรงเรียนโสภณศิริราษฎร์ ได้ดำเนินการขับเคลื่อนโครงการและกิจกรรมตามแผนปฏิบัติการประจำปีงบประมาณ พ.ศ. ${s.fyFull} 
+            ${s.periodLabel} รวมทั้งสิ้นจำนวน <strong>${s.totalProjects} โครงการ</strong> 
+            จำแนกสถานะการดำเนินงานออกเป็น โครงการที่ดำเนินการแล้วเสร็จจำนวน <strong>${s.completedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.completedCount)}) 
+            โครงการที่อยู่ระหว่างดำเนินการจำนวน <strong>${s.inProgressCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.inProgressCount)}) 
+            และโครงการที่ยังไม่เริ่มดำเนินการจำนวน <strong>${s.notStartedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.notStartedCount)}) 
+            เนื่องจากกำหนดจัดกิจกรรมในช่วงภาคเรียนที่ 1 ปีการศึกษาถัดไป
+          </p>
+          <p style="text-indent:2.5em; text-align:justify; margin:0 0 14px 0;">
+            ในด้านผลการใช้จ่ายงบประมาณ โรงเรียนได้รับจัดสรรงบประมาณตามแผนปฏิบัติการรวมทั้งสิ้น <strong>${fmt(s.totalAllocated)} บาท</strong> 
+            มีผลการเบิกจ่ายงบประมาณสะสมเป็นเงิน <strong>${fmt(s.totalSpent)} บาท</strong> (คิดเป็นร้อยละ <strong>${s.spentPercent.toFixed(2)}</strong> ของงบประมาณที่ได้รับจัดสรร) 
+            และคงเหลืองบประมาณสำหรับดำเนินงานในช่วงครึ่งปีหลังเป็นเงิน <strong>${fmt(s.totalRemaining)} บาท</strong>
+          </p>
+
+          <p style="font-weight:bold; margin:14px 0 6px 0;">2. ตารางสรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ จำแนกตามกลุ่มงาน/ฝ่าย</p>
+          <table style="width:100%; border-collapse:collapse; font-size:15pt; margin-bottom:16px;">
+            <thead>
+              <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
+                <th style="border:1px solid #000; padding:6px;">ที่</th>
+                <th style="border:1px solid #000; padding:6px;">กลุ่มงาน / ฝ่าย</th>
+                <th style="border:1px solid #000; padding:6px;">รวม (โครงการ)</th>
+                <th style="border:1px solid #000; padding:6px;">แล้วเสร็จ</th>
+                <th style="border:1px solid #000; padding:6px;">กำลังดำเนินการ</th>
+                <th style="border:1px solid #000; padding:6px;">ยังไม่เริ่ม</th>
+                <th style="border:1px solid #000; padding:6px;">งบจัดสรร (บาท)</th>
+                <th style="border:1px solid #000; padding:6px;">เบิกจ่าย (บาท)</th>
+                <th style="border:1px solid #000; padding:6px;">คงเหลือ (บาท)</th>
+                <th style="border:1px solid #000; padding:6px;">ร้อยละเบิกจ่าย</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${sectionRows}
+              <tr style="background-color:#f8f9fa; font-weight:bold;">
+                <td colspan="2" style="border:1px solid #000; padding:6px; text-align:center;">รวมทั้งสิ้น</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.totalProjects}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.completedCount}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.inProgressCount}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.notStartedCount}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(s.totalAllocated)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(s.totalSpent)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(s.totalRemaining)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.spentPercent.toFixed(2)}%</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="font-weight:bold; margin:14px 0 6px 0;">3. รายละเอียดผลการดำเนินงานและผลการใช้จ่ายงบประมาณรายโครงการ</p>
+          <table style="width:100%; border-collapse:collapse; font-size:14.5pt;">
+            <thead>
+              <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
+                <th style="border:1px solid #000; padding:5px;">ที่</th>
+                <th style="border:1px solid #000; padding:5px;">รหัส</th>
+                <th style="border:1px solid #000; padding:5px;">ชื่อโครงการ / กลุ่มงาน</th>
+                <th style="border:1px solid #000; padding:5px;">ผู้รับผิดชอบ</th>
+                <th style="border:1px solid #000; padding:5px;">งบจัดสรร</th>
+                <th style="border:1px solid #000; padding:5px;">เบิกจ่าย</th>
+                <th style="border:1px solid #000; padding:5px;">คงเหลือ</th>
+                <th style="border:1px solid #000; padding:5px;">สถานะ</th>
+                <th style="border:1px solid #000; padding:5px;">ผลการดำเนินงาน / หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${projectRows}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      Swal.fire({
+        title: `<span style="font-family:'Kanit'; font-size:1.15rem;">ตัวอย่างรายงานผลการดำเนินงาน (ปีงบประมาณ ${s.fyFull})</span>`,
+        width: '92%',
+        html: `
+          <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; margin-bottom:10px; padding:10px; background:#f1f5f9; border-radius:8px; font-family:'Kanit';">
+            <div>
+              <label style="font-size:0.9rem; font-weight:bold; margin-right:6px;">ช่วงข้อมูล:</label>
+              <select onchange="openSixMonthReportModal(this.value)" style="padding:5px 10px; border-radius:6px; border:1px solid #cbd5e1; font-family:'Kanit';">
+                <option value="6M" ${periodMode === '6M' ? 'selected' : ''}>รอบ 6 เดือน (1 ต.ค. – 31 มี.ค.)</option>
+                <option value="ALL" ${periodMode === 'ALL' ? 'selected' : ''}>ข้อมูลสะสมถึงปัจจุบัน</option>
+              </select>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" onclick="copySixMonthReportToClipboard()" style="background:#2980b9; color:#fff; border:none; padding:7px 14px; border-radius:6px; font-family:'Kanit'; cursor:pointer;">
+                <i class="fas fa-copy"></i> คัดลอกทั้งหมด (วางใน Word ได้เลย)
+              </button>
+              <button type="button" onclick="downloadSixMonthReportDoc('${s.fyFull}')" style="background:#27ae60; color:#fff; border:none; padding:7px 14px; border-radius:6px; font-family:'Kanit'; cursor:pointer;">
+                <i class="fas fa-file-word"></i> ดาวน์โหลดไฟล์ Word (.doc)
+              </button>
+            </div>
+          </div>
+          <div style="max-height:68vh; overflow-y:auto; border:1px solid #cbd5e1; border-radius:6px; box-shadow:inset 0 0 6px rgba(0,0,0,0.06);">
+            ${reportHtml}
+          </div>
+        `,
+        showConfirmButton: true,
+        confirmButtonText: 'ปิดหน้าต่าง',
+        confirmButtonColor: '#64748b'
+      });
+    })
+    .withFailureHandler(err => {
+      Swal.fire('เกิดข้อผิดพลาด', err.message || 'ไม่สามารถดึงข้อมูลรายงานได้', 'error');
+    })
+    .getSixMonthReportData(yr, periodMode);
+}
+
+// คัดลอกเนื้อหาพร้อมตารางลง Clipboard เพื่อไป Ctrl+V ใน Word
+function copySixMonthReportToClipboard() {
+  const el = document.getElementById('six-month-report-content');
+  if (!el) return;
+
+  const range = document.createRange();
+  range.selectNode(el);
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    document.execCommand('copy');
+    selection.removeAllRanges();
+    Swal.fire({
+      toast: true,
+      position: 'top-end',
+      icon: 'success',
+      title: 'คัดลอกรายงานเรียบร้อย! นำไปกด Ctrl+V ใน Word ได้เลยครับ',
+      showConfirmButton: false,
+      timer: 3000
+    });
+  } catch (e) {
+    alert('คัดลอกไม่สำเร็จ กรุณากดปุ่มดาวน์โหลดไฟล์ Word แทนครับ');
+  }
+}
+
+// ดาวน์โหลดเป็นไฟล์ .doc เปิดแก้ไขต่อใน Word ได้ทันที
+function downloadSixMonthReportDoc(fyFull) {
+  const el = document.getElementById('six-month-report-content');
+  if (!el) return;
+
+  const docHtml = `
+    <html xmlns:o="urn:schemas-microsoft-com:office:office" xmlns:w="urn:schemas-microsoft-com:office:word" xmlns="http://www.w3.org/TR/REC-html40">
+    <head>
+      <meta charset="utf-8">
+      <style>
+        @page { size: A4 portrait; margin: 2cm 2cm 2cm 2.5cm; }
+        body { font-family: 'TH Sarabun New', 'Sarabun', sans-serif; font-size: 16pt; }
+        table { border-collapse: collapse; width: 100%; }
+        th, td { border: 1px solid #000000; padding: 5px; vertical-align: top; }
+      </style>
+    </head>
+    <body>${el.innerHTML}</body>
+    </html>
+  `;
+
+  const blob = new Blob(['\ufeff', docHtml], { type: 'application/msword;charset=utf-8' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = `รายงานผลรอบ6เดือน_ปีงบประมาณ_${fyFull}.doc`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
