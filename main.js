@@ -11693,9 +11693,14 @@ function getMultipleFilesBase64(files) {
 // ระบบสร้างรายงานผลการดำเนินงานรอบ 6 เดือน (พร้อมวางในเล่มรายงาน)
 // =========================================================================
 function openSixMonthReportModal(periodMode = '6M') {
-  const yr = (typeof currentFiscalYear !== 'undefined' && currentFiscalYear)
-    ? String(currentFiscalYear).replace(/^25/, '')
-    : '70';
+  const yearSelect = document.getElementById('all-year-filter');
+  let selectedYr = yearSelect ? String(yearSelect.value || '').trim() : '';
+  if (!selectedYr || selectedYr.toLowerCase() === 'all') {
+    selectedYr = (typeof currentFiscalYear !== 'undefined' && currentFiscalYear)
+      ? String(currentFiscalYear).replace(/^25/, '')
+      : '70';
+  }
+  const yr = selectedYr.replace(/^25/, '');
 
   Swal.fire({
     title: 'กำลังประมวลผลรายงานรอบ 6 เดือน...',
@@ -11709,36 +11714,120 @@ function openSixMonthReportModal(periodMode = '6M') {
       const fmt = n => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
       const pct = n => s.totalProjects > 0 ? ((n / s.totalProjects) * 100).toFixed(1) : '0.0';
 
-      // สร้างตารางสรุปตามกลุ่มงาน
-      const sectionRows = res.sections.map((sec, idx) => `
+      // =====================================================
+      // 2.1 ตารางสรุปแยกตาม 4 กลุ่มบริหารงาน
+      // =====================================================
+      const deptRows = (res.departments || []).map((d, idx) => `
         <tr>
           <td style="border:1px solid #000; padding:6px; text-align:center;">${idx + 1}</td>
-          <td style="border:1px solid #000; padding:6px;">${sec.section}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.count}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.completed}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.inProgress}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.notStarted}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(sec.allocated)}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(sec.spent)}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(sec.remaining)}</td>
-          <td style="border:1px solid #000; padding:6px; text-align:center;">${sec.percent.toFixed(2)}%</td>
+          <td style="border:1px solid #000; padding:6px;">${d.deptName}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${d.count}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${d.completed}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${d.inProgress}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${d.notStarted}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(d.allocated)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(d.spent)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(d.remaining)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${d.percent.toFixed(2)}%</td>
         </tr>
       `).join('');
 
-      // สร้างตารางรายโครงการ
-      const projectRows = res.projects.map((p, idx) => `
-        <tr>
-          <td style="border:1px solid #000; padding:5px; text-align:center;">${idx + 1}</td>
-          <td style="border:1px solid #000; padding:5px; text-align:center; white-space:nowrap;">${p.pid}</td>
-          <td style="border:1px solid #000; padding:5px;">${p.name}<br><span style="font-size:13pt; color:#444;">(${p.section})</span></td>
-          <td style="border:1px solid #000; padding:5px;">${p.owner}</td>
-          <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.allocated)}</td>
-          <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.spent)}</td>
-          <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.remaining)}</td>
-          <td style="border:1px solid #000; padding:5px; text-align:center;">${p.status}</td>
-          <td style="border:1px solid #000; padding:5px;">${p.note}</td>
-        </tr>
-      `).join('');
+      // =====================================================
+      // 2.2 ตารางสรุปสถานะการเบิกจ่ายแยกตามแหล่งงบประมาณ
+      // =====================================================
+      const fundList = res.fundingSources || [];
+      const fundAllocTotal = fundList.reduce((acc, f) => acc + f.allocated, 0);
+      const fundSpentTotal = fundList.reduce((acc, f) => acc + f.spent, 0);
+      const fundRemTotal = Math.max(0, fundAllocTotal - fundSpentTotal);
+      const fundPctTotal = fundAllocTotal > 0 ? ((fundSpentTotal / fundAllocTotal) * 100).toFixed(2) : '0.00';
+
+      const fundRows = fundList.length > 0
+        ? fundList.map((f, idx) => `
+          <tr>
+            <td style="border:1px solid #000; padding:6px; text-align:center;">${idx + 1}</td>
+            <td style="border:1px solid #000; padding:6px;">${f.source}</td>
+            <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(f.allocated)}</td>
+            <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(f.spent)}</td>
+            <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(f.remaining)}</td>
+            <td style="border:1px solid #000; padding:6px; text-align:center;">${f.percent.toFixed(2)}%</td>
+          </tr>
+        `).join('')
+        : `<tr><td colspan="6" style="border:1px solid #000; padding:8px; text-align:center;">ไม่พบข้อมูลแหล่งงบประมาณ</td></tr>`;
+
+      const centralNote = s.centralSpent > 0
+        ? `<p style="font-size:14.5pt; margin:4px 0 14px 0; color:#333;"><i>หมายเหตุ: ไม่รวมการเบิกจ่ายสมทบจากงบอำนวยการกลาง จำนวน ${fmt(s.centralSpent)} บาท</i></p>`
+        : '';
+
+      // =====================================================
+      // 3. รายละเอียดรายโครงการ แยกหัวข้อ 4 กลุ่มงาน -> ชื่องานย่อย (Section)
+      //    ไม่มีรหัสโครงการ และไม่มีรหัสตัวเลข (21) (25)
+      // =====================================================
+      const deptSectionsHtml = (res.departments || []).map((dept, dIdx) => {
+        const deptProjs = (res.projects || []).filter(p => p.deptNum === dept.deptNum);
+        if (deptProjs.length === 0) {
+          return `
+            <p style="font-weight:bold; font-size:16pt; margin:14px 0 6px 0;">${dIdx + 1}. ${dept.deptName}</p>
+            <p style="margin:0 0 12px 1.5em; color:#555;">ไม่มีโครงการที่ได้รับอนุมัติในปีงบประมาณนี้</p>
+          `;
+        }
+
+        let currentSecKey = null;
+        let projSeq = 0;
+        let rowsHtml = '';
+
+        deptProjs.forEach(p => {
+          const secKey = `${p.secNum}||${p.secName}`;
+          if (secKey !== currentSecKey) {
+            currentSecKey = secKey;
+            rowsHtml += `
+              <tr style="background-color:#eef4fb; font-weight:bold;">
+                <td colspan="8" style="border:1px solid #000; padding:6px 8px;">${p.secName}</td>
+              </tr>
+            `;
+          }
+          projSeq++;
+          rowsHtml += `
+            <tr>
+              <td style="border:1px solid #000; padding:5px; text-align:center;">${projSeq}</td>
+              <td style="border:1px solid #000; padding:5px;">${p.name}</td>
+              <td style="border:1px solid #000; padding:5px;">${p.owner}</td>
+              <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.allocated)}</td>
+              <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.spent)}</td>
+              <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.remaining)}</td>
+              <td style="border:1px solid #000; padding:5px; text-align:center;">${p.status}</td>
+              <td style="border:1px solid #000; padding:5px;">${p.note}</td>
+            </tr>
+          `;
+        });
+
+        return `
+          <p style="font-weight:bold; font-size:16pt; margin:16px 0 6px 0;">${dIdx + 1}. ${dept.deptName}</p>
+          <table style="width:100%; border-collapse:collapse; font-size:14.5pt; margin-bottom:14px;">
+            <thead>
+              <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
+                <th style="border:1px solid #000; padding:5px; width:5%;">ที่</th>
+                <th style="border:1px solid #000; padding:5px; width:24%;">ชื่อโครงการ</th>
+                <th style="border:1px solid #000; padding:5px; width:14%;">ผู้รับผิดชอบ</th>
+                <th style="border:1px solid #000; padding:5px; width:10%;">งบจัดสรร</th>
+                <th style="border:1px solid #000; padding:5px; width:10%;">เบิกจ่าย</th>
+                <th style="border:1px solid #000; padding:5px; width:10%;">คงเหลือ</th>
+                <th style="border:1px solid #000; padding:5px; width:11%;">สถานะ</th>
+                <th style="border:1px solid #000; padding:5px; width:16%;">ผลการดำเนินงาน / หมายเหตุ</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${rowsHtml}
+              <tr style="background-color:#f8f9fa; font-weight:bold;">
+                <td colspan="3" style="border:1px solid #000; padding:6px; text-align:center;">รวม${dept.deptName} (${dept.count} โครงการ)</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(dept.allocated)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(dept.spent)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(dept.remaining)}</td>
+                <td colspan="2" style="border:1px solid #000; padding:6px; text-align:center;">เบิกจ่ายร้อยละ ${dept.percent.toFixed(2)}</td>
+              </tr>
+            </tbody>
+          </table>
+        `;
+      }).join('');
 
       const reportHtml = `
         <div id="six-month-report-content" style="font-family:'TH Sarabun New','Sarabun',sans-serif; font-size:16pt; line-height:1.45; color:#000; text-align:left; background:#fff; padding:20px;">
@@ -11749,28 +11838,29 @@ function openSixMonthReportModal(periodMode = '6M') {
 
           <p style="font-weight:bold; margin:12px 0 6px 0;">1. บทสรุปภาพรวมผลการดำเนินงาน</p>
           <p style="text-indent:2.5em; text-align:justify; margin:0 0 10px 0;">
-            โรงเรียนโสภณศิริราษฎร์ ได้ดำเนินการขับเคลื่อนโครงการและกิจกรรมตามแผนปฏิบัติการประจำปีงบประมาณ พ.ศ. ${s.fyFull} 
+            โรงเรียนโสภณศิริราษฎร์ ได้ดำเนินการขับเคลื่อนโครงการและกิจกรรมที่ได้รับอนุมัติตามแผนปฏิบัติการประจำปีงบประมาณ พ.ศ. ${s.fyFull} 
             ${s.periodLabel} รวมทั้งสิ้นจำนวน <strong>${s.totalProjects} โครงการ</strong> 
-            จำแนกสถานะการดำเนินงานออกเป็น โครงการที่ดำเนินการแล้วเสร็จจำนวน <strong>${s.completedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.completedCount)}) 
+            จำแนกสถานะการดำเนินงานออกเป็น โครงการที่ดำเนินการและรายงานผลแล้วเสร็จจำนวน <strong>${s.completedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.completedCount)}) 
             โครงการที่อยู่ระหว่างดำเนินการจำนวน <strong>${s.inProgressCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.inProgressCount)}) 
-            และโครงการที่ยังไม่เริ่มดำเนินการจำนวน <strong>${s.notStartedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.notStartedCount)}) 
-            เนื่องจากกำหนดจัดกิจกรรมในช่วงภาคเรียนที่ 1 ปีการศึกษาถัดไป
+            และโครงการที่ยังไม่เริ่มดำเนินการจำนวน <strong>${s.notStartedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.notStartedCount)})
           </p>
           <p style="text-indent:2.5em; text-align:justify; margin:0 0 14px 0;">
-            ในด้านผลการใช้จ่ายงบประมาณ โรงเรียนได้รับจัดสรรงบประมาณตามแผนปฏิบัติการรวมทั้งสิ้น <strong>${fmt(s.totalAllocated)} บาท</strong> 
+            ในด้านผลการใช้จ่ายงบประมาณ โครงการที่ได้รับอนุมัติตามแผนปฏิบัติการได้รับจัดสรรงบประมาณรวมทั้งสิ้น <strong>${fmt(s.totalAllocated)} บาท</strong> 
             มีผลการเบิกจ่ายงบประมาณสะสมเป็นเงิน <strong>${fmt(s.totalSpent)} บาท</strong> (คิดเป็นร้อยละ <strong>${s.spentPercent.toFixed(2)}</strong> ของงบประมาณที่ได้รับจัดสรร) 
-            และคงเหลืองบประมาณสำหรับดำเนินงานในช่วงครึ่งปีหลังเป็นเงิน <strong>${fmt(s.totalRemaining)} บาท</strong>
+            และคงเหลืองบประมาณสำหรับดำเนินงานต่อไปเป็นเงิน <strong>${fmt(s.totalRemaining)} บาท</strong>
           </p>
 
-          <p style="font-weight:bold; margin:14px 0 6px 0;">2. ตารางสรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ จำแนกตามกลุ่มงาน/ฝ่าย</p>
-          <table style="width:100%; border-collapse:collapse; font-size:15pt; margin-bottom:16px;">
+          <p style="font-weight:bold; margin:14px 0 6px 0;">2. สรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ</p>
+
+          <p style="font-weight:bold; margin:8px 0 6px 0;">2.1 ตารางสรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ จำแนกตามกลุ่มบริหารงาน</p>
+          <table style="width:100%; border-collapse:collapse; font-size:15pt; margin-bottom:14px;">
             <thead>
               <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
                 <th style="border:1px solid #000; padding:6px;">ที่</th>
-                <th style="border:1px solid #000; padding:6px;">กลุ่มงาน / ฝ่าย</th>
+                <th style="border:1px solid #000; padding:6px;">กลุ่มบริหารงาน</th>
                 <th style="border:1px solid #000; padding:6px;">รวม (โครงการ)</th>
-                <th style="border:1px solid #000; padding:6px;">แล้วเสร็จ</th>
-                <th style="border:1px solid #000; padding:6px;">กำลังดำเนินการ</th>
+                <th style="border:1px solid #000; padding:6px;">แล้วเสร็จ (รายงานแล้ว)</th>
+                <th style="border:1px solid #000; padding:6px;">อยู่ระหว่างดำเนินการ</th>
                 <th style="border:1px solid #000; padding:6px;">ยังไม่เริ่ม</th>
                 <th style="border:1px solid #000; padding:6px;">งบจัดสรร (บาท)</th>
                 <th style="border:1px solid #000; padding:6px;">เบิกจ่าย (บาท)</th>
@@ -11779,7 +11869,7 @@ function openSixMonthReportModal(periodMode = '6M') {
               </tr>
             </thead>
             <tbody>
-              ${sectionRows}
+              ${deptRows}
               <tr style="background-color:#f8f9fa; font-weight:bold;">
                 <td colspan="2" style="border:1px solid #000; padding:6px; text-align:center;">รวมทั้งสิ้น</td>
                 <td style="border:1px solid #000; padding:6px; text-align:center;">${s.totalProjects}</td>
@@ -11794,31 +11884,39 @@ function openSixMonthReportModal(periodMode = '6M') {
             </tbody>
           </table>
 
-          <p style="font-weight:bold; margin:14px 0 6px 0;">3. รายละเอียดผลการดำเนินงานและผลการใช้จ่ายงบประมาณรายโครงการ</p>
-          <table style="width:100%; border-collapse:collapse; font-size:14.5pt;">
+          <p style="font-weight:bold; margin:12px 0 6px 0;">2.2 ตารางสรุปสถานะการเบิกจ่ายงบประมาณ จำแนกตามแหล่งงบประมาณ</p>
+          <table style="width:100%; border-collapse:collapse; font-size:15pt; margin-bottom:6px;">
             <thead>
               <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
-                <th style="border:1px solid #000; padding:5px;">ที่</th>
-                <th style="border:1px solid #000; padding:5px;">รหัส</th>
-                <th style="border:1px solid #000; padding:5px;">ชื่อโครงการ / กลุ่มงาน</th>
-                <th style="border:1px solid #000; padding:5px;">ผู้รับผิดชอบ</th>
-                <th style="border:1px solid #000; padding:5px;">งบจัดสรร</th>
-                <th style="border:1px solid #000; padding:5px;">เบิกจ่าย</th>
-                <th style="border:1px solid #000; padding:5px;">คงเหลือ</th>
-                <th style="border:1px solid #000; padding:5px;">สถานะ</th>
-                <th style="border:1px solid #000; padding:5px;">ผลการดำเนินงาน / หมายเหตุ</th>
+                <th style="border:1px solid #000; padding:6px; width:7%;">ที่</th>
+                <th style="border:1px solid #000; padding:6px; width:35%;">แหล่งงบประมาณ</th>
+                <th style="border:1px solid #000; padding:6px; width:15%;">งบจัดสรร (บาท)</th>
+                <th style="border:1px solid #000; padding:6px; width:15%;">เบิกจ่ายแล้ว (บาท)</th>
+                <th style="border:1px solid #000; padding:6px; width:15%;">คงเหลือ (บาท)</th>
+                <th style="border:1px solid #000; padding:6px; width:13%;">ร้อยละเบิกจ่าย</th>
               </tr>
             </thead>
             <tbody>
-              ${projectRows}
+              ${fundRows}
+              <tr style="background-color:#f8f9fa; font-weight:bold;">
+                <td colspan="2" style="border:1px solid #000; padding:6px; text-align:center;">รวมทั้งสิ้น</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(fundAllocTotal)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(fundSpentTotal)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(fundRemTotal)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${fundPctTotal}%</td>
+              </tr>
             </tbody>
           </table>
+          ${centralNote}
+
+          <p style="font-weight:bold; margin:16px 0 4px 0;">3. รายละเอียดผลการดำเนินงานและผลการใช้จ่ายงบประมาณรายโครงการ</p>
+          ${deptSectionsHtml}
         </div>
       `;
 
       Swal.fire({
         title: `<span style="font-family:'Kanit'; font-size:1.15rem;">ตัวอย่างรายงานผลการดำเนินงาน (ปีงบประมาณ ${s.fyFull})</span>`,
-        width: '92%',
+        width: '94%',
         html: `
           <div style="display:flex; flex-wrap:wrap; gap:8px; justify-content:space-between; align-items:center; margin-bottom:10px; padding:10px; background:#f1f5f9; border-radius:8px; font-family:'Kanit';">
             <div>
