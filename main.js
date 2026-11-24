@@ -11711,11 +11711,31 @@ function openSixMonthReportModal(periodMode = '6M') {
   google.script.run
     .withSuccessHandler(res => {
       const s = res.summary;
+      const dev = res.devSummary || { count: 0, completed: 0, inProgress: 0, notStarted: 0, allocated: 0, spent: 0, remaining: 0, percent: 0 };
+      const adm = res.adminSummary || { count: 0, completed: 0, inProgress: 0, notStarted: 0, allocated: 0, spent: 0, remaining: 0, percent: 0 };
       const fmt = n => Number(n || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-      const pct = n => s.totalProjects > 0 ? ((n / s.totalProjects) * 100).toFixed(1) : '0.0';
+      const pctOf = (n, total) => total > 0 ? ((n / total) * 100).toFixed(1) : '0.0';
 
       // =====================================================
-      // 2.1 ตารางสรุปแยกตาม 4 กลุ่มบริหารงาน
+      // 2.1 ตารางสรุปแยกประเภทงบประมาณ (พัฒนาคุณภาพ vs บริหารจัดการ)
+      // =====================================================
+      const budgetTypeRows = (res.budgetTypes || []).map((bt, idx) => `
+        <tr>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${idx + 1}</td>
+          <td style="border:1px solid #000; padding:6px;">${bt.label}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${bt.count}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${bt.completed}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${bt.inProgress}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${bt.notStarted}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(bt.allocated)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(bt.spent)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(bt.remaining)}</td>
+          <td style="border:1px solid #000; padding:6px; text-align:center;">${bt.percent.toFixed(2)}%</td>
+        </tr>
+      `).join('');
+
+      // =====================================================
+      // 2.2 ตารางสรุปแยกตาม 4 กลุ่มบริหารงาน
       // =====================================================
       const deptRows = (res.departments || []).map((d, idx) => `
         <tr>
@@ -11733,12 +11753,12 @@ function openSixMonthReportModal(periodMode = '6M') {
       `).join('');
 
       // =====================================================
-      // 2.2 ตารางสรุปสถานะการเบิกจ่ายแยกตามแหล่งงบประมาณ
+      // 2.3 ตารางสรุปสถานะการเบิกจ่ายแยกตามแหล่งงบประมาณ
       // =====================================================
       const fundList = res.fundingSources || [];
       const fundAllocTotal = fundList.reduce((acc, f) => acc + f.allocated, 0);
       const fundSpentTotal = fundList.reduce((acc, f) => acc + f.spent, 0);
-      const fundRemTotal = Math.max(0, fundAllocTotal - fundSpentTotal);
+      const fundRemTotal = fundAllocTotal - fundSpentTotal;
       const fundPctTotal = fundAllocTotal > 0 ? ((fundSpentTotal / fundAllocTotal) * 100).toFixed(2) : '0.00';
 
       const fundRows = fundList.length > 0
@@ -11759,75 +11779,88 @@ function openSixMonthReportModal(periodMode = '6M') {
         : '';
 
       // =====================================================
-      // 3. รายละเอียดรายโครงการ แยกหัวข้อ 4 กลุ่มงาน -> ชื่องานย่อย (Section)
-      //    ไม่มีรหัสโครงการ และไม่มีรหัสตัวเลข (21) (25)
+      // ฟังก์ชันสร้างตารางรายโครงการแยกตาม กลุ่มบริหารงาน -> ชื่องานย่อย (Section)
+      // ใช้เหมือนกันทั้งส่วนที่ 3 (งบพัฒนาคุณภาพ) และส่วนที่ 4 (งบบริหารจัดการ)
       // =====================================================
-      const deptSectionsHtml = (res.departments || []).map((dept, dIdx) => {
-        const deptProjs = (res.projects || []).filter(p => p.deptNum === dept.deptNum);
-        if (deptProjs.length === 0) {
-          return `
-            <p style="font-weight:bold; font-size:16pt; margin:14px 0 6px 0;">${dIdx + 1}. ${dept.deptName}</p>
-            <p style="margin:0 0 12px 1.5em; color:#555;">ไม่มีโครงการที่ได้รับอนุมัติในปีงบประมาณนี้</p>
-          `;
+      const buildProjectGroupTables = (projList, categoryLabel) => {
+        if (!projList || projList.length === 0) {
+          return `<p style="margin:6px 0 14px 1.5em; color:#555;">ไม่มีโครงการที่ได้รับอนุมัติในหมวด${categoryLabel}</p>`;
         }
 
-        let currentSecKey = null;
-        let projSeq = 0;
-        let rowsHtml = '';
+        const activeDepts = (res.departments || []).filter(dept =>
+          projList.some(p => p.deptNum === dept.deptNum)
+        );
 
-        deptProjs.forEach(p => {
-          const secKey = `${p.secNum}||${p.secName}`;
-          if (secKey !== currentSecKey) {
-            currentSecKey = secKey;
+        let groupHtml = activeDepts.map((dept, dIdx) => {
+          const deptProjs = projList.filter(p => p.deptNum === dept.deptNum);
+          const deptAlloc = deptProjs.reduce((sum, p) => sum + p.allocated, 0);
+          const deptSpent = deptProjs.reduce((sum, p) => sum + p.spent, 0);
+          const deptRem = deptAlloc - deptSpent;
+          const deptPct = deptAlloc > 0 ? ((deptSpent / deptAlloc) * 100).toFixed(2) : '0.00';
+
+          let currentSecKey = null;
+          let projSeq = 0;
+          let rowsHtml = '';
+
+          deptProjs.forEach(p => {
+            const secKey = `${p.secNum}||${p.secName}`;
+            if (secKey !== currentSecKey) {
+              currentSecKey = secKey;
+              rowsHtml += `
+                <tr style="background-color:#eef4fb; font-weight:bold;">
+                  <td colspan="8" style="border:1px solid #000; padding:6px 8px;">${p.secName}</td>
+                </tr>
+              `;
+            }
+            projSeq++;
             rowsHtml += `
-              <tr style="background-color:#eef4fb; font-weight:bold;">
-                <td colspan="8" style="border:1px solid #000; padding:6px 8px;">${p.secName}</td>
+              <tr>
+                <td style="border:1px solid #000; padding:5px; text-align:center;">${projSeq}</td>
+                <td style="border:1px solid #000; padding:5px;">${p.name}</td>
+                <td style="border:1px solid #000; padding:5px;">${p.owner}</td>
+                <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.allocated)}</td>
+                <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.spent)}</td>
+                <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.remaining)}</td>
+                <td style="border:1px solid #000; padding:5px; text-align:center;">${p.status}</td>
+                <td style="border:1px solid #000; padding:5px;">${p.note}</td>
               </tr>
             `;
-          }
-          projSeq++;
-          rowsHtml += `
-            <tr>
-              <td style="border:1px solid #000; padding:5px; text-align:center;">${projSeq}</td>
-              <td style="border:1px solid #000; padding:5px;">${p.name}</td>
-              <td style="border:1px solid #000; padding:5px;">${p.owner}</td>
-              <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.allocated)}</td>
-              <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.spent)}</td>
-              <td style="border:1px solid #000; padding:5px; text-align:right;">${fmt(p.remaining)}</td>
-              <td style="border:1px solid #000; padding:5px; text-align:center;">${p.status}</td>
-              <td style="border:1px solid #000; padding:5px;">${p.note}</td>
-            </tr>
-          `;
-        });
+          });
 
-        return `
-          <p style="font-weight:bold; font-size:16pt; margin:16px 0 6px 0;">${dIdx + 1}. ${dept.deptName}</p>
-          <table style="width:100%; border-collapse:collapse; font-size:14.5pt; margin-bottom:14px;">
-            <thead>
-              <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
-                <th style="border:1px solid #000; padding:5px; width:5%;">ที่</th>
-                <th style="border:1px solid #000; padding:5px; width:24%;">ชื่อโครงการ</th>
-                <th style="border:1px solid #000; padding:5px; width:14%;">ผู้รับผิดชอบ</th>
-                <th style="border:1px solid #000; padding:5px; width:10%;">งบจัดสรร</th>
-                <th style="border:1px solid #000; padding:5px; width:10%;">เบิกจ่าย</th>
-                <th style="border:1px solid #000; padding:5px; width:10%;">คงเหลือ</th>
-                <th style="border:1px solid #000; padding:5px; width:11%;">สถานะ</th>
-                <th style="border:1px solid #000; padding:5px; width:16%;">ผลการดำเนินงาน / หมายเหตุ</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${rowsHtml}
-              <tr style="background-color:#f8f9fa; font-weight:bold;">
-                <td colspan="3" style="border:1px solid #000; padding:6px; text-align:center;">รวม${dept.deptName} (${dept.count} โครงการ)</td>
-                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(dept.allocated)}</td>
-                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(dept.spent)}</td>
-                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(dept.remaining)}</td>
-                <td colspan="2" style="border:1px solid #000; padding:6px; text-align:center;">เบิกจ่ายร้อยละ ${dept.percent.toFixed(2)}</td>
-              </tr>
-            </tbody>
-          </table>
-        `;
-      }).join('');
+          return `
+            <p style="font-weight:bold; font-size:16pt; margin:14px 0 6px 0;">${dIdx + 1}. ${dept.deptName}</p>
+            <table style="width:100%; border-collapse:collapse; font-size:14.5pt; margin-bottom:14px;">
+              <thead>
+                <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
+                  <th style="border:1px solid #000; padding:5px; width:5%;">ที่</th>
+                  <th style="border:1px solid #000; padding:5px; width:24%;">ชื่อโครงการ</th>
+                  <th style="border:1px solid #000; padding:5px; width:14%;">ผู้รับผิดชอบ</th>
+                  <th style="border:1px solid #000; padding:5px; width:10%;">งบจัดสรร</th>
+                  <th style="border:1px solid #000; padding:5px; width:10%;">เบิกจ่าย</th>
+                  <th style="border:1px solid #000; padding:5px; width:10%;">คงเหลือ</th>
+                  <th style="border:1px solid #000; padding:5px; width:11%;">สถานะ</th>
+                  <th style="border:1px solid #000; padding:5px; width:16%;">ผลการดำเนินงาน / หมายเหตุ</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${rowsHtml}
+                <tr style="background-color:#f8f9fa; font-weight:bold;">
+                  <td colspan="3" style="border:1px solid #000; padding:6px; text-align:center;">รวม${dept.deptName} (${deptProjs.length} โครงการ)</td>
+                  <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(deptAlloc)}</td>
+                  <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(deptSpent)}</td>
+                  <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(deptRem)}</td>
+                  <td colspan="2" style="border:1px solid #000; padding:6px; text-align:center;">เบิกจ่ายร้อยละ ${deptPct}</td>
+                </tr>
+              </tbody>
+            </table>
+          `;
+        }).join('');
+
+        return groupHtml;
+      };
+
+      const devSectionHtml = buildProjectGroupTables(res.devProjects || [], 'งบพัฒนาคุณภาพการศึกษา');
+      const adminSectionHtml = buildProjectGroupTables(res.adminProjects || [], 'งบบริหารจัดการ');
 
       const reportHtml = `
         <div id="six-month-report-content" style="font-family:'TH Sarabun New','Sarabun',sans-serif; font-size:16pt; line-height:1.45; color:#000; text-align:left; background:#fff; padding:20px;">
@@ -11837,22 +11870,70 @@ function openSixMonthReportModal(periodMode = '6M') {
           </div>
 
           <p style="font-weight:bold; margin:12px 0 6px 0;">1. บทสรุปภาพรวมผลการดำเนินงาน</p>
-          <p style="text-indent:2.5em; text-align:justify; margin:0 0 10px 0;">
-            โรงเรียนโสภณศิริราษฎร์ ได้ดำเนินการขับเคลื่อนโครงการและกิจกรรมที่ได้รับอนุมัติตามแผนปฏิบัติการประจำปีงบประมาณ พ.ศ. ${s.fyFull} 
-            ${s.periodLabel} รวมทั้งสิ้นจำนวน <strong>${s.totalProjects} โครงการ</strong> 
-            จำแนกสถานะการดำเนินงานออกเป็น โครงการที่ดำเนินการและรายงานผลแล้วเสร็จจำนวน <strong>${s.completedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.completedCount)}) 
-            โครงการที่อยู่ระหว่างดำเนินการจำนวน <strong>${s.inProgressCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.inProgressCount)}) 
-            และโครงการที่ยังไม่เริ่มดำเนินการจำนวน <strong>${s.notStartedCount} โครงการ</strong> (คิดเป็นร้อยละ ${pct(s.notStartedCount)})
+          <p style="text-indent:2.5em; text-align:justify; margin:0 0 8px 0;">
+            <strong>1.1 งบพัฒนาคุณภาพการศึกษา</strong> มีโครงการที่ได้รับอนุมัติจำนวน <strong>${dev.count} โครงการ</strong> 
+            จำแนกเป็นโครงการที่ดำเนินการและส่งรายงานผลแล้วเสร็จจำนวน <strong>${dev.completed} โครงการ</strong> (ร้อยละ ${pctOf(dev.completed, dev.count)}) 
+            อยู่ระหว่างดำเนินการจำนวน <strong>${dev.inProgress} โครงการ</strong> (ร้อยละ ${pctOf(dev.inProgress, dev.count)}) 
+            และยังไม่เริ่มดำเนินการจำนวน <strong>${dev.notStarted} โครงการ</strong> (ร้อยละ ${pctOf(dev.notStarted, dev.count)}) 
+            โดยได้รับจัดสรรงบประมาณทั้งสิ้น <strong>${fmt(dev.allocated)} บาท</strong> 
+            เบิกจ่ายไปแล้วเป็นเงิน <strong>${fmt(dev.spent)} บาท</strong> (คิดเป็นร้อยละ <strong>${dev.percent.toFixed(2)}</strong>) 
+            และคงเหลืองบประมาณเป็นเงิน <strong>${fmt(dev.remaining)} บาท</strong>
+          </p>
+          <p style="text-indent:2.5em; text-align:justify; margin:0 0 8px 0;">
+            <strong>1.2 งบบริหารจัดการ</strong> มีโครงการและรายการที่ได้รับอนุมัติจำนวน <strong>${adm.count} โครงการ</strong> 
+            จำแนกเป็นโครงการที่ดำเนินการและส่งรายงานผลแล้วเสร็จจำนวน <strong>${adm.completed} โครงการ</strong> (ร้อยละ ${pctOf(adm.completed, adm.count)}) 
+            อยู่ระหว่างดำเนินการจำนวน <strong>${adm.inProgress} โครงการ</strong> (ร้อยละ ${pctOf(adm.inProgress, adm.count)}) 
+            และยังไม่เริ่มดำเนินการจำนวน <strong>${adm.notStarted} โครงการ</strong> (ร้อยละ ${pctOf(adm.notStarted, adm.count)}) 
+            โดยได้รับจัดสรรงบประมาณทั้งสิ้น <strong>${fmt(adm.allocated)} บาท</strong> 
+            เบิกจ่ายไปแล้วเป็นเงิน <strong>${fmt(adm.spent)} บาท</strong> (คิดเป็นร้อยละ <strong>${adm.percent.toFixed(2)}</strong>) 
+            และคงเหลืองบประมาณเป็นเงิน <strong>${fmt(adm.remaining)} บาท</strong>
           </p>
           <p style="text-indent:2.5em; text-align:justify; margin:0 0 14px 0;">
-            ในด้านผลการใช้จ่ายงบประมาณ โครงการที่ได้รับอนุมัติตามแผนปฏิบัติการได้รับจัดสรรงบประมาณรวมทั้งสิ้น <strong>${fmt(s.totalAllocated)} บาท</strong> 
-            มีผลการเบิกจ่ายงบประมาณสะสมเป็นเงิน <strong>${fmt(s.totalSpent)} บาท</strong> (คิดเป็นร้อยละ <strong>${s.spentPercent.toFixed(2)}</strong> ของงบประมาณที่ได้รับจัดสรร) 
+            <strong>1.3 สรุปภาพรวมทั้งโรงเรียน</strong> โรงเรียนโสภณศิริราษฎร์มีโครงการที่ได้รับอนุมัติตามแผนปฏิบัติการประจำปีงบประมาณ พ.ศ. ${s.fyFull} 
+            รวมทั้งสิ้นจำนวน <strong>${s.totalProjects} โครงการ</strong> 
+            ดำเนินการและรายงานผลแล้วเสร็จจำนวน <strong>${s.completedCount} โครงการ</strong> (ร้อยละ ${pctOf(s.completedCount, s.totalProjects)}) 
+            อยู่ระหว่างดำเนินการจำนวน <strong>${s.inProgressCount} โครงการ</strong> (ร้อยละ ${pctOf(s.inProgressCount, s.totalProjects)}) 
+            และยังไม่เริ่มดำเนินการจำนวน <strong>${s.notStartedCount} โครงการ</strong> (ร้อยละ ${pctOf(s.notStartedCount, s.totalProjects)}) 
+            ได้รับจัดสรรงบประมาณรวมทั้งสิ้น <strong>${fmt(s.totalAllocated)} บาท</strong> 
+            มีผลการเบิกจ่ายสะสมเป็นเงิน <strong>${fmt(s.totalSpent)} บาท</strong> (คิดเป็นร้อยละ <strong>${s.spentPercent.toFixed(2)}</strong> ของงบประมาณที่ได้รับจัดสรร) 
             และคงเหลืองบประมาณสำหรับดำเนินงานต่อไปเป็นเงิน <strong>${fmt(s.totalRemaining)} บาท</strong>
           </p>
 
           <p style="font-weight:bold; margin:14px 0 6px 0;">2. สรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ</p>
 
-          <p style="font-weight:bold; margin:8px 0 6px 0;">2.1 ตารางสรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ จำแนกตามกลุ่มบริหารงาน</p>
+          <p style="font-weight:bold; margin:8px 0 6px 0;">2.1 ตารางสรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ จำแนกตามประเภทงบประมาณ</p>
+          <table style="width:100%; border-collapse:collapse; font-size:15pt; margin-bottom:14px;">
+            <thead>
+              <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
+                <th style="border:1px solid #000; padding:6px;">ที่</th>
+                <th style="border:1px solid #000; padding:6px;">ประเภทงบประมาณ</th>
+                <th style="border:1px solid #000; padding:6px;">รวม (โครงการ)</th>
+                <th style="border:1px solid #000; padding:6px;">แล้วเสร็จ (รายงานแล้ว)</th>
+                <th style="border:1px solid #000; padding:6px;">อยู่ระหว่างดำเนินการ</th>
+                <th style="border:1px solid #000; padding:6px;">ยังไม่เริ่ม</th>
+                <th style="border:1px solid #000; padding:6px;">งบจัดสรร (บาท)</th>
+                <th style="border:1px solid #000; padding:6px;">เบิกจ่าย (บาท)</th>
+                <th style="border:1px solid #000; padding:6px;">คงเหลือ (บาท)</th>
+                <th style="border:1px solid #000; padding:6px;">ร้อยละเบิกจ่าย</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${budgetTypeRows}
+              <tr style="background-color:#f8f9fa; font-weight:bold;">
+                <td colspan="2" style="border:1px solid #000; padding:6px; text-align:center;">รวมทั้งสิ้น</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.totalProjects}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.completedCount}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.inProgressCount}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.notStartedCount}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(s.totalAllocated)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(s.totalSpent)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:right;">${fmt(s.totalRemaining)}</td>
+                <td style="border:1px solid #000; padding:6px; text-align:center;">${s.spentPercent.toFixed(2)}%</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <p style="font-weight:bold; margin:12px 0 6px 0;">2.2 ตารางสรุปผลการดำเนินงานและผลการใช้จ่ายงบประมาณ จำแนกตามกลุ่มบริหารงาน</p>
           <table style="width:100%; border-collapse:collapse; font-size:15pt; margin-bottom:14px;">
             <thead>
               <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
@@ -11884,7 +11965,7 @@ function openSixMonthReportModal(periodMode = '6M') {
             </tbody>
           </table>
 
-          <p style="font-weight:bold; margin:12px 0 6px 0;">2.2 ตารางสรุปสถานะการเบิกจ่ายงบประมาณ จำแนกตามแหล่งงบประมาณ</p>
+          <p style="font-weight:bold; margin:12px 0 6px 0;">2.3 ตารางสรุปสถานะการเบิกจ่ายงบประมาณ จำแนกตามแหล่งงบประมาณ</p>
           <table style="width:100%; border-collapse:collapse; font-size:15pt; margin-bottom:6px;">
             <thead>
               <tr style="background-color:#e9ecef; font-weight:bold; text-align:center;">
@@ -11909,8 +11990,11 @@ function openSixMonthReportModal(periodMode = '6M') {
           </table>
           ${centralNote}
 
-          <p style="font-weight:bold; margin:16px 0 4px 0;">3. รายละเอียดผลการดำเนินงานและผลการใช้จ่ายงบประมาณรายโครงการ</p>
-          ${deptSectionsHtml}
+          <p style="font-weight:bold; margin:16px 0 4px 0;">3. รายละเอียดผลการดำเนินงานและผลการใช้จ่ายงบประมาณรายโครงการ (งบพัฒนาคุณภาพการศึกษา)</p>
+          ${devSectionHtml}
+
+          <p style="font-weight:bold; margin:18px 0 4px 0;">4. รายละเอียดผลการดำเนินงานและผลการใช้จ่ายงบประมาณรายโครงการ (งบบริหารจัดการ)</p>
+          ${adminSectionHtml}
         </div>
       `;
 
@@ -11949,7 +12033,6 @@ function openSixMonthReportModal(periodMode = '6M') {
     })
     .getSixMonthReportData(yr, periodMode);
 }
-
 // คัดลอกเนื้อหาพร้อมตารางลง Clipboard เพื่อไป Ctrl+V ใน Word
 function copySixMonthReportToClipboard() {
   const el = document.getElementById('six-month-report-content');
