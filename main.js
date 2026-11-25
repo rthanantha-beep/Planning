@@ -3582,189 +3582,180 @@ function executeSubmitReport(form, actionType) {
   // ==========================================
   // ลอจิกหน้าตะกร้าพิจารณา ผง.2 (Inbox 5 ด่าน)
   // ==========================================
-function loadDisbApproveInbox() {
-    const tbody = document.getElementById('disb-approve-tbody');
-  const roleDisplay = document.getElementById('disb-approver-role-display');
-    if (!tbody) {
-        return;
+function loadDisbApproveInbox(forceRefresh = false) {
+  const tbody = document.getElementById('disb-approve-tbody');
+  if (!tbody) return;
+
+  // ⚡ ถ้าโหลดล่วงหน้าไว้แล้ว และไม่ได้กดรีเฟรชใหม่ -> แสดงผลทันทีไม่ต้องรอโหลดซ้ำ
+  if (!forceRefresh && window.AppCache && window.AppCache.disbApproveInbox) {
+    renderDisbApproveInbox(window.AppCache.disbApproveInbox);
+    return;
   }
-  
-  // แสดงสถานะกำลังโหลด
+
   tbody.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 30px;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>กำลังตรวจสอบคิวงาน...</td></tr>';
-  
+
   google.script.run
     .withSuccessHandler(function(res) {
       console.log("✅ [STEP 2] Server ตอบกลับข้อมูลสำเร็จ:", res);
-
-      try {
-        // 1. ตรวจสอบว่าส่ง response กลับมาถูกต้องหรือไม่
-        if (!res) {
-          throw new Error("Server คืนค่าเป็น null/undefined");
-        }
-
-        window.currentDisbInboxData = res.data || []; 
-        
-        // 🌟🌟🌟 [จุดสำคัญ] บรรทัดนี้ที่เพิ่มเข้าไป เพื่อรับค่าลายเซ็น 🌟🌟🌟
-        window.currentSignatures = res.signatures || {}; 
-        
-        window.currentCentralBudget = res.centralBudget || 0;
-        
-        // 2. แปลง role เป็น String อย่างปลอดภัยก่อนใช้ .includes()
-        let roleName = "ผู้ตรวจสอบ";
-        let userRole = String(res.role || '').toLowerCase();
-
-        if (userRole.includes('admin')) {
-          roleName = "หัวหน้างานแผน (ด่าน 1)";
-        } else if (userRole.includes('supply') || userRole.includes('พัสดุ')) {
-          roleName = "หัวหน้างานพัสดุ (ด่าน 2)";
-        } else if (userRole.includes('finance')|| userRole.includes('financial') || userRole.includes('การเงิน')) {
-          roleName = "หัวหน้ากลุ่มบริหารงานงบประมาณ (ด่าน 3)";
-        } else if (userRole.includes('approver2') || userRole.includes('a2')) {
-          roleName = "รองผู้อำนวยการ (ด่าน 4)";
-        } else if (userRole.includes('approver3') || userRole.includes('a3')) {
-          roleName = "ผู้อำนวยการ (ด่าน 5)";
-        }
-        
-        if (roleDisplay) {
-          roleDisplay.innerText = roleName;
-        }
-
-        // 3. ตรวจสอบกรณีไม่มีรายการในตระกร้างาน
-        if (!res.data || res.data.length === 0) {
-          console.log("ℹ️ ตะกร้างานว่างเปล่า");
-          tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #27ae60;"><i class="fas fa-check-circle fa-3x" style="margin-bottom:15px;"></i><br><span style="font-size:1.1rem; font-weight:bold;">เยี่ยมมาก! ตะกร้างานของคุณว่างเปล่า</span><br><span style="font-size:0.9rem; color:#7f8c8d;">ไม่มีคำขอเบิกจ่ายที่รอคิวคุณพิจารณาในขณะนี้</span></td></tr>`;
-          
-          // ใส่คำสั่งปิด Loading Overlay
-          if (typeof hideLoading === 'function') hideLoading();
-          const overlay = document.getElementById('loading-overlay') || document.getElementById('spinner');
-          if (overlay) overlay.style.display = 'none';
-
-          return; 
-        }
-
-        // 4. วาดรายการตาราง
-        let html = '';
-        res.data.forEach((item, index) => {
-          let itemsListHtml = '';
-          
-          // 1. นับจำนวนรายการจริง (ไว้โชว์บนป้ายหัวตาราง ว่ามีพัสดุกี่ชิ้น ไม่รวมภาษี/ค่าส่ง)
-          let realItemCount = 0;
-          if (item.items && Array.isArray(item.items)) {
-              item.items.forEach(it => {
-                  if (it.name !== '#SYS_SHIPPING#' && it.name !== '#SYS_VAT#') realItemCount++;
-              });
-          }
-
-          // 2. วาดตาราง (โชว์ทุกแถว แต่จัดระเบียบให้สวยงาม)
-          if (item.items && item.items.length > 0) {
-              itemsListHtml = `
-                <div style="margin-top: 5px; padding: 15px; border-top: 1px dashed #e0e6ed; background: #fdfefe; border-radius: 8px;">
-                  <div style="font-weight:bold; color:#8e44ad; margin-bottom:10px;"><i class="fas fa-boxes"></i> รายการที่ขอเบิก (${realItemCount} รายการ)</div>
-                  <table style="width: 100%; font-size: 0.95rem; border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
-                    <thead>
-                      <tr style="background: #f4f6f8; color: #555; border-bottom: 2px solid #bdc3c7;">
-                        <th style="padding: 10px; text-align: left; width: 45%;">รายการ</th>
-                        <th style="padding: 10px; text-align: center; width: 15%;">จำนวน</th>
-                        <th style="padding: 10px; text-align: right; width: 20%;">ราคา/หน่วย</th>
-                        <th style="padding: 10px; text-align: right; width: 20%;">รวม (บ.)</th>
-                      </tr>
-                    </thead>
-                    <tbody>`;
-              
-              item.items.forEach(it => {
-                let itemName = it.name || '-';
-                let qtyText = `${Number(it.qty) || 0} ${it.unit || ''}`;
-                let price = Number(it.price) || 0;
-                let sum = (Number(it.qty) || 0) * price;
-
-                // 🌟 แปลงร่างตัวล่องหนให้ดูเป็นทางการ (ซ่อน 1 SYS)
-                if (itemName === '#SYS_VAT#') {
-                    itemName = 'ภาษีมูลค่าเพิ่ม (VAT)';
-                    qtyText = '-'; // ใส่ขีดแทนจำนวน
-                    sum = price; 
-                } else if (itemName === '#SYS_SHIPPING#') {
-                    itemName = 'ค่าจัดส่ง';
-                    qtyText = '-'; // ใส่ขีดแทนจำนวน
-                    sum = price;
-                }
-                
-                // ถ้ายอดเป็น 0 ให้แสดงเป็น - หรือ 0.00
-                let priceDisplay = price > 0 ? price.toLocaleString() : '-';
-                let sumDisplay = sum > 0 ? sum.toLocaleString() : '0.00';
-
-                itemsListHtml += `
-                      <tr style="border-bottom: 1px solid #f0f0f0;">
-                        <td style="padding: 10px; color: #333;">${itemName}</td>
-                        <td style="padding: 10px; text-align: center; color: #666;">${qtyText}</td>
-                        <td style="padding: 10px; text-align: right; color: #666;">${priceDisplay}</td>
-                        <td style="padding: 10px; text-align: right; font-weight: bold; color: #c0392b;">${sumDisplay}</td>
-                      </tr>`;
-              });
-
-              // 🌟 เสริมท้ายตารางด้วยยอดรวมสุทธิ ให้คนตรวจดูง่ายขึ้น
-              itemsListHtml += `
-                      <tr style="background: #fdf2e9; border-top: 2px solid #e67e22;">
-                        <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #d35400;">รวมเป็นเงินทั้งสิ้น</td>
-                        <td style="padding: 10px; text-align: right; font-weight: bold; color: #c0392b; font-size: 1.05rem;">${Number(item.grandTotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
-                      </tr>`;
-
-              itemsListHtml += `
-                    </tbody>
-                  </table>
-                </div>`;
-          } else {
-              itemsListHtml = `<div style="font-size: 0.9rem; color: #e74c3c; margin-top: 10px; padding: 10px; background: #fdf2e9; border-radius: 6px;"><i class="fas fa-exclamation-circle"></i> ไม่พบรายละเอียดรายการพัสดุ</div>`;
-          }
-
-          let timestamp = item.timestamp || '-';
-          let projectName = item.projectName || '-';
-          let projectId = item.projectId || '-';
-          let reqId = item.reqId || '-';
-          let requesterName = item.requesterName || item.ownerName || '-';
-          let grandTotal = Number(item.grandTotal) || 0;
-          let status = item.status || '-';
-
-          // ประกอบร่าง HTML (แถวหลัก + แถวซ่อน)
-          html += `
-            <tr style="border-bottom: 1px solid #eee; background: #fff; transition: 0.2s;" onmouseover="this.style.background='#f9fbfc'" onmouseout="this.style.background='#fff'">
-              <td style="padding: 12px; font-size: 0.9rem; color:#555; vertical-align: middle; cursor: pointer;" onclick="toggleDisbApproveCard('${reqId}')">
-                 ${timestamp.split(' ')[0]}<br><span style="font-size:0.8rem; color:#95a5a6;"><i class="far fa-clock"></i> ${timestamp.split(' ')[1] || ''}</span>
-              </td>
-              <td style="padding: 12px; vertical-align: middle; cursor: pointer;" onclick="toggleDisbApproveCard('${reqId}')">
-                 <div style="font-weight: bold; color: #2c3e50; font-size: 1.05rem;">${projectName}</div>
-                 <div style="font-size:0.85rem; color:#7f8c8d;">[รหัสโครงการ: ${projectId}] | [รหัสคำขอ: <b>${reqId}</b>]</div>
-                 <div style="font-size: 0.85rem; color: #3498db; margin-top: 6px; font-weight:bold;"><i class="fas fa-chevron-down"></i> คลิกรถเข็นเพื่อกางรายการพัสดุ</div>
-              </td>
-              <td style="padding: 12px; font-size: 0.95rem; font-weight: bold; color:#2980b9; vertical-align: middle;"><i class="fas fa-user-circle"></i> ${requesterName}</td>
-              <td style="padding: 12px; text-align: right; font-weight: bold; color: #c0392b; font-size: 1.1rem; vertical-align: middle;">${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
-              <td style="padding: 12px; text-align: center; vertical-align: middle;"><span style="background: #f39c12; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight:bold; display: inline-block;">${status}</span></td>
-              <td style="padding: 12px; text-align: center; vertical-align: middle;">
-                <button onclick="openDisbReviewModal(${index})" style="background: #8e44ad; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-search"></i> ตรวจสอบ</button>
-              </td>
-            </tr>
-            <!-- 🌟 แถวซ่อนรายการพัสดุ (จะกางออกเมื่อถูกคลิก) -->
-            <tr id="disb-app-detail-${reqId}" style="display: none; background: #fdfefe;">
-              <td colspan="6" style="padding: 0 20px 20px 20px; border-bottom: 2px solid #bdc3c7;">
-                 ${itemsListHtml}
-              </td>
-            </tr>`;
-        });
-
-        tbody.innerHTML = html;
-        console.log("✅ [STEP 3] วาดตารางคิวงานสำเร็จแล้ว");
-
-      } catch (renderError) {
-        console.error("❌ [STEP 3 ERROR] เกิดข้อผิดพลาดขณะแสดงผล UI:", renderError);
-        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red; padding: 20px; font-weight:bold;">เกิดข้อผิดพลาดในการแสดงผล: ${renderError.message}</td></tr>`;
-      }
+      window.AppCache = window.AppCache || {};
+      window.AppCache.disbApproveInbox = res;
+      renderDisbApproveInbox(res);
     })
-    .withFailureHandler(function(err) { 
+    .withFailureHandler(function(err) {
       console.error("❌ [STEP 2 FAIL] Server คืนค่า Error:", err);
-      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red; padding: 20px; font-weight:bold;">เกิดข้อผิดพลาดจากระบบ: ${err.message}</td></tr>`; 
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red; padding: 20px; font-weight:bold;">เกิดข้อผิดพลาดจากระบบ: ${err.message}</td></tr>`;
     })
     .getDisbApproveInbox();
 }
 
+function renderDisbApproveInbox(res) {
+  const tbody = document.getElementById('disb-approve-tbody');
+  const roleDisplay = document.getElementById('disb-approver-role-display');
+  if (!tbody) return;
+
+  try {
+    if (!res) {
+      throw new Error("Server คืนค่าเป็น null/undefined");
+    }
+
+    window.currentDisbInboxData = res.data || [];
+    window.currentSignatures = res.signatures || {};
+    window.currentCentralBudget = res.centralBudget || 0;
+
+    let roleName = "ผู้ตรวจสอบ";
+    let userRole = String(res.role || window.userRole || '').toLowerCase();
+
+    if (userRole.includes('admin')) {
+      roleName = "หัวหน้างานแผน (ด่าน 1)";
+    } else if (userRole.includes('supply') || userRole.includes('พัสดุ')) {
+      roleName = "หัวหน้างานพัสดุ (ด่าน 2)";
+    } else if (userRole.includes('finance') || userRole.includes('financial') || userRole.includes('การเงิน')) {
+      roleName = "หัวหน้ากลุ่มบริหารงานงบประมาณ (ด่าน 3)";
+    } else if (userRole.includes('approver2') || userRole.includes('a2')) {
+      roleName = "รองผู้อำนวยการ (ด่าน 4)";
+    } else if (userRole.includes('approver3') || userRole.includes('a3')) {
+      roleName = "ผู้อำนวยการ (ด่าน 5)";
+    }
+
+    if (roleDisplay) {
+      roleDisplay.innerText = roleName;
+    }
+
+    if (!res.data || res.data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 40px; color: #27ae60;"><i class="fas fa-check-circle fa-3x" style="margin-bottom:15px;"></i><br><span style="font-size:1.1rem; font-weight:bold;">เยี่ยมมาก! ตะกร้างานของคุณว่างเปล่า</span><br><span style="font-size:0.9rem; color:#7f8c8d;">ไม่มีคำขอเบิกจ่ายที่รอคิวคุณพิจารณาในขณะนี้</span></td></tr>`;
+
+      if (typeof hideLoading === 'function') hideLoading();
+      const overlay = document.getElementById('loading-overlay') || document.getElementById('spinner');
+      if (overlay) overlay.style.display = 'none';
+      return;
+    }
+
+    let html = '';
+    res.data.forEach((item, index) => {
+      let itemsListHtml = '';
+
+      let realItemCount = 0;
+      if (item.items && Array.isArray(item.items)) {
+        item.items.forEach(it => {
+          if (it.name !== '#SYS_SHIPPING#' && it.name !== '#SYS_VAT#') realItemCount++;
+        });
+      }
+
+      if (item.items && item.items.length > 0) {
+        itemsListHtml = `
+          <div style="margin-top: 5px; padding: 15px; border-top: 1px dashed #e0e6ed; background: #fdfefe; border-radius: 8px;">
+            <div style="font-weight:bold; color:#8e44ad; margin-bottom:10px;"><i class="fas fa-boxes"></i> รายการที่ขอเบิก (${realItemCount} รายการ)</div>
+            <table style="width: 100%; font-size: 0.95rem; border-collapse: collapse; background: #fff; box-shadow: 0 1px 3px rgba(0,0,0,0.05);">
+              <thead>
+                <tr style="background: #f4f6f8; color: #555; border-bottom: 2px solid #bdc3c7;">
+                  <th style="padding: 10px; text-align: left; width: 45%;">รายการ</th>
+                  <th style="padding: 10px; text-align: center; width: 15%;">จำนวน</th>
+                  <th style="padding: 10px; text-align: right; width: 20%;">ราคา/หน่วย</th>
+                  <th style="padding: 10px; text-align: right; width: 20%;">รวม (บ.)</th>
+                </tr>
+              </thead>
+              <tbody>`;
+
+        item.items.forEach(it => {
+          let itemName = it.name || '-';
+          let qtyText = `${Number(it.qty) || 0} ${it.unit || ''}`;
+          let price = Number(it.price) || 0;
+          let sum = (Number(it.qty) || 0) * price;
+
+          if (itemName === '#SYS_VAT#') {
+            itemName = 'ภาษีมูลค่าเพิ่ม (VAT)';
+            qtyText = '-';
+            sum = price;
+          } else if (itemName === '#SYS_SHIPPING#') {
+            itemName = 'ค่าจัดส่ง';
+            qtyText = '-';
+            sum = price;
+          }
+
+          let priceDisplay = price > 0 ? price.toLocaleString() : '-';
+          let sumDisplay = sum > 0 ? sum.toLocaleString() : '0.00';
+
+          itemsListHtml += `
+                <tr style="border-bottom: 1px solid #f0f0f0;">
+                  <td style="padding: 10px; color: #333;">${itemName}</td>
+                  <td style="padding: 10px; text-align: center; color: #666;">${qtyText}</td>
+                  <td style="padding: 10px; text-align: right; color: #666;">${priceDisplay}</td>
+                  <td style="padding: 10px; text-align: right; font-weight: bold; color: #c0392b;">${sumDisplay}</td>
+                </tr>`;
+        });
+
+        itemsListHtml += `
+                <tr style="background: #fdf2e9; border-top: 2px solid #e67e22;">
+                  <td colspan="3" style="padding: 10px; text-align: right; font-weight: bold; color: #d35400;">รวมเป็นเงินทั้งสิ้น</td>
+                  <td style="padding: 10px; text-align: right; font-weight: bold; color: #c0392b; font-size: 1.05rem;">${Number(item.grandTotal || 0).toLocaleString('en-US', {minimumFractionDigits: 2})}</td>
+                </tr>`;
+
+        itemsListHtml += `
+              </tbody>
+            </table>
+          </div>`;
+      } else {
+        itemsListHtml = `<div style="font-size: 0.9rem; color: #e74c3c; margin-top: 10px; padding: 10px; background: #fdf2e9; border-radius: 6px;"><i class="fas fa-exclamation-circle"></i> ไม่พบรายละเอียดรายการพัสดุ</div>`;
+      }
+
+      let timestamp = item.timestamp || '-';
+      let projectName = item.projectName || '-';
+      let projectId = item.projectId || '-';
+      let reqId = item.reqId || '-';
+      let requesterName = item.requesterName || item.ownerName || '-';
+      let grandTotal = Number(item.grandTotal) || 0;
+      let status = item.status || '-';
+
+      html += `
+        <tr style="border-bottom: 1px solid #eee; background: #fff; transition: 0.2s;" onmouseover="this.style.background='#f9fbfc'" onmouseout="this.style.background='#fff'">
+          <td style="padding: 12px; font-size: 0.9rem; color:#555; vertical-align: middle; cursor: pointer;" onclick="toggleDisbApproveCard('${reqId}')">
+             ${timestamp.split(' ')[0]}<br><span style="font-size:0.8rem; color:#95a5a6;"><i class="far fa-clock"></i> ${timestamp.split(' ')[1] || ''}</span>
+          </td>
+          <td style="padding: 12px; vertical-align: middle; cursor: pointer;" onclick="toggleDisbApproveCard('${reqId}')">
+             <div style="font-weight: bold; color: #2c3e50; font-size: 1.05rem;">${projectName}</div>
+             <div style="font-size:0.85rem; color:#7f8c8d;">[รหัสโครงการ: ${projectId}] | [รหัสคำขอ: <b>${reqId}</b>]</div>
+             <div style="font-size: 0.85rem; color: #3498db; margin-top: 6px; font-weight:bold;"><i class="fas fa-chevron-down"></i> คลิกรถเข็นเพื่อกางรายการพัสดุ</div>
+          </td>
+          <td style="padding: 12px; font-size: 0.95rem; font-weight: bold; color:#2980b9; vertical-align: middle;"><i class="fas fa-user-circle"></i> ${requesterName}</td>
+          <td style="padding: 12px; text-align: right; font-weight: bold; color: #c0392b; font-size: 1.1rem; vertical-align: middle;">${grandTotal.toLocaleString(undefined, {minimumFractionDigits: 2})}</td>
+          <td style="padding: 12px; text-align: center; vertical-align: middle;"><span style="background: #f39c12; color: white; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; font-weight:bold; display: inline-block;">${status}</span></td>
+          <td style="padding: 12px; text-align: center; vertical-align: middle;">
+            <button onclick="openDisbReviewModal(${index})" style="background: #8e44ad; color: white; border: none; padding: 8px 16px; border-radius: 6px; cursor: pointer; font-family: 'Kanit'; font-weight:bold; box-shadow: 0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-search"></i> ตรวจสอบ</button>
+          </td>
+        </tr>
+        <tr id="disb-app-detail-${reqId}" style="display: none; background: #fdfefe;">
+          <td colspan="6" style="padding: 0 20px 20px 20px; border-bottom: 2px solid #bdc3c7;">
+             ${itemsListHtml}
+          </td>
+        </tr>`;
+    });
+
+    tbody.innerHTML = html;
+  } catch (renderError) {
+    console.error("❌ [STEP 3 ERROR] เกิดข้อผิดพลาดขณะแสดงผล UI:", renderError);
+    tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; color: red; padding: 20px; font-weight:bold;">เกิดข้อผิดพลาดในการแสดงผล: ${renderError.message}</td></tr>`;
+  }
+}
 function filterDisbAdminTable() {
   const input = document.getElementById('search-disb-admin');
   const filter = input.value.toLowerCase();
@@ -4469,10 +4460,14 @@ function submitDisbReview(action) {
 
       google.script.run
         .withSuccessHandler(function(res) {
-          Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: res.message, confirmButtonColor: '#27ae60', customClass: { container: 'kanit-font' } }).then(() => { loadDisbApproveInbox(); });
+          if (window.AppCache) {
+            window.AppCache.disbApproveInbox = null;
+            window.AppCache.supplyDocs = null;
+          }
+          Swal.fire({ icon: 'success', title: 'สำเร็จ!', text: res.message, confirmButtonColor: '#27ae60', customClass: { container: 'kanit-font' } }).then(() => { loadDisbApproveInbox(true); });
         })
         .withFailureHandler(function(err) {
-          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: "ไม่สามารถบันทึกข้อมูลได้: " + err.message, confirmButtonColor: '#e74c3c', customClass: { container: 'kanit-font' } }).then(() => { loadDisbApproveInbox(); });
+          Swal.fire({ icon: 'error', title: 'เกิดข้อผิดพลาด', text: "ไม่สามารถบันทึกข้อมูลได้: " + err.message, confirmButtonColor: '#e74c3c', customClass: { container: 'kanit-font' } }).then(() => { loadDisbApproveInbox(true); });
         })
         .processDisbursementReview({ reqId: reqId, action: action, comment: comment, topupAmount: topupAmount, itemSources: itemSources });
     }
