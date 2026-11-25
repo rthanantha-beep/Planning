@@ -1,5 +1,5 @@
 // 🔴 วาง URL Web App ของคุณครูที่ลงท้ายด้วย /exec ตรงนี้
-const GAS_API_URL = "https://script.google.com/macros/s/AKfycbwfBLLHXEr9UBT-WhZT-5av3a8woioHCVsuuSu8T4EOhuchTmbluRCUKlTqj9EHzpbgOA/exec";
+const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxzHSqhS5B-7qiphJ5toUrwm1J8kKZhIGcFPZHUlgM7DnCgq1XyBFezetQXfIO6Rz71bA/exec";
 
 function createGasRunner(successHandler, failureHandler) {
   return new Proxy({}, {
