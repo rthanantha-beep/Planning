@@ -7780,28 +7780,54 @@ window.onload = async function() {
     else roleDisplay = 'ผู้ใช้งานทั่วไป';
     document.getElementById('user-role-display').innerText = "สิทธิ์: " + roleDisplay;
 
-    const initRequests = [
-       fetchAPI('getMenuPermissions'),
-       fetchAPI('getPendingTaskCounts')
-    ];
-
-    // 🌟 ถ้ามีสิทธิ์งานพัสดุ ให้โหลดตะกร้าใบขออนุมัติเบิกจ่ายขนานไปพร้อมกันเลย (รอทีเดียวจบ)
-    if (isSupply) {
-       initRequests.push(
-         fetchAPI('getSupplyDocsList').catch(err => {
-           console.warn("⚠️ โหลดตะกร้าพัสดุล่วงหน้าไม่สำเร็จ:", err);
-           return null;
-         })
-       );
+    // 🌟 ตั้งค่าข้อความสถานะหน้าพิจารณาเบิกจ่ายทันที (ไม่ต้องรอ "กำลังตรวจสอบสิทธิ์...")
+    const isDisbApprover = isAdmin || isSupply || isFinance || isA2 || isA3;
+    const disbRoleEl = document.getElementById('disb-approver-role-display');
+    if (disbRoleEl) {
+      let quickDisbRole = "ผู้ตรวจสอบ";
+      if (isAdmin) quickDisbRole = "หัวหน้างานแผน (ด่าน 1)";
+      else if (isSupply) quickDisbRole = "หัวหน้างานพัสดุ (ด่าน 2)";
+      else if (isFinance) quickDisbRole = "หัวหน้ากลุ่มบริหารงานงบประมาณ (ด่าน 3)";
+      else if (isA2) quickDisbRole = "รองผู้อำนวยการ (ด่าน 4)";
+      else if (isA3) quickDisbRole = "ผู้อำนวยการ (ด่าน 5)";
+      disbRoleEl.innerText = quickDisbRole;
     }
 
-    const [perms, counts, preloadedSupplyRes] = await Promise.all(initRequests);
+    // 🌟 โหลดข้อมูลล่วงหน้าขนานกันในรอบเดียว (งานพัสดุ + ตะกร้าพิจารณา ผง.2)
+    const supplyPreloadPromise = isSupply
+      ? fetchAPI('getSupplyDocsList').catch(err => {
+          console.warn("⚠️ โหลดตะกร้าพัสดุล่วงหน้าไม่สำเร็จ:", err);
+          return null;
+        })
+      : Promise.resolve(null);
+
+    const disbApprovePreloadPromise = isDisbApprover
+      ? fetchAPI('getDisbApproveInbox').catch(err => {
+          console.warn("⚠️ โหลดตะกร้าพิจารณา ผง.2 ล่วงหน้าไม่สำเร็จ:", err);
+          return null;
+        })
+      : Promise.resolve(null);
+
+    const [perms, counts, preloadedSupplyRes, preloadedDisbApproveRes] = await Promise.all([
+       fetchAPI('getMenuPermissions'),
+       fetchAPI('getPendingTaskCounts'),
+       supplyPreloadPromise,
+       disbApprovePreloadPromise
+    ]);
+
+    window.AppCache = window.AppCache || {};
 
     if (preloadedSupplyRes && Array.isArray(preloadedSupplyRes.data)) {
-       window.AppCache = window.AppCache || {};
        window.AppCache.supplyDocs = preloadedSupplyRes.data;
        if (typeof renderSupplyDocsDashboard === 'function') {
          renderSupplyDocsDashboard(preloadedSupplyRes.data);
+       }
+    }
+
+    if (preloadedDisbApproveRes) {
+       window.AppCache.disbApproveInbox = preloadedDisbApproveRes;
+       if (typeof renderDisbApproveInbox === 'function') {
+         renderDisbApproveInbox(preloadedDisbApproveRes);
        }
     }
 
