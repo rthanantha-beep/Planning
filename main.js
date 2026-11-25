@@ -5585,7 +5585,11 @@ function drawFundBarChart(fundsData) {
 // ==========================================
 // 🌟 ฟังก์ชันอัปเดตตัวเลขแจ้งเตือน (Badges)
 // ==========================================
-function updateNavBadges() {
+function updateNavBadges(force = false) {
+  const now = Date.now();
+  if (!force && window._lastBadgeFetchTime && (now - window._lastBadgeFetchTime) < 30000) return;
+  window._lastBadgeFetchTime = now;
+
   google.script.run
     .withSuccessHandler(function(counts) {
       const setBadge = (id, count) => {
@@ -6907,6 +6911,9 @@ function loadReconInbox(forceRefresh = false) {
 
   google.script.run
     .withSuccessHandler(function(res) {
+      if (res && Array.isArray(res.activeProjects)) {
+        globalAssignProjects = res.activeProjects;
+      }
       window.AppCache = window.AppCache || {};
       window.AppCache.reconInboxByYear = window.AppCache.reconInboxByYear || {};
       window.AppCache.reconInboxByYear[year] = res;
@@ -7196,7 +7203,7 @@ function renderReconHistoryTable(data) {
     html += `
       <tr style="border-bottom:1px solid #eee;">
         <td style="padding:10px;"><b>${r.reqId}</b><br><span style="font-size:0.8rem; color:#7f8c8d;">${r.projectId}</span></td>
-        <td style="padding:10px;">${r.requester}</td>
+        <td style="padding:10px;">${r.requesterName || r.requester || '-'}</td>
         <td style="padding:10px; text-align:right;">${r.total}</td>
         <td style="padding:10px; text-align:center;">${badge}</td>
       </tr>`;
@@ -7777,7 +7784,7 @@ window.onload = async function() {
     const isA2 = window.userRole.includes('approver2') || window.userRole.includes('a2');
     const isA3 = window.userRole.includes('approver3') || window.userRole.includes('a3');
     const isSupply = window.userRole.includes('supply') || window.userRole.includes('พัสดุ');
-    const isFinance = window.userRole.includes('finance') || window.userRole.includes('การเงิน');
+    const isFinance = window.userRole.includes('finance') || window.userRole.includes('การเงิน') || window.userRole.includes('งบประมาณ');
     const isAccount = window.userRole.includes('account') || window.userRole.includes('บัญชี');
     const isQa = window.userRole.includes('qa') || window.userRole.includes('ประกัน') || window.userRole.includes('qa_officer'); // 👈 เพิ่มการดักจับ QA
 
@@ -7827,7 +7834,6 @@ window.onload = async function() {
           return null;
         })
       : Promise.resolve(null);
-
     const reconPreloadPromise = canAccessRecon
       ? fetchAPI('getAccountPlanInboxData', defaultReconYear).catch(err => {
           console.warn("⚠️ โหลดหน้ากระทบยอดล่วงหน้าไม่สำเร็จ:", err);
@@ -7835,23 +7841,16 @@ window.onload = async function() {
         })
       : Promise.resolve(null);
 
-    const assignProjsPreloadPromise = canAccessRecon
-      ? fetchAPI('getActiveApprovedProjects').catch(err => {
-          console.warn("⚠️ โหลดรายชื่อโครงการหน้ากระทบยอดล่วงหน้าไม่สำเร็จ:", err);
-          return null;
-        })
-      : Promise.resolve(null);
-
-    const [perms, counts, preloadedSupplyRes, preloadedDisbApproveRes, preloadedReconRes, preloadedAssignProjs] = await Promise.all([
+    const [perms, counts, preloadedSupplyRes, preloadedDisbApproveRes, preloadedReconRes] = await Promise.all([
        fetchAPI('getMenuPermissions'),
        fetchAPI('getPendingTaskCounts'),
        supplyPreloadPromise,
        disbApprovePreloadPromise,
-       reconPreloadPromise,
-       assignProjsPreloadPromise
+       reconPreloadPromise
     ]);
 
     window.AppCache = window.AppCache || {};
+    window._lastBadgeFetchTime = Date.now(); // กัน showPage ยิง updateNavBadges ซ้ำทันที
 
     if (preloadedSupplyRes && Array.isArray(preloadedSupplyRes.data)) {
        window.AppCache.supplyDocs = preloadedSupplyRes.data;
@@ -7867,17 +7866,17 @@ window.onload = async function() {
        }
     }
 
-    if (Array.isArray(preloadedAssignProjs)) {
-       globalAssignProjects = preloadedAssignProjs;
-    }
-
     if (preloadedReconRes) {
+       if (Array.isArray(preloadedReconRes.activeProjects)) {
+         globalAssignProjects = preloadedReconRes.activeProjects;
+       }
        window.AppCache.reconInboxByYear = window.AppCache.reconInboxByYear || {};
        window.AppCache.reconInboxByYear[defaultReconYear] = preloadedReconRes;
        if (typeof renderReconInbox === 'function') {
          renderReconInbox(preloadedReconRes);
        }
     }
+    
 
     // 🌟 3. ผสมสิทธิ์แบบควบตำแหน่ง
     let activeRoles = [];
