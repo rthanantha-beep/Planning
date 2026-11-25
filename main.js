@@ -6882,45 +6882,69 @@ function switchReconTab(tabId) {
 // ==========================================
 // 🌟 1. อัปเดตตัวโหลดข้อมูลให้ดึง "รอแนบบิล" มาด้วย และจัดเรียงลำดับ
 // ==========================================
-function loadReconInbox() {
+function loadReconInbox(forceRefresh = false) {
   initReconYearDropdown();
-  const year = document.getElementById('recon-year-filter').value;
-  
-  document.getElementById('tbody-recon-pending').innerHTML = '<tr><td colspan="5" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
-  document.getElementById('tbody-recon-history').innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
-  document.getElementById('tbody-plan-assign').innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
+  const yearSelect = document.getElementById('recon-year-filter');
+  const year = yearSelect ? yearSelect.value : '';
 
-  // ดึงรายชื่อโครงการเผื่อไว้สำหรับแท็บแผนงาน
-  google.script.run.withSuccessHandler(projs => { globalAssignProjects = projs; }).getActiveApprovedProjects();
+  // ⚡ ถ้าปีงบประมาณนี้โหลดล่วงหน้าไว้แล้ว และไม่ได้กดรีเฟรชใหม่ -> แสดงผลทันที
+  if (!forceRefresh && window.AppCache && window.AppCache.reconInboxByYear && window.AppCache.reconInboxByYear[year]) {
+    renderReconInbox(window.AppCache.reconInboxByYear[year]);
+    return;
+  }
+
+  const tbPending = document.getElementById('tbody-recon-pending');
+  const tbHistory = document.getElementById('tbody-recon-history');
+  const tbAssign  = document.getElementById('tbody-plan-assign');
+  if (tbPending) tbPending.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
+  if (tbHistory) tbHistory.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
+  if (tbAssign)  tbAssign.innerHTML  = '<tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
+
+  // ดึงรายชื่อโครงการเฉพาะกรณีที่ยังไม่มีในแคชหรือสั่งรีเฟรชใหม่
+  if (forceRefresh || !Array.isArray(globalAssignProjects) || globalAssignProjects.length === 0) {
+    google.script.run.withSuccessHandler(projs => { globalAssignProjects = projs || []; }).getActiveApprovedProjects();
+  }
 
   google.script.run
     .withSuccessHandler(function(res) {
-      
-      // 🌟 1. ดึงมาทั้งคนที่ส่งบิลแล้ว(รอกระทบยอด) และคนที่ยังไม่ส่ง(รอแนบบิล)
-      let pendingRecon = res.recon.filter(r => r.reconStatus === 'รอกระทบยอด' || r.reconStatus === 'รอแนบบิล');
-      
-      // 🌟 2. จัดเรียง: เอาคนที่ "รอกระทบยอด" (พร้อมให้บัญชีตรวจ) ขึ้นบนสุด
-      pendingRecon.sort((a, b) => {
-         if (a.reconStatus === 'รอกระทบยอด' && b.reconStatus !== 'รอกระทบยอด') return -1;
-         if (a.reconStatus !== 'รอกระทบยอด' && b.reconStatus === 'รอกระทบยอด') return 1;
-         return 0; // ถ้าระดับเดียวกันให้เรียงตามเวลาเดิม
-      });
-
-      let historyRecon = res.recon.filter(r => r.reconStatus !== 'รอกระทบยอด' && r.reconStatus !== 'รอแนบบิล');
-      
-      // 🌟 3. อัปเดต Badge (ให้แจ้งเตือนเฉพาะอันที่ "รอกระทบยอด" เพื่อไม่ให้กวนใจบัญชี)
-      let readyToReconCount = pendingRecon.filter(r => r.reconStatus === 'รอกระทบยอด').length;
-      
-      const bRecon = document.getElementById('badge-recon-pending');
-      const bPlan = document.getElementById('badge-plan-pending');
-      if(bRecon) { bRecon.innerText = readyToReconCount; bRecon.style.display = readyToReconCount > 0 ? 'inline-block' : 'none'; }
-      if(bPlan) { bPlan.innerText = res.expenses.length; bPlan.style.display = res.expenses.length > 0 ? 'inline-block' : 'none'; }
-
-      renderReconPendingTable(pendingRecon);
-      renderReconHistoryTable(historyRecon);
-      renderPlanAssignTable(res.expenses);
+      window.AppCache = window.AppCache || {};
+      window.AppCache.reconInboxByYear = window.AppCache.reconInboxByYear || {};
+      window.AppCache.reconInboxByYear[year] = res;
+      renderReconInbox(res);
+    })
+    .withFailureHandler(function(err) {
+      if (tbPending) tbPending.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#e74c3c; padding:20px;">เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
     })
     .getAccountPlanInboxData(year);
+}
+
+function renderReconInbox(res) {
+  const reconList = (res && Array.isArray(res.recon)) ? res.recon : [];
+  const expensesList = (res && Array.isArray(res.expenses)) ? res.expenses : [];
+
+  // 🌟 1. ดึงมาทั้งคนที่ส่งบิลแล้ว(รอกระทบยอด) และคนที่ยังไม่ส่ง(รอแนบบิล)
+  let pendingRecon = reconList.filter(r => r.reconStatus === 'รอกระทบยอด' || r.reconStatus === 'รอแนบบิล');
+
+  // 🌟 2. จัดเรียง: เอาคนที่ "รอกระทบยอด" (พร้อมให้บัญชีตรวจ) ขึ้นบนสุด
+  pendingRecon.sort((a, b) => {
+     if (a.reconStatus === 'รอกระทบยอด' && b.reconStatus !== 'รอกระทบยอด') return -1;
+     if (a.reconStatus !== 'รอกระทบยอด' && b.reconStatus === 'รอกระทบยอด') return 1;
+     return 0;
+  });
+
+  let historyRecon = reconList.filter(r => r.reconStatus !== 'รอกระทบยอด' && r.reconStatus !== 'รอแนบบิล');
+
+  // 🌟 3. อัปเดต Badge (แจ้งเตือนเฉพาะรายการที่พร้อมตรวจ)
+  let readyToReconCount = pendingRecon.filter(r => r.reconStatus === 'รอกระทบยอด').length;
+
+  const bRecon = document.getElementById('badge-recon-pending');
+  const bPlan = document.getElementById('badge-plan-pending');
+  if (bRecon) { bRecon.innerText = readyToReconCount; bRecon.style.display = readyToReconCount > 0 ? 'inline-block' : 'none'; }
+  if (bPlan) { bPlan.innerText = expensesList.length; bPlan.style.display = expensesList.length > 0 ? 'inline-block' : 'none'; }
+
+  renderReconPendingTable(pendingRecon);
+  renderReconHistoryTable(historyRecon);
+  renderPlanAssignTable(expensesList);
 }
 
 // =========================================================================
@@ -7128,11 +7152,11 @@ function executeReconBackend(reqId, action, actualAmount, comment, topupAmount, 
     google.script.run
       .withSuccessHandler(function(res) {
           Swal.fire({ icon: 'success', title: 'สำเร็จ', text: res.message, customClass: { container: 'kanit-font' } });
-          loadReconInbox();
+          loadReconInbox(true);
       })
       .withFailureHandler(function(err) {
           Swal.fire({ icon: 'error', title: 'ผิดพลาด', text: err.message, customClass: { container: 'kanit-font' } });
-          loadReconInbox();
+          loadReconInbox(true);
       })
       .processReconciliationDecision(reqId, action, actualAmount, comment, topupAmount, newSource);
 }
@@ -7229,7 +7253,7 @@ function submitProjectAssignments() {
     .withSuccessHandler(res => {
       alert(res.message);
       btn.innerHTML = '<i class="fas fa-save"></i> ยืนยันผูกโครงการตัดยอด'; btn.disabled = false;
-      loadReconInbox(); // รีโหลดตะกร้า
+      loadReconInbox(true); // รีโหลดตะกร้า
     })
     .withFailureHandler(err => {
       alert("ผิดพลาด: " + err.message);
@@ -7519,17 +7543,7 @@ function processOwnerApproval(reqId, action) {
 }
 
 // 🌟 สร้าง Observer ดักจับตอนเปิดเมนูกระทบยอด ให้ทำงานอัตโนมัติ
-var observerRecon = new MutationObserver((mutations) => {
-  mutations.forEach((m) => { if (m.target.style.display === 'block') loadReconInbox(); });
-});
-var pageReconNode = document.getElementById('page-reconciliation'); 
-if (pageReconNode) observerRecon.observe(pageReconNode, { attributes: true, attributeFilter: ['style'] });
-// 🌟 สร้าง Observer ดักจับตอนเปิดเมนูกระทบยอด ให้ทำงานอัตโนมัติ
-var observerRecon = new MutationObserver((mutations) => {
-  mutations.forEach((m) => { if (m.target.style.display === 'block') loadReconInbox(); });
-});
-var pageReconNode = document.getElementById('page-reconciliation'); // *แก้ไข ID ให้ตรงกับแท็บหลักใน Index.html
-if (pageReconNode) observerRecon.observe(pageReconNode, { attributes: true, attributeFilter: ['style'] });
+
 // ==========================================
 // 🌟 1. ระบบช่วยดึงข้อมูลอัจฉริยะ (Promisify)
 // ==========================================
@@ -7793,7 +7807,13 @@ window.onload = async function() {
       disbRoleEl.innerText = quickDisbRole;
     }
 
-    // 🌟 โหลดข้อมูลล่วงหน้าขนานกันในรอบเดียว (งานพัสดุ + ตะกร้าพิจารณา ผง.2)
+    // 🌟 โหลดข้อมูลล่วงหน้าขนานกันในรอบเดียว (งานพัสดุ + พิจารณา ผง.2 + กระทบยอดเคลียร์บิล)
+    const canAccessRecon = isAdmin || isFinance || isAccount;
+    const defaultReconYear = (typeof getDefaultYear === 'function') ? getDefaultYear() : '';
+    if (canAccessRecon && typeof initReconYearDropdown === 'function') {
+      initReconYearDropdown();
+    }
+
     const supplyPreloadPromise = isSupply
       ? fetchAPI('getSupplyDocsList').catch(err => {
           console.warn("⚠️ โหลดตะกร้าพัสดุล่วงหน้าไม่สำเร็จ:", err);
@@ -7808,11 +7828,27 @@ window.onload = async function() {
         })
       : Promise.resolve(null);
 
-    const [perms, counts, preloadedSupplyRes, preloadedDisbApproveRes] = await Promise.all([
+    const reconPreloadPromise = canAccessRecon
+      ? fetchAPI('getAccountPlanInboxData', defaultReconYear).catch(err => {
+          console.warn("⚠️ โหลดหน้ากระทบยอดล่วงหน้าไม่สำเร็จ:", err);
+          return null;
+        })
+      : Promise.resolve(null);
+
+    const assignProjsPreloadPromise = canAccessRecon
+      ? fetchAPI('getActiveApprovedProjects').catch(err => {
+          console.warn("⚠️ โหลดรายชื่อโครงการหน้ากระทบยอดล่วงหน้าไม่สำเร็จ:", err);
+          return null;
+        })
+      : Promise.resolve(null);
+
+    const [perms, counts, preloadedSupplyRes, preloadedDisbApproveRes, preloadedReconRes, preloadedAssignProjs] = await Promise.all([
        fetchAPI('getMenuPermissions'),
        fetchAPI('getPendingTaskCounts'),
        supplyPreloadPromise,
-       disbApprovePreloadPromise
+       disbApprovePreloadPromise,
+       reconPreloadPromise,
+       assignProjsPreloadPromise
     ]);
 
     window.AppCache = window.AppCache || {};
@@ -7828,6 +7864,18 @@ window.onload = async function() {
        window.AppCache.disbApproveInbox = preloadedDisbApproveRes;
        if (typeof renderDisbApproveInbox === 'function') {
          renderDisbApproveInbox(preloadedDisbApproveRes);
+       }
+    }
+
+    if (Array.isArray(preloadedAssignProjs)) {
+       globalAssignProjects = preloadedAssignProjs;
+    }
+
+    if (preloadedReconRes) {
+       window.AppCache.reconInboxByYear = window.AppCache.reconInboxByYear || {};
+       window.AppCache.reconInboxByYear[defaultReconYear] = preloadedReconRes;
+       if (typeof renderReconInbox === 'function') {
+         renderReconInbox(preloadedReconRes);
        }
     }
 
@@ -7952,7 +8000,7 @@ function submitPendingExpense() {
       document.getElementById('expenseModal').style.display = 'none';
       btn.innerHTML = '<i class="fas fa-save"></i> บันทึกข้อมูลส่งแผนงาน'; 
       btn.disabled = false;
-      loadReconInbox(); // โหลดตะกร้าใหม่ เพื่อให้แท็บ "แผนงาน" อัปเดตตัวเลข
+      loadReconInbox(true); // โหลดตะกร้าใหม่ เพื่อให้แท็บ "แผนงาน" อัปเดตตัวเลข
       updateNavBadges(); // อัปเดตตัวเลขกระดิ่งแจ้งเตือน
     })
     .withFailureHandler(err => {
@@ -7998,7 +8046,7 @@ function submitReconDecision(action) {
     .withSuccessHandler(function(res) {
       alert(res.message);
       closeReconModal();
-      loadReconInbox();  // โหลดข้อมูลตารางใหม่
+      loadReconInbox(true);  // โหลดข้อมูลตารางใหม่
       updateNavBadges(); // อัปเดตตัวเลขแจ้งเตือนใหม่
       
       btnApprove.disabled = false; btnReject.disabled = false;
@@ -10457,7 +10505,7 @@ function showPage(pageId) {
     else if (pageId === 'page-budget-admin') loadBudgetAdminDashboard();
     else if (pageId === 'page-disb-approve') loadDisbApproveInbox(); 
     else if (pageId === 'page-supply-docs') loadSupplyDocsDashboard(); 
-    else if (pageId === 'page-reconciliation') loadReconciliationDashboard();
+    else if (pageId === 'page-reconciliation') loadReconInbox();
     else if (pageId === 'page-amendment-docs') loadAmendmentDocs(); 
     else if (pageId === 'page-all-disbursements') loadAllDisbursementsAdmin(); 
     else if (pageId === 'page-approve') {
