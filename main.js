@@ -4482,183 +4482,193 @@ function submitDisbReview(action) {
 // ==========================================
 // 🌟 2. อัปเดตฟังก์ชันโหลดตะกร้าพัสดุ (ใส่ปุ่มใหม่)
 // ==========================================
-function loadSupplyDocsDashboard() {
+function loadSupplyDocsDashboard(forceRefresh = false) {
   const tbodyPending = document.getElementById('supply-docs-pending-tbody');
   const tbodyCompleted = document.getElementById('supply-docs-completed-tbody');
   if (!tbodyPending || !tbodyCompleted) return;
+
+  // ⚡ ถ้าโหลดล่วงหน้าไว้แล้ว และไม่ได้กดรีเฟรชใหม่ -> แสดงผลทันทีไม่ต้องรอโหลดซ้ำ
+  if (!forceRefresh && window.AppCache && Array.isArray(window.AppCache.supplyDocs)) {
+    renderSupplyDocsDashboard(window.AppCache.supplyDocs);
+    return;
+  }
 
   tbodyPending.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color:#8e44ad;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>กำลังดึงคิวงาน...</td></tr>';
   tbodyCompleted.innerHTML = '<tr><td colspan="6" style="text-align: center; padding: 40px; color:#27ae60;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>กำลังดึงคิวงาน...</td></tr>';
 
   google.script.run
     .withSuccessHandler(function(res) {
-      globalSupplyDocsData = res.data || [];
-
-      // ฟังก์ชันย่อยสร้าง HTML ของแต่ละแถว (ซ่อนรายละเอียดเป็น default ทั้งหมด)
-      const buildSupplyRowHtml = (item, isPending) => {
-        const bills = item.bills || [];
-        const allMatchedText = bills.map(b => b.matchedItems || '').join(' | ');
-
-        let itemsListHtml = `<ul style="margin: 0; padding-left: 15px; font-size: 0.85rem; color: #2c3e50; line-height: 1.8;">`;
-        if (item.items && item.items.length > 0) {
-          item.items.forEach(it => {
-            if (it.name === '#SYS_VAT#' || it.name === '#SYS_SHIPPING#') return;
-            let srcTag = it.fundingSource
-              ? ` <span style="background:#eaf2f8; color:#2980b9; padding:1px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold;">${it.fundingSource}</span>`
-              : '';
-            let hasBillTag = (allMatchedText && allMatchedText.includes(it.name))
-              ? ` <span style="background:#e9f7ef; color:#27ae60; border:1px solid #a9dfbf; padding:1px 6px; border-radius:4px; font-size:0.72rem; font-weight:bold;"><i class="fas fa-check-circle"></i> มีบิลแล้ว</span>`
-              : '';
-            itemsListHtml += `<li><b>${it.name}</b> <span style="color:#7f8c8d;">(${it.qty} ${it.unit} x ${Number(it.price).toLocaleString()} บ.)</span>${srcTag}${hasBillTag}</li>`;
-          });
-        } else {
-          itemsListHtml += `<li style="color:#e74c3c;">ไม่มีข้อมูลรายการ</li>`;
-        }
-        itemsListHtml += '</ul>';
-
-        let attachedBillsHtml = '';
-        if (bills.length > 0) {
-          let billBtns = bills.map((b, idx) => `
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px; padding:6px 8px; background:#f8f9fa; border:1px solid #d5f5e3; border-radius:5px;">
-              <a href="${b.url}" target="_blank" style="background:#27ae60; color:white; padding:3px 10px; border-radius:4px; text-decoration:none; font-size:0.78rem; font-weight:bold; white-space:nowrap;">
-                <i class="fas fa-receipt"></i> ดูบิล ${idx + 1} (${Number(b.amount).toLocaleString()} ฿)
-              </a>
-              <span style="font-size:0.8rem; color:#2c3e50;"><b>จับคู่รายการ:</b> ${b.matchedItems || '-'}</span>
-            </div>`).join('');
-
-          attachedBillsHtml = `
-            <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #a9dfbf;">
-              <div style="font-size:0.82rem; font-weight:bold; color:#27ae60; margin-bottom:6px;">
-                <i class="fas fa-file-invoice-dollar"></i> บิลที่ครูแนบเข้ามาในระบบ (${bills.length} ใบ):
-              </div>
-              ${billBtns}
-            </div>`;
-        } else {
-          attachedBillsHtml = `
-            <div style="margin-top:8px; padding-top:6px; border-top:1px dashed #eee; font-size:0.78rem; color:#95a5a6;">
-              <i class="far fa-clock"></i> ครูยังไม่ได้แนบบิลเข้ามาในระบบ
-            </div>`;
-        }
-
-        let billCountBadge = bills.length > 0
-          ? `<div style="margin-top:4px;"><span style="background:#27ae60; color:white; padding:2px 6px; border-radius:10px; font-size:0.7rem; font-weight:bold;"><i class="fas fa-receipt"></i> มีบิล ${bills.length} ใบ</span></div>`
-          : '';
-
-        let statuses = ['รอจัดทำเอกสาร', 'จัดทำเอกสารแล้ว', 'ยกเลิกรายการ'];
-        let statusOptions = statuses.map(s => `<option value="${s}" ${(item.docStatus === s) ? 'selected' : ''}>${s}</option>`).join('');
-        let bgDrop = item.docStatus === 'จัดทำเอกสารแล้ว' ? '#e9f7ef' : (item.docStatus === 'ยกเลิกรายการ' ? '#fdedec' : '#fff');
-        let selectHtml = `<select onchange="toggleSupplyDocStatus('${item.reqId}', this.value)" style="padding:6px; border-radius:4px; font-family:'Kanit'; border:1px solid #bdc3c7; width:100%; font-size:0.85rem; background:${bgDrop}; cursor:pointer;">${statusOptions}</select>`;
-
-        let actionButtons = `
-          <div style="display:flex; flex-direction:column; gap:4px; width:100%;">
-            <div style="display:flex; gap:4px;">
-              <button onclick="exportExcelSupply('${item.reqId}')" style="flex:1; background:#27ae60; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-file-excel"></i> Excel</button>
-              <button onclick="printDisbursementDocument('${item.reqId}')" style="flex:1; background:#e74c3c; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-print"></i> ผง.2</button>
-            </div>
-            <div style="display:flex; gap:4px;">
-              <button onclick="openSupplyDocModal('${item.reqId}', 'จัดซื้อ')" style="flex:1; background:#2980b9; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-file-word"></i> จัดซื้อ</button>
-              <button onclick="openSupplyDocModal('${item.reqId}', 'จัดจ้าง')" style="flex:1; background:#8e44ad; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-file-word"></i> จัดจ้าง</button>
-            </div>
-          </div>`;
-
-        let actionBadge = item.actionType || "จัดซื้อ/จัดจ้าง";
-        let catBadge = item.itemCategory || "วัสดุ/ครุภัณฑ์";
-        let sectionText = item.projectSection || "-";
-        let objectiveText = item.objective || "การดำเนินงานของโครงการ";
-        let fundingText = (item.fundingSource && item.fundingSource !== '-') ? item.fundingSource : "งบประมาณที่ได้รับจัดสรร";
-
-        // 🔒 ซ่อนรายละเอียดเป็น Default ทั้งหมด
-        let displayStyle = 'none';
-        let iconClass = 'fa-chevron-down';
-
-        return `
-          <tr style="border-top: 2px solid #ecf0f1; background:${isPending ? '#fff' : '#f9fbfc'}; transition: 0.2s;">
-            <td style="padding: 12px; cursor: pointer; width:10%;" onclick="toggleSupplyCard('${item.reqId}')">
-              <div style="color:#7f8c8d; font-size:0.8rem;"><i class="far fa-clock"></i> ${item.timestamp.split(' ')[0]}</div>
-              <div style="font-weight:bold; color:#8e44ad; font-size:0.85rem;">[${item.reqId}]</div>
-              ${billCountBadge}
-            </td>
-            <td style="padding: 12px; cursor: pointer; width:52%; border-right: 1px dashed #eee;" colspan="2" onclick="toggleSupplyCard('${item.reqId}')">
-              <div style="display:flex; justify-content: space-between; align-items: center;">
-                <div>
-                  <div style="font-weight:bold; color:#2c3e50; font-size:1.05rem; margin-bottom:4px;">
-                    ${item.projectName} <span style="font-size:0.8rem; background:#f1c40f; color:#333; padding:2px 6px; border-radius:4px; margin-left:5px;">${actionBadge} ${catBadge}</span>
-                  </div>
-                  <div style="font-size:0.85rem; color:#e67e22;"><i class="fas fa-building"></i> ${sectionText} <span style="color:#bdc3c7;">|</span> <i class="fas fa-user"></i> ${item.requesterName}</div>
-                </div>
-                <i id="supply-icon-${item.reqId}" class="fas ${iconClass} fa-lg" style="color:#bdc3c7; transition:0.3s;"></i>
-              </div>
-            </td>
-            <td style="padding: 12px; text-align:right; font-weight:bold; color:#c0392b; width:10%;">${Number(item.total).toLocaleString('en-US')} ฿</td>
-            <td style="padding: 12px; text-align:center; width:12%;">${selectHtml}</td>
-            <td style="padding: 12px; text-align:center; width:16%;">${actionButtons}</td>
-          </tr>
-          <tr id="supply-detail-${item.reqId}" style="display: ${displayStyle}; background: #fdfefe;">
-            <td colspan="6" style="padding: 15px 20px; border-bottom: 2px solid #ecf0f1;">
-              <div style="display:flex; gap: 20px; flex-wrap: wrap;">
-                <div style="flex:1; min-width: 250px; background:#eaf2f8; padding:10px; border-radius:6px; border-left:4px solid #3498db;">
-                  <div style="font-size:0.8rem; color:#7f8c8d; font-weight:bold; margin-bottom:5px;">สรุปความประสงค์:</div>
-                  <div style="font-size:0.9rem; color:#34495e;">"ด้วย <b>${sectionText}</b> มีความประสงค์ขอดำเนินการ <b>${actionBadge} ${catBadge}</b> เพื่อ <b>${objectiveText}</b> ตามโครงการนี้ โดยใช้งบ <b>${fundingText}</b>"</div>
-                </div>
-                <div style="flex:2; min-width: 300px; background:#fff; padding:10px; border-radius:6px; border:1px solid #e0e6ed;">
-                  <div style="font-size:0.85rem; font-weight:bold; color:#2c3e50; margin-bottom:5px; border-bottom:1px dashed #eee; padding-bottom:5px;"><i class="fas fa-box"></i> รายการสิ่งของที่ขอเบิก:</div>
-                  ${itemsListHtml}
-                  ${attachedBillsHtml}
-                  <div style="font-size:0.8rem; color:#7f8c8d; margin-top:8px; padding-top:5px; border-top:1px dashed #eee;"><i class="fas fa-users"></i> กรรมการ: ${item.comm1 || '-'} | ${item.comm2 || '-'} | ${item.comm3 || '-'}</div>
-                </div>
-              </div>
-            </td>
-          </tr>`;
-      };
-
-      // แยกกลุ่มข้อมูล
-      const pendingItems = globalSupplyDocsData.filter(item => item.docStatus === 'รอจัดทำเอกสาร' || !item.docStatus);
-      const completedItems = globalSupplyDocsData.filter(item => item.docStatus && item.docStatus !== 'รอจัดทำเอกสาร');
-
-      // แยกกลุ่ม Pending เป็น 2 ส่วน + เรียงมาก่อนอยู่บน (Ascending)
-      const pendingWithBills = pendingItems
-        .filter(item => item.bills && item.bills.length > 0)
-        .sort((a, b) => a.reqId.localeCompare(b.reqId));
-
-      const pendingNoBills = pendingItems
-        .filter(item => !item.bills || item.bills.length === 0)
-        .sort((a, b) => a.reqId.localeCompare(b.reqId));
-
-      // แท็บจัดทำแล้ว เรียงใหม่สุดอยู่บนเหมือนเดิม
-      completedItems.sort((a, b) => b.reqId.localeCompare(a.reqId));
-
-      // ประกอบ HTML แท็บ "รอจัดทำเอกสาร" แยกเป็น 2 ส่วนชัดเจน
-      let pendingHtml = '';
-      if (pendingWithBills.length > 0) {
-        pendingHtml += `
-          <tr style="background:#e9f7ef; border-top:2px solid #27ae60; border-bottom:2px solid #a9dfbf;">
-            <td colspan="6" style="padding:10px 15px; font-weight:bold; color:#1e8449; font-size:0.95rem;">
-              <i class="fas fa-receipt"></i> ส่วนที่ 1: รายการที่แนบบิลแล้ว (${pendingWithBills.length} รายการ) — เรียงตามลำดับมาก่อนอยู่บน
-            </td>
-          </tr>`;
-        pendingWithBills.forEach(item => { pendingHtml += buildSupplyRowHtml(item, true); });
-      }
-
-      if (pendingNoBills.length > 0) {
-        pendingHtml += `
-          <tr style="background:#fef5e7; border-top:3px solid #e67e22; border-bottom:2px solid #fad7a0;">
-            <td colspan="6" style="padding:10px 15px; font-weight:bold; color:#d35400; font-size:0.95rem;">
-              <i class="far fa-clock"></i> ส่วนที่ 2: รายการที่ยังไม่ได้แนบบิล (${pendingNoBills.length} รายการ) — เรียงตามลำดับมาก่อนอยู่บน
-            </td>
-          </tr>`;
-        pendingNoBills.forEach(item => { pendingHtml += buildSupplyRowHtml(item, true); });
-      }
-
-      let completedHtml = '';
-      completedItems.forEach(item => { completedHtml += buildSupplyRowHtml(item, false); });
-
-      tbodyPending.innerHTML = pendingHtml || '<tr><td colspan="6" style="text-align: center; padding: 30px; color:#95a5a6;">ไม่มีคิวงานรอจัดทำเอกสาร</td></tr>';
-      tbodyCompleted.innerHTML = completedHtml || '<tr><td colspan="6" style="text-align: center; padding: 30px; color:#95a5a6;">ยังไม่มีงานที่ออกเอกสารแล้ว</td></tr>';
+      const dataList = (res && res.data) ? res.data : [];
+      window.AppCache = window.AppCache || {};
+      window.AppCache.supplyDocs = dataList;
+      renderSupplyDocsDashboard(dataList);
     })
     .withFailureHandler(function(err) { alert("โหลดพัสดุผิดพลาด: " + err.message); })
     .getSupplyDocsList();
 }
+function renderSupplyDocsDashboard(dataList) {
+  const tbodyPending = document.getElementById('supply-docs-pending-tbody');
+  const tbodyCompleted = document.getElementById('supply-docs-completed-tbody');
+  if (!tbodyPending || !tbodyCompleted) return;
 
+  globalSupplyDocsData = dataList || [];
+
+  // ฟังก์ชันย่อยสร้าง HTML ของแต่ละแถว (ซ่อนรายละเอียดเป็น default ทั้งหมด)
+  const buildSupplyRowHtml = (item, isPending) => {
+    const bills = item.bills || [];
+    const allMatchedText = bills.map(b => b.matchedItems || '').join(' | ');
+
+    let itemsListHtml = `<ul style="margin: 0; padding-left: 15px; font-size: 0.85rem; color: #2c3e50; line-height: 1.8;">`;
+    if (item.items && item.items.length > 0) {
+      item.items.forEach(it => {
+        if (it.name === '#SYS_VAT#' || it.name === '#SYS_SHIPPING#') return;
+        let srcTag = it.fundingSource
+          ? ` <span style="background:#eaf2f8; color:#2980b9; padding:1px 6px; border-radius:4px; font-size:0.75rem; font-weight:bold;">${it.fundingSource}</span>`
+          : '';
+        let hasBillTag = (allMatchedText && allMatchedText.includes(it.name))
+          ? ` <span style="background:#e9f7ef; color:#27ae60; border:1px solid #a9dfbf; padding:1px 6px; border-radius:4px; font-size:0.72rem; font-weight:bold;"><i class="fas fa-check-circle"></i> มีบิลแล้ว</span>`
+          : '';
+        itemsListHtml += `<li><b>${it.name}</b> <span style="color:#7f8c8d;">(${it.qty} ${it.unit} x ${Number(it.price).toLocaleString()} บ.)</span>${srcTag}${hasBillTag}</li>`;
+      });
+    } else {
+      itemsListHtml += `<li style="color:#e74c3c;">ไม่มีข้อมูลรายการ</li>`;
+    }
+    itemsListHtml += '</ul>';
+
+    let attachedBillsHtml = '';
+    if (bills.length > 0) {
+      let billBtns = bills.map((b, idx) => `
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:6px; padding:6px 8px; background:#f8f9fa; border:1px solid #d5f5e3; border-radius:5px;">
+          <a href="${b.url}" target="_blank" style="background:#27ae60; color:white; padding:3px 10px; border-radius:4px; text-decoration:none; font-size:0.78rem; font-weight:bold; white-space:nowrap;">
+            <i class="fas fa-receipt"></i> ดูบิล ${idx + 1} (${Number(b.amount).toLocaleString()} ฿)
+          </a>
+          <span style="font-size:0.8rem; color:#2c3e50;"><b>จับคู่รายการ:</b> ${b.matchedItems || '-'}</span>
+        </div>`).join('');
+
+      attachedBillsHtml = `
+        <div style="margin-top:10px; padding-top:8px; border-top:1px dashed #a9dfbf;">
+          <div style="font-size:0.82rem; font-weight:bold; color:#27ae60; margin-bottom:6px;">
+            <i class="fas fa-file-invoice-dollar"></i> บิลที่ครูแนบเข้ามาในระบบ (${bills.length} ใบ):
+          </div>
+          ${billBtns}
+        </div>`;
+    } else {
+      attachedBillsHtml = `
+        <div style="margin-top:8px; padding-top:6px; border-top:1px dashed #eee; font-size:0.78rem; color:#95a5a6;">
+          <i class="far fa-clock"></i> ครูยังไม่ได้แนบบิลเข้ามาในระบบ
+        </div>`;
+    }
+
+    let billCountBadge = bills.length > 0
+      ? `<div style="margin-top:4px;"><span style="background:#27ae60; color:white; padding:2px 6px; border-radius:10px; font-size:0.7rem; font-weight:bold;"><i class="fas fa-receipt"></i> มีบิล ${bills.length} ใบ</span></div>`
+      : '';
+
+    let statuses = ['รอจัดทำเอกสาร', 'จัดทำเอกสารแล้ว', 'ยกเลิกรายการ'];
+    let statusOptions = statuses.map(s => `<option value="${s}" ${(item.docStatus === s) ? 'selected' : ''}>${s}</option>`).join('');
+    let bgDrop = item.docStatus === 'จัดทำเอกสารแล้ว' ? '#e9f7ef' : (item.docStatus === 'ยกเลิกรายการ' ? '#fdedec' : '#fff');
+    let selectHtml = `<select onchange="toggleSupplyDocStatus('${item.reqId}', this.value)" style="padding:6px; border-radius:4px; font-family:'Kanit'; border:1px solid #bdc3c7; width:100%; font-size:0.85rem; background:${bgDrop}; cursor:pointer;">${statusOptions}</select>`;
+
+    let actionButtons = `
+      <div style="display:flex; flex-direction:column; gap:4px; width:100%;">
+        <div style="display:flex; gap:4px;">
+          <button onclick="exportExcelSupply('${item.reqId}')" style="flex:1; background:#27ae60; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-file-excel"></i> Excel</button>
+          <button onclick="printDisbursementDocument('${item.reqId}')" style="flex:1; background:#e74c3c; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-print"></i> ผง.2</button>
+        </div>
+        <div style="display:flex; gap:4px;">
+          <button onclick="openSupplyDocModal('${item.reqId}', 'จัดซื้อ')" style="flex:1; background:#2980b9; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-file-word"></i> จัดซื้อ</button>
+          <button onclick="openSupplyDocModal('${item.reqId}', 'จัดจ้าง')" style="flex:1; background:#8e44ad; color:white; border:none; padding:6px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.75rem;"><i class="fas fa-file-word"></i> จัดจ้าง</button>
+        </div>
+      </div>`;
+
+    let actionBadge = item.actionType || "จัดซื้อ/จัดจ้าง";
+    let catBadge = item.itemCategory || "วัสดุ/ครุภัณฑ์";
+    let sectionText = item.projectSection || "-";
+    let objectiveText = item.objective || "การดำเนินงานของโครงการ";
+    let fundingText = (item.fundingSource && item.fundingSource !== '-') ? item.fundingSource : "งบประมาณที่ได้รับจัดสรร";
+
+    let displayStyle = 'none';
+    let iconClass = 'fa-chevron-down';
+
+    return `
+      <tr style="border-top: 2px solid #ecf0f1; background:${isPending ? '#fff' : '#f9fbfc'}; transition: 0.2s;">
+        <td style="padding: 12px; cursor: pointer; width:10%;" onclick="toggleSupplyCard('${item.reqId}')">
+          <div style="color:#7f8c8d; font-size:0.8rem;"><i class="far fa-clock"></i> ${item.timestamp.split(' ')[0]}</div>
+          <div style="font-weight:bold; color:#8e44ad; font-size:0.85rem;">[${item.reqId}]</div>
+          ${billCountBadge}
+        </td>
+        <td style="padding: 12px; cursor: pointer; width:52%; border-right: 1px dashed #eee;" colspan="2" onclick="toggleSupplyCard('${item.reqId}')">
+          <div style="display:flex; justify-content: space-between; align-items: center;">
+            <div>
+              <div style="font-weight:bold; color:#2c3e50; font-size:1.05rem; margin-bottom:4px;">
+                ${item.projectName} <span style="font-size:0.8rem; background:#f1c40f; color:#333; padding:2px 6px; border-radius:4px; margin-left:5px;">${actionBadge} ${catBadge}</span>
+              </div>
+              <div style="font-size:0.85rem; color:#e67e22;"><i class="fas fa-building"></i> ${sectionText} <span style="color:#bdc3c7;">|</span> <i class="fas fa-user"></i> ${item.requesterName}</div>
+            </div>
+            <i id="supply-icon-${item.reqId}" class="fas ${iconClass} fa-lg" style="color:#bdc3c7; transition:0.3s;"></i>
+          </div>
+        </td>
+        <td style="padding: 12px; text-align:right; font-weight:bold; color:#c0392b; width:10%;">${Number(item.total).toLocaleString('en-US')} ฿</td>
+        <td style="padding: 12px; text-align:center; width:12%;">${selectHtml}</td>
+        <td style="padding: 12px; text-align:center; width:16%;">${actionButtons}</td>
+      </tr>
+      <tr id="supply-detail-${item.reqId}" style="display: ${displayStyle}; background: #fdfefe;">
+        <td colspan="6" style="padding: 15px 20px; border-bottom: 2px solid #ecf0f1;">
+          <div style="display:flex; gap: 20px; flex-wrap: wrap;">
+            <div style="flex:1; min-width: 250px; background:#eaf2f8; padding:10px; border-radius:6px; border-left:4px solid #3498db;">
+              <div style="font-size:0.8rem; color:#7f8c8d; font-weight:bold; margin-bottom:5px;">สรุปความประสงค์:</div>
+              <div style="font-size:0.9rem; color:#34495e;">"ด้วย <b>${sectionText}</b> มีความประสงค์ขอดำเนินการ <b>${actionBadge} ${catBadge}</b> เพื่อ <b>${objectiveText}</b> ตามโครงการนี้ โดยใช้งบ <b>${fundingText}</b>"</div>
+            </div>
+            <div style="flex:2; min-width: 300px; background:#fff; padding:10px; border-radius:6px; border:1px solid #e0e6ed;">
+              <div style="font-size:0.85rem; font-weight:bold; color:#2c3e50; margin-bottom:5px; border-bottom:1px dashed #eee; padding-bottom:5px;"><i class="fas fa-box"></i> รายการสิ่งของที่ขอเบิก:</div>
+              ${itemsListHtml}
+              ${attachedBillsHtml}
+              <div style="font-size:0.8rem; color:#7f8c8d; margin-top:8px; padding-top:5px; border-top:1px dashed #eee;"><i class="fas fa-users"></i> กรรมการ: ${item.comm1 || '-'} | ${item.comm2 || '-'} | ${item.comm3 || '-'}</div>
+            </div>
+          </div>
+        </td>
+      </tr>`;
+  };
+
+  const pendingItems = globalSupplyDocsData.filter(item => item.docStatus === 'รอจัดทำเอกสาร' || !item.docStatus);
+  const completedItems = globalSupplyDocsData.filter(item => item.docStatus && item.docStatus !== 'รอจัดทำเอกสาร');
+
+  const pendingWithBills = pendingItems
+    .filter(item => item.bills && item.bills.length > 0)
+    .sort((a, b) => a.reqId.localeCompare(b.reqId));
+
+  const pendingNoBills = pendingItems
+    .filter(item => !item.bills || item.bills.length === 0)
+    .sort((a, b) => a.reqId.localeCompare(b.reqId));
+
+  completedItems.sort((a, b) => b.reqId.localeCompare(a.reqId));
+
+  let pendingHtml = '';
+  if (pendingWithBills.length > 0) {
+    pendingHtml += `
+      <tr style="background:#e9f7ef; border-top:2px solid #27ae60; border-bottom:2px solid #a9dfbf;">
+        <td colspan="6" style="padding:10px 15px; font-weight:bold; color:#1e8449; font-size:0.95rem;">
+          <i class="fas fa-receipt"></i> ส่วนที่ 1: รายการที่แนบบิลแล้ว (${pendingWithBills.length} รายการ) — เรียงตามลำดับมาก่อนอยู่บน
+        </td>
+      </tr>`;
+    pendingWithBills.forEach(item => { pendingHtml += buildSupplyRowHtml(item, true); });
+  }
+
+  if (pendingNoBills.length > 0) {
+    pendingHtml += `
+      <tr style="background:#fef5e7; border-top:3px solid #e67e22; border-bottom:2px solid #fad7a0;">
+        <td colspan="6" style="padding:10px 15px; font-weight:bold; color:#d35400; font-size:0.95rem;">
+          <i class="far fa-clock"></i> ส่วนที่ 2: รายการที่ยังไม่ได้แนบบิล (${pendingNoBills.length} รายการ) — เรียงตามลำดับมาก่อนอยู่บน
+        </td>
+      </tr>`;
+    pendingNoBills.forEach(item => { pendingHtml += buildSupplyRowHtml(item, true); });
+  }
+
+  let completedHtml = '';
+  completedItems.forEach(item => { completedHtml += buildSupplyRowHtml(item, false); });
+
+  tbodyPending.innerHTML = pendingHtml || '<tr><td colspan="6" style="text-align: center; padding: 30px; color:#95a5a6;">ไม่มีคิวงานรอจัดทำเอกสาร</td></tr>';
+  tbodyCompleted.innerHTML = completedHtml || '<tr><td colspan="6" style="text-align: center; padding: 30px; color:#95a5a6;">ยังไม่มีงานที่ออกเอกสารแล้ว</td></tr>';
+}
 // ==========================================
 // 🌟 3. ฟังก์ชันจองที่ไว้สำหรับ ออกเอกสารจัดซื้อ/จัดจ้าง
 // ==========================================
@@ -4692,12 +4702,11 @@ function generateHireDoc(reqId) {
      
      google.script.run
        .withSuccessHandler(function(res) { 
-           // โหลดตารางใหม่เพื่อให้ข้อมูลจัดเรียงลงกล่องใหม่ทันที
-           loadSupplyDocsDashboard(); 
+           loadSupplyDocsDashboard(true); 
        })
        .withFailureHandler(function(err) { 
-           alert("ผิดพลาด: " + err.message); 
-           loadSupplyDocsDashboard(); 
+           alert("ผิดพลาด: " + err.message);
+           loadSupplyDocsDashboard(true); 
        })
        .updateSupplyDocStatus(reqId, newStatus);
   }
@@ -7776,10 +7785,30 @@ window.onload = async function() {
     else roleDisplay = 'ผู้ใช้งานทั่วไป';
     document.getElementById('user-role-display').innerText = "สิทธิ์: " + roleDisplay;
 
-    const [perms, counts] = await Promise.all([
+    const initRequests = [
        fetchAPI('getMenuPermissions'),
        fetchAPI('getPendingTaskCounts')
-    ]);
+    ];
+
+    // 🌟 ถ้ามีสิทธิ์งานพัสดุ ให้โหลดตะกร้าใบขออนุมัติเบิกจ่ายขนานไปพร้อมกันเลย (รอทีเดียวจบ)
+    if (isSupply) {
+       initRequests.push(
+         fetchAPI('getSupplyDocsList').catch(err => {
+           console.warn("⚠️ โหลดตะกร้าพัสดุล่วงหน้าไม่สำเร็จ:", err);
+           return null;
+         })
+       );
+    }
+
+    const [perms, counts, preloadedSupplyRes] = await Promise.all(initRequests);
+
+    if (preloadedSupplyRes && Array.isArray(preloadedSupplyRes.data)) {
+       window.AppCache = window.AppCache || {};
+       window.AppCache.supplyDocs = preloadedSupplyRes.data;
+       if (typeof renderSupplyDocsDashboard === 'function') {
+         renderSupplyDocsDashboard(preloadedSupplyRes.data);
+       }
+    }
 
     // 🌟 3. ผสมสิทธิ์แบบควบตำแหน่ง
     let activeRoles = [];
