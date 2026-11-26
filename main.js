@@ -7743,7 +7743,7 @@ window.onload = async function() {
     }
 
     let savedAuthKey = urlParams.get('uid')
-                    || localStorage.getItem('sopon_preferred_email')
+                    || localStorage.getItem('sopon_session_token')
                     || localStorage.getItem('nongPhaenDee_lineUid')
                     || "";
 
@@ -7757,6 +7757,13 @@ window.onload = async function() {
     }
     
     if(!userInfo.isValid) {
+      if (savedAuthKey.startsWith('sess_')) {
+        localStorage.removeItem('sopon_session_token');
+        if (typeof showGoogleLoginScreen === 'function') {
+          showGoogleLoginScreen();
+          return;
+        }
+      }
       const loader = document.getElementById('loader-overlay');
       if (loader) loader.style.display = 'none';
       
