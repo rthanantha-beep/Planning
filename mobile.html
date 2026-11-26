@@ -322,8 +322,8 @@
     const urlUid = urlParams.get('uid') || "";
 
     function getActiveAuthKey() {
-      const preferredEmail = localStorage.getItem('sopon_preferred_email');
-      if (preferredEmail) return preferredEmail;
+      const sessToken = localStorage.getItem('sopon_session_token');
+      if (sessToken) return sessToken;
       if (serverUid && !serverUid.includes('serverLineUid')) { localStorage.setItem('sopon_mobile_auth', serverUid); return serverUid; }
       if (urlUid) { localStorage.setItem('sopon_mobile_auth', urlUid); return urlUid; }
       return localStorage.getItem('sopon_mobile_auth') || "";
@@ -356,8 +356,9 @@
         .withSuccessHandler(res => {
           Swal.close();
           if (res.success) {
-            localStorage.setItem('sopon_preferred_email', res.email);
-            localStorage.setItem('sopon_mobile_auth', res.email);
+            localStorage.removeItem('sopon_preferred_email');
+            if (res.sessionToken) localStorage.setItem('sopon_session_token', res.sessionToken);
+            localStorage.setItem('sopon_mobile_auth', res.sessionToken || res.email);
             Swal.fire({ icon: 'success', title: `เข้าสู่ระบบสำเร็จ`, text: `ยินดีต้อนรับ ${res.fullName}`, timer: 1500, showConfirmButton: false }).then(loadMobileDashboard);
           } else {
             Swal.fire('ไม่พบข้อมูล', res.message, 'error');
@@ -378,6 +379,7 @@
         confirmButtonColor: '#8e44ad'
       }).then(result => {
         if (result.isConfirmed) {
+          localStorage.removeItem('sopon_session_token');
           localStorage.removeItem('sopon_preferred_email');
           localStorage.removeItem('sopon_mobile_auth');
           document.getElementById('manual-email-input').value = '';
@@ -406,8 +408,6 @@
         document.getElementById('unlinked-screen').style.display = 'block';
         return;
       }
-
-      if (res.userEmail && res.userEmail !== 'undefined') localStorage.setItem('sopon_mobile_auth', res.userEmail);
 
       document.getElementById('main-content').style.display = 'block';
       document.getElementById('user-name').innerText = res.userName || "ผู้ใช้งานระบบ";
