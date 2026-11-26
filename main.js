@@ -7814,43 +7814,21 @@ window.onload = async function() {
       disbRoleEl.innerText = quickDisbRole;
     }
 
-    // 🌟 โหลดข้อมูลล่วงหน้าขนานกันในรอบเดียว (งานพัสดุ + พิจารณา ผง.2 + กระทบยอดเคลียร์บิล)
-    const canAccessRecon = isAdmin || isFinance || isAccount;
+    // 🌟 โหลดข้อมูลล่วงหน้าทั้งหมดในคำขอเดียว (ตัดปัญหาคิวชนกัน)
     const defaultReconYear = (typeof getDefaultYear === 'function') ? getDefaultYear() : '';
-    if (canAccessRecon && typeof initReconYearDropdown === 'function') {
+    if ((isAdmin || isFinance || isAccount) && typeof initReconYearDropdown === 'function') {
       initReconYearDropdown();
     }
 
-    const supplyPreloadPromise = isSupply
-      ? fetchAPI('getSupplyDocsList').catch(err => {
-          console.warn("⚠️ โหลดตะกร้าพัสดุล่วงหน้าไม่สำเร็จ:", err);
-          return null;
-        })
-      : Promise.resolve(null);
-
-    const disbApprovePreloadPromise = isDisbApprover
-      ? fetchAPI('getDisbApproveInbox').catch(err => {
-          console.warn("⚠️ โหลดตะกร้าพิจารณา ผง.2 ล่วงหน้าไม่สำเร็จ:", err);
-          return null;
-        })
-      : Promise.resolve(null);
-    const reconPreloadPromise = canAccessRecon
-      ? fetchAPI('getAccountPlanInboxData', defaultReconYear).catch(err => {
-          console.warn("⚠️ โหลดหน้ากระทบยอดล่วงหน้าไม่สำเร็จ:", err);
-          return null;
-        })
-      : Promise.resolve(null);
-
-    const [perms, counts, preloadedSupplyRes, preloadedDisbApproveRes, preloadedReconRes] = await Promise.all([
-       fetchAPI('getMenuPermissions'),
-       fetchAPI('getPendingTaskCounts'),
-       supplyPreloadPromise,
-       disbApprovePreloadPromise,
-       reconPreloadPromise
-    ]);
+    const bundle = await fetchAPI('getInitialAppBundle', defaultReconYear);
+    const perms = bundle.perms || {};
+    const counts = bundle.counts || {};
+    const preloadedSupplyRes = bundle.supplyRes || null;
+    const preloadedDisbApproveRes = bundle.disbApproveRes || null;
+    const preloadedReconRes = bundle.reconRes || null;
 
     window.AppCache = window.AppCache || {};
-    window._lastBadgeFetchTime = Date.now(); // กัน showPage ยิง updateNavBadges ซ้ำทันที
+    window._lastBadgeFetchTime = Date.now();
 
     if (preloadedSupplyRes && Array.isArray(preloadedSupplyRes.data)) {
        window.AppCache.supplyDocs = preloadedSupplyRes.data;
