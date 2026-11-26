@@ -38,9 +38,9 @@
     <p style="color:#666; font-family:'Kanit', sans-serif;">กรุณาติดต่อผู้ดูแลระบบเพื่อเพิ่มรายชื่อเข้าสู่ฐานข้อมูล</p>
 
     <!-- ปุ่มสลับบัญชี Google -->
-    <a href="https://accounts.google.com/AccountChooser?continue=https://script.google.com/a/macros/sopon.ac.th/s/AKfycbw7fWIKyMF5lbol0UU8zM8RitAg_e9_VoQAyOx1JkgGuMs9G9uuzM2Rnv6qXar4LBSU/exec" target="_top" style="background:#3498db; color:white; padding:12px 25px; border-radius:8px; text-decoration:none; display:inline-block; font-weight:bold; margin-top:20px; font-family:'Kanit', sans-serif; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position:relative; z-index:999999; pointer-events:auto;">
+    <button type="button" onclick="logoutAndSwitchAccount()" style="background:#3498db; color:white; border:none; padding:12px 25px; border-radius:8px; cursor:pointer; display:inline-block; font-weight:bold; margin-top:20px; font-family:'Kanit', sans-serif; font-size:1rem; box-shadow: 0 4px 6px rgba(0,0,0,0.1); position:relative; z-index:999999; pointer-events:auto;">
       <i class="fas fa-sync-alt"></i> สลับบัญชี Google
-    </a>
+    </button>
   </div>
  <!-- ============================================== -->
 <!-- 1. แถบด้านซ้าย (Sidebar) -->
@@ -626,23 +626,41 @@
       console.error(`❌ โหลดหน้า ${filePath} ไม่สำเร็จ:`, err);
     }
   }
-
-  function parseJwt(token) {
-    const base64Url = token.split('.')[1];
-    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-    const jsonPayload = decodeURIComponent(atob(base64).split('').map(c =>
-      '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2)
-    ).join(''));
-    return JSON.parse(jsonPayload);
+function logoutAndSwitchAccount() {
+    localStorage.removeItem('sopon_session_token');
+    localStorage.removeItem('sopon_preferred_email');
+    localStorage.removeItem('nongPhaenDee_lineUid');
+    localStorage.removeItem('sopon_mobile_auth');
+    if (window.google && window.google.accounts && window.google.accounts.id) {
+      google.accounts.id.disableAutoSelect();
+    }
+    window.location.href = window.location.pathname;
   }
 
-  // 2. ฟังก์ชันทำงานเมื่อผู้ใช้กดเลือกบัญชี Google สำเร็จ
+  // ส่ง Google ID Token ให้หลังบ้านตรวจสอบลายเซ็นกับ Google ก่อนออก Session Token
   function handleGoogleLogin(response) {
-    const payload = parseJwt(response.credential);
-    if (payload && payload.email) {
-      localStorage.setItem('sopon_preferred_email', payload.email.trim().toLowerCase());
-      location.reload();
-    }
+    if (!response || !response.credential) return;
+    const loginBox = document.getElementById('google-login-overlay');
+    const loader = document.getElementById('loader-overlay');
+    if (loginBox) loginBox.style.display = 'none';
+    if (loader) loader.style.display = 'flex';
+
+    google.script.run
+      .withSuccessHandler(function(res) {
+        if (res && res.ok && res.sessionToken) {
+          localStorage.removeItem('sopon_preferred_email');
+          localStorage.setItem('sopon_session_token', res.sessionToken);
+          location.reload();
+        } else {
+          alert("ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
+          showGoogleLoginScreen();
+        }
+      })
+      .withFailureHandler(function(err) {
+        alert("เข้าสู่ระบบไม่สำเร็จ: " + err.message);
+        showGoogleLoginScreen();
+      })
+      .verifyGoogleLoginAndCreateSession(response.credential);
   }
 
   // 3. ฟังก์ชันแสดงหน้าต่างปุ่ม Sign in with Google
@@ -656,7 +674,7 @@
     const renderBtn = () => {
       if (window.google && window.google.accounts && window.google.accounts.id) {
         google.accounts.id.initialize({
-          client_id: '446785159040-vdo0csttsthqmt3jpdn6dohgvfm47cis.apps.googleusercontent.com', // 🔴 วาง Client ID ของคุณครูตรงนี้
+          client_id: '446785159040-vdo0csttsthqmt3jpdn6dohgvfm47cis.apps.googleusercontent.com',
           callback: handleGoogleLogin
         });
         google.accounts.id.renderButton(
@@ -669,46 +687,9 @@
     };
     renderBtn();
   }
+  
 
-  // 4. ฟังก์ชันหลักเริ่มต้นระบบหน้า Desktop
-  async function bootDesktopApp() {
-    // กันรันซ้ำ
-    if (window.__DESKTOP_BOOTED__) return;
-    window.__DESKTOP_BOOTED__ = true;
-
-    // เช็คว่าล็อกอินหรือยัง (มี uid จาก LINE หรือมีอีเมลในเครื่อง)
-    const urlParams = new URLSearchParams(window.location.search);
-    const hasAuth = urlParams.get('uid')
-                 || localStorage.getItem('sopon_preferred_email')
-                 || localStorage.getItem('nongPhaenDee_lineUid');
-
-    // ถ้ายังไม่ล็อกอิน -> โชว์หน้าปุ่ม Sign in with Google แล้วหยุดรอ
-    if (!hasAuth) {
-      showGoogleLoginScreen();
-      return;
-    }
-
-    // ถ้าล็อกอินแล้ว -> โหลด HTML ทุกหน้าย่อยพร้อมกัน
-    await Promise.all(PAGE_INCLUDES.map(([id, path]) => loadPageHTML(id, path)));
-
-    // โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
-    const mainScript = document.createElement('script');
-    mainScript.src = './main.js?v=' + Date.now();
-    mainScript.onload = () => {
-      document.dispatchEvent(new Event('DOMContentLoaded'));
-      if (typeof window.onload === 'function') {
-        window.onload();
-      }
-    };
-    document.body.appendChild(mainScript);
-  }
-
-  // สั่งเริ่มระบบแค่ครั้งเดียว
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', bootDesktopApp, { once: true });
-  } else {
-    bootDesktopApp();
-  }
+  
 </script>
 </body>
 <!-- 🌟 ปุ่มลอยสำหรับเรียกน้องแผนดี (เปลี่ยนเป็นรูปภาพ) 🌟 -->
