@@ -4,29 +4,28 @@ const GAS_API_URL = "https://script.google.com/macros/s/AKfycbxzHSqhS5B-7qiphJ5t
 function createGasRunner(successHandler, failureHandler) {
   return new Proxy({}, {
     get(target, prop) {
-      // ดักจับ .withSuccessHandler(...)
       if (prop === 'withSuccessHandler') {
         return (fn) => createGasRunner(fn, failureHandler);
       }
-      // ดักจับ .withFailureHandler(...)
       if (prop === 'withFailureHandler') {
         return (fn) => createGasRunner(successHandler, fn);
       }
 
-      // เมื่อมีการเรียกชื่อฟังก์ชันใน Code.gs เช่น .getMobileDashboardData(authKey)
       return (...args) => {
-        const authKey = localStorage.getItem('sopon_preferred_email') 
-                     || localStorage.getItem('sopon_mobile_auth') 
+        const urlUid = new URLSearchParams(window.location.search).get('uid');
+        const authKey = localStorage.getItem('sopon_session_token')
+                     || urlUid
+                     || localStorage.getItem('nongPhaenDee_lineUid')
+                     || localStorage.getItem('sopon_mobile_auth')
                      || "";
 
         fetch(GAS_API_URL, {
           method: 'POST',
-          // ใช้ text/plain เพื่อเลี่ยง CORS Preflight (OPTIONS) ของ Google Apps Script
           headers: { 'Content-Type': 'text/plain;charset=utf-8' },
           body: JSON.stringify({
-            fn: prop,       // ชื่อฟังก์ชันใน Code.gs
-            args: args,     // พารามิเตอร์ทั้งหมดที่ส่งเข้าไป
-            authKey: authKey // ตัวตนผู้ใช้จาก localStorage
+            fn: prop,
+            args: args,
+            authKey: authKey
           })
         })
         .then(res => {
@@ -37,7 +36,14 @@ function createGasRunner(successHandler, failureHandler) {
           if (json.ok) {
             if (typeof successHandler === 'function') successHandler(json.data);
           } else {
-            const err = new Error(json.error || "เกิดข้อผิดพลาดฝั่ง Server");
+            const errMsg = json.error || "เกิดข้อผิดพลาดฝั่ง Server";
+            if (errMsg.includes("SESSION_EXPIRED")) {
+              localStorage.removeItem('sopon_session_token');
+              localStorage.removeItem('sopon_preferred_email');
+              location.reload();
+              return;
+            }
+            const err = new Error(errMsg);
             if (typeof failureHandler === 'function') failureHandler(err);
             else console.error("GAS Error:", err);
           }
