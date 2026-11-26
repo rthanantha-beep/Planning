@@ -40,7 +40,12 @@ function createGasRunner(successHandler, failureHandler) {
             if (errMsg.includes("SESSION_EXPIRED")) {
               localStorage.removeItem('sopon_session_token');
               localStorage.removeItem('sopon_preferred_email');
-              location.reload();
+              localStorage.removeItem('nongPhaenDee_lineUid');
+              localStorage.removeItem('sopon_mobile_auth');
+              if (!window.__RELOADING_FOR_AUTH__) {
+                window.__RELOADING_FOR_AUTH__ = true;
+                window.location.href = window.location.pathname;
+              }
               return;
             }
             const err = new Error(errMsg);
