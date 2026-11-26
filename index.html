@@ -637,7 +637,7 @@ function logoutAndSwitchAccount() {
     window.location.href = window.location.pathname;
   }
 
-  // ส่ง Google ID Token ให้หลังบ้านตรวจสอบลายเซ็นกับ Google ก่อนออก Session Token
+  // ส่ง Google ID Token ให้หลังบ้านตรวจสอบกับ Google ก่อนออก Session Token
   function handleGoogleLogin(response) {
     if (!response || !response.credential) return;
     const loginBox = document.getElementById('google-login-overlay');
@@ -645,10 +645,12 @@ function logoutAndSwitchAccount() {
     if (loginBox) loginBox.style.display = 'none';
     if (loader) loader.style.display = 'flex';
 
+    console.log("🔐 กำลังยืนยันตัวตน Google กับเซิร์ฟเวอร์...");
     google.script.run
       .withSuccessHandler(function(res) {
         if (res && res.ok && res.sessionToken) {
           localStorage.removeItem('sopon_preferred_email');
+          localStorage.removeItem('sopon_mobile_auth');
           localStorage.setItem('sopon_session_token', res.sessionToken);
           location.reload();
         } else {
@@ -657,13 +659,14 @@ function logoutAndSwitchAccount() {
         }
       })
       .withFailureHandler(function(err) {
+        console.error("❌ ยืนยันตัวตนไม่สำเร็จ:", err);
         alert("เข้าสู่ระบบไม่สำเร็จ: " + err.message);
         showGoogleLoginScreen();
       })
       .verifyGoogleLoginAndCreateSession(response.credential);
   }
 
-  // 3. ฟังก์ชันแสดงหน้าต่างปุ่ม Sign in with Google
+  // แสดงหน้าต่างปุ่ม Sign in with Google
   function showGoogleLoginScreen() {
     const loader = document.getElementById('loader-overlay');
     if (loader) loader.style.display = 'none';
@@ -687,9 +690,48 @@ function logoutAndSwitchAccount() {
     };
     renderBtn();
   }
-  
 
-  
+  // ฟังก์ชันหลักเริ่มต้นระบบหน้า Desktop
+  async function bootDesktopApp() {
+    if (window.__DESKTOP_BOOTED__) return;
+    window.__DESKTOP_BOOTED__ = true;
+
+    // ล้างค่าอีเมลดิบแบบเก่าออก บังคับใช้ Session Token ที่ยืนยันแล้วหรือ LINE UID
+    localStorage.removeItem('sopon_preferred_email');
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const hasAuth = urlParams.get('uid')
+                 || localStorage.getItem('sopon_session_token')
+                 || localStorage.getItem('nongPhaenDee_lineUid');
+
+    console.log("🚀 bootDesktopApp | hasAuth:", !!hasAuth);
+
+    if (!hasAuth) {
+      showGoogleLoginScreen();
+      return;
+    }
+
+    // ถ้าล็อกอินแล้ว -> โหลด HTML ทุกหน้าย่อยพร้อมกัน
+    await Promise.all(PAGE_INCLUDES.map(([id, path]) => loadPageHTML(id, path)));
+
+    // โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
+    const mainScript = document.createElement('script');
+    mainScript.src = './main.js?v=' + Date.now();
+    mainScript.onload = () => {
+      document.dispatchEvent(new Event('DOMContentLoaded'));
+      if (typeof window.onload === 'function') {
+        window.onload();
+      }
+    };
+    document.body.appendChild(mainScript);
+  }
+
+  // สั่งเริ่มระบบแค่ครั้งเดียว
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', bootDesktopApp, { once: true });
+  } else {
+    bootDesktopApp();
+  }
 </script>
 </body>
 <!-- 🌟 ปุ่มลอยสำหรับเรียกน้องแผนดี (เปลี่ยนเป็นรูปภาพ) 🌟 -->
