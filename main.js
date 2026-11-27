@@ -3223,41 +3223,7 @@ function submitProjectReport(actionType) {
   executeSubmitReport(form, actionType);
 }
 
-  // ==========================================
-  // ระบบรายงานผลโครงการ (Project Reporting)
-  // ==========================================
-  function submitProjectReport(actionType) {
-    const form = document.getElementById('reportForm');
-    
-    // 🌟 ถ้ากดปุ่ม "ส่งรายงาน" ให้เด้ง SweetAlert2
-    if (actionType === 'submit') {
-      if (!form.summaryOfOutcomes.value.trim()) { alert("กรุณากรอก 'สรุปผลสัมฤทธิ์' ให้ครบถ้วนก่อนส่งครับ"); return; }
-      
-      Swal.fire({
-        title: 'ยืนยันการส่งรายงาน?',
-        text: 'คุณต้องการส่งรายงานผลนี้ให้แอดมินตรวจ ใช่หรือไม่? (หากส่งแล้วจะไม่สามารถแก้ไขได้จนกว่าจะถูกตีกลับ)',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#2980b9',
-        cancelButtonColor: '#bdc3c7',
-        confirmButtonText: 'ใช่, ส่งรายงานเลย!',
-        cancelButtonText: 'ยกเลิก',
-        customClass: {
-            container: 'kanit-font'
-        }
-      }).then((result) => {
-        // ถ้าผู้ใช้กด "ใช่" ค่อยให้ฟังก์ชันทำงานต่อ
-        if (result.isConfirmed) {
-          executeSubmitReport(form, actionType);
-        }
-      });
-      return; // หยุดโค้ดตรงนี้เพื่อรอผู้ใช้กดปุ่ม
-    } 
-    
-    // 🌟 ถ้าแค่กด "บันทึกแบบร่าง" ก็ให้ทำงานผ่านไปเลย ไม่ต้องเด้งถาม
-    executeSubmitReport(form, actionType);
-  }
-// 🌟 ฟังก์ชันตัวช่วย: ทำหน้าที่บันทึกและส่งข้อมูลไปหลังบ้าน (อัปเกรด Spinner)
+  // 🌟 ฟังก์ชันตัวช่วย: ทำหน้าที่บันทึกและส่งข้อมูลไปหลังบ้าน (อัปเกรด Spinner)
 function executeSubmitReport(form, actionType) {
   const btnDraft = document.getElementById('btn-draft-report');
   const btnSubmit = document.getElementById('btn-submit-report');
@@ -5871,16 +5837,6 @@ function updateNavBadges(force = false) {
       .updateUserSignature(finalBase64Img);
   }
 
-  // 🌟 เพิ่มคำสั่งดักจับการคลิกเมนูเพื่อโหลดข้อมูลหน้าโปรไฟล์
-  document.addEventListener("DOMContentLoaded", function() {
-      const oldShowPage = showPage;
-      showPage = function(pageId) {
-          oldShowPage(pageId);
-          if (pageId === 'page-profile') {
-              loadProfilePage();
-          }
-      };
-  });
 // ==========================================
 // 🌟 สคริปต์ระบบจัดการโครงสร้างแผนงาน
 // ==========================================
@@ -6204,15 +6160,7 @@ function submitSfForm() {
   }).saveStrategicFramework(data);
 }
 
-function openMpModal(id='', encodedName='', sfIdRef='') {
-  document.getElementById('mpForm').reset();
-  document.getElementById('mp-id').value = id;
-  if(id !== '') {
-    document.getElementById('mp-name').value = decodeURIComponent(encodedName);
-    document.getElementById('mp-sf-ref').value = sfIdRef;
-  }
-  document.getElementById('mpModal').style.display = 'flex';
-}
+
 
 function submitMpForm() {
   const form = document.getElementById('mpForm');
@@ -8044,19 +7992,6 @@ function submitReconDecision(action) {
     .processReconciliationDecision(reqId, action, Number(actualAmt), comment);
 }
   
-
-  // แอบแทรกคำสั่งดักให้โหลดตารางตอนแอดมินกดเปิดเมนูจัดการระบบ
-  document.addEventListener("DOMContentLoaded", function() {
-      const oldShowPageAdmin = showPage;
-      showPage = function(pageId) {
-          oldShowPageAdmin(pageId);
-          if (pageId === 'page-admin') {
-              loadSettings();
-              loadMenuPermissions(); // โหลดตารางสิทธิ์
-          }
-      };
-  });
-
 // ==========================================
 // 🌟 โหลดประวัติรวมงบกลางมาแสดงในตารางด้านล่าง
 // ==========================================
@@ -8268,26 +8203,7 @@ function loadPendingReportsAdmin() {
     .getPendingReportsForAdmin();
 }
 
-function openReportReviewModal(encodedData) {
-  const data = JSON.parse(decodeURIComponent(encodedData));
-  
-  // 🌟 สร้างปุ่มเปิดเอกสารรายงาน (Google Docs)
-  let docLinkHtml = "";
-  if (data.reportUrl && data.reportUrl !== "" && data.reportUrl !== "-") {
-     docLinkHtml = `<a href="${data.reportUrl}" target="_blank" style="margin-left: 15px; background: #e8f4f8; color: #2980b9; padding: 4px 10px; border-radius: 4px; text-decoration: none; font-size: 0.85rem; border: 1px solid #3498db; display: inline-block; box-shadow: 0 1px 2px rgba(0,0,0,0.05);"><i class="fas fa-file-word"></i> เปิดเอกสารรายงาน (Google Docs)</a>`;
-  }
-  
-  document.getElementById('rev-rep-id').innerHTML = data.id + docLinkHtml; // 🌟 ใช้ innerHTML เพื่อให้ปุ่มโชว์ต่อท้ายรหัส
-  document.getElementById('rev-rep-name').innerText = data.reportName || '-';
-  document.getElementById('rev-rep-exec').innerText = data.operationalStatus || '-';
-  document.getElementById('rev-rep-quan').innerText = data.quan || '-';
-  document.getElementById('rev-rep-qual').innerText = data.qual || '-';
-  document.getElementById('rev-rep-sum').innerText = data.summ || '-';
-  document.getElementById('rev-rep-prob').innerText = data.prob || '-';
-  document.getElementById('rev-rep-sugg').innerText = data.sugg || '-';
-  document.getElementById('rev-rep-comment').value = '';
-  document.getElementById('reportReviewModal').style.display = 'flex';
-}
+
 
 function submitReportReview(action) {
   const projectId = document.getElementById('rev-rep-id').innerText;
@@ -10157,43 +10073,6 @@ function loadMenuPermissions() {
 
 
 
-
-// ฟังก์ชันสำหรับเปิดปีงบประมาณใหม่ (Danger Zone)
-function triggerNewFiscalYear() {
-  Swal.fire({
-    title: 'ยืนยันการปิดยอดและเปิดปีงบประมาณใหม่?',
-    text: "ระบบจะเก็บข้อมูลปัจจุบันเป็นประวัติ (Archive) และล้างกระดานสร้างชีตใหม่ทั้งหมด การกระทำนี้ไม่สามารถย้อนกลับได้!",
-    icon: 'warning',
-    showCancelButton: true,
-    confirmButtonColor: '#e74c3c',
-    cancelButtonColor: '#bdc3c7',
-    confirmButtonText: 'ใช่, เปิดปีงบประมาณใหม่!',
-    cancelButtonText: 'ยกเลิก',
-    customClass: { container: 'kanit-font' }
-  }).then((result) => {
-    if (result.isConfirmed) {
-      Swal.fire({ title: 'กำลังเตรียมการ...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-      
-      let targetYear = prompt("กรุณาระบุปีงบประมาณใหม่ (ตัวเลข 2 หลัก เช่น 71):");
-      if (!targetYear || targetYear.trim().length !== 2) {
-          Swal.fire('ยกเลิก', 'ข้อมูลปีงบประมาณไม่ถูกต้อง ยกเลิกการทำรายการครับ', 'info');
-          return;
-      }
-      
-      Swal.fire({ title: 'กำลังประมวลผลข้อมูลหลังบ้าน...', text: 'อาจใช้เวลาสักครู่ ห้ามปิดหน้าต่างนี้', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
-
-      google.script.run
-        .withSuccessHandler(res => {
-            Swal.fire('สำเร็จ!', res.message, 'success').then(() => location.reload());
-        })
-        .withFailureHandler(err => {
-            Swal.fire('เกิดข้อผิดพลาด', err.message, 'error');
-        })
-        .initializeNewFiscalYear(targetYear.trim());
-    }
-  });
-}
-
 // ==========================================
 // 🌟 ฟังก์ชันพิมพ์เอกสาร (ผง.2 ตัวใหม่สมบูรณ์ - แก้ชื่อ & คอมเมนต์ & VAT)
 // ==========================================
@@ -10237,42 +10116,7 @@ function triggerNewFiscalYear() {
     { id: 'menu-admin', label: 'จัดการระบบ (Admin)' }
   ];
 
-  function loadMenuPermissions() {
-    const table = document.getElementById('menu-permissions-table');
-    if (!table) return;
-    table.innerHTML = '<tr><td style="padding:20px; text-align:center; color:#8e44ad;"><i class="fas fa-spinner fa-spin fa-2x"></i><br>กำลังโหลดตารางสิทธิ์เมนู...</td></tr>';
-
-    google.script.run
-      .withSuccessHandler(function(perms) {
-        let thead = '<thead><tr style="background:#34495e; color:white;"><th style="padding:10px; border:1px solid #ccc; min-width:150px;">ตำแหน่ง (Role)</th>';
-        MENU_CONFIG_LIST.forEach(m => {
-          thead += `<th style="padding:8px; border:1px solid #ccc; text-align:center; font-size:0.75rem;">${m.label}</th>`;
-        });
-        thead += '</tr></thead>';
-
-        let tbody = '<tbody>';
-        for (let role in perms) {
-          tbody += `<tr style="border-bottom:1px solid #eee;">
-                      <td style="padding:10px; border:1px solid #ccc; font-weight:bold; color:#2c3e50;">${perms[role].roleName || role}</td>`;
-          MENU_CONFIG_LIST.forEach(m => {
-            let checked = perms[role][m.id] ? 'checked' : '';
-            tbody += `<td style="padding:8px; border:1px solid #ccc; text-align:center;">
-                        <input type="checkbox" class="perm-checkbox" data-role="${role}" data-menu="${m.id}" ${checked} style="transform:scale(1.2); cursor:pointer;">
-                      </td>`;
-          });
-          tbody += '</tr>';
-        }
-        tbody += '</tbody>';
-        table.innerHTML = thead + tbody;
-      })
-      .withFailureHandler(function(err) {
-        table.innerHTML = `<tr><td style="padding:20px; text-align:center; color:red;">โหลดตารางสิทธิ์ไม่สำเร็จ: ${err.message}</td></tr>`;
-      })
-      .getMenuPermissions();
-  }
-
   
-
   function triggerNewFiscalYear() {
     Swal.fire({
       title: 'เปิดปีงบประมาณใหม่',
