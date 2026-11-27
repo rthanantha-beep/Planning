@@ -18,8 +18,16 @@
 
   <!-- หน้าจอโหลดข้อมูล -->
  <div id="loader-overlay">
-    <i class="fas fa-spinner fa-spin fa-3x" style="color:#6A1B9A; margin-bottom:20px;"></i>
-    <h3 style="color:#333; font-family:'Kanit', sans-serif;">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</h3>
+    <div class="auth-loader-card">
+      <div class="dual-ring-wrap">
+        <div class="ring-outer"></div>
+        <div class="ring-inner"></div>
+        <i class="fas fa-school ring-icon"></i>
+      </div>
+      <h3 id="loader-title" style="color:#4a148c; margin:0 0 6px 0; font-size:1.2rem;">กำลังตรวจสอบสิทธิ์การเข้าใช้งาน...</h3>
+      <p id="loader-sub" style="color:#7f8c8d; margin:0 0 18px 0; font-size:0.9rem;">กำลังเชื่อมต่อฐานข้อมูลโรงเรียน กรุณารอสักครู่</p>
+      <div class="loader-bar-track"><div class="loader-bar-fill"></div></div>
+    </div>
   </div>
   <!-- หน้าต่างล็อกอินด้วย Google -->
 <div id="google-login-overlay" style="display:none; position:fixed; inset:0; background:linear-gradient(135deg, #f3e5f5, #e8eaf6); z-index:999999; flex-direction:column; justify-content:center; align-items:center; text-align:center; font-family:'Kanit', sans-serif;">
