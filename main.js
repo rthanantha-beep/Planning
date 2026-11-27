@@ -7688,7 +7688,12 @@ function submitAddCentralBudget() {
 window.onload = async function() {
   try {
     window.AppCache = window.AppCache || {};
-
+    const setLoaderStep = (title, sub) => {
+      const t = document.getElementById('loader-title');
+      const s = document.getElementById('loader-sub');
+      if (t) t.innerText = title;
+      if (s) s.innerText = sub;
+      };
     try {
        window.globalSettings = await fetchAPI('getSystemSettings');
        console.log("✅ โหลดการตั้งค่าสำเร็จ", window.globalSettings);
@@ -7728,7 +7733,7 @@ window.onload = async function() {
       }
       const loader = document.getElementById('loader-overlay');
       if (loader) loader.style.display = 'none';
-      
+          
       const unauthBox = document.getElementById('unauthorized-overlay');
       if (unauthBox) unauthBox.style.display = 'flex';
       
@@ -7743,7 +7748,7 @@ window.onload = async function() {
       
       return;
     }
-
+    setLoaderStep('กำลังโหลดสิทธิ์การใช้งาน...', 'จัดเตรียมเมนูตามบทบาทของคุณครู');
     document.getElementById('user-fullname-display').innerText = userInfo.fullName;
     window.userRole = String(userInfo.role).toLowerCase();
     
@@ -7886,7 +7891,7 @@ window.onload = async function() {
     setBadge('badge-supply', counts.supplyDocs);
     setBadge('badge-owner-disb', counts.ownerApprove);
     setBadge('badge-recon', (counts.recon || 0) + (counts.planningExpense || 0));
-
+    setLoaderStep('กำลังเตรียมข้อมูลแดชบอร์ด...', 'เกือบเสร็จเรียบร้อยแล้วครับ');
     // ด่านที่ 3: ปลดล็อกหน้าจอ
     if (document.getElementById('loader-overlay')) document.getElementById('loader-overlay').style.display = 'none';
     if (typeof loader !== 'undefined' && loader) loader.classList.add('hidden');
