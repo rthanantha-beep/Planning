@@ -10059,19 +10059,6 @@ function executeReminders() {
       }
    });
 }
-// ==========================================
-// 🌟 เพิ่มฟังก์ชันที่ขาดหายไป สำหรับหน้า "จัดการระบบ" (Admin Settings)
-// ==========================================
-
-// ฟังก์ชันจำลองสำหรับระบบสิทธิ์ (RBAC) เพื่อให้หน้าตารางไม่ Error
-function loadMenuPermissions() {
-    const table = document.getElementById('menu-permissions-table');
-    if(table) {
-        table.innerHTML = '<tr><td style="padding: 20px; text-align: center; color: #7f8c8d;"><i class="fas fa-tools fa-2x"></i><br>ระบบจัดการสิทธิ์เมนูกำลังอยู่ระหว่างการพัฒนา</td></tr>';
-    }
-}
-
-
 
 // ==========================================
 // 🌟 ฟังก์ชันพิมพ์เอกสาร (ผง.2 ตัวใหม่สมบูรณ์ - แก้ชื่อ & คอมเมนต์ & VAT)
@@ -10207,19 +10194,6 @@ function loadMenuPermissions() {
       .saveMenuPermissions(newPerms);
   }
 
-  // แอบแทรกคำสั่งดักให้โหลดตารางตอนแอดมินกดเปิดเมนูจัดการระบบ
-  document.addEventListener("DOMContentLoaded", function() {
-      if (typeof showPage !== 'undefined') {
-          const oldShowPageAdmin = showPage;
-          showPage = function(pageId) {
-              oldShowPageAdmin(pageId);
-              if (pageId === 'page-admin') {
-                  if (typeof loadSettings === 'function') loadSettings();
-                  loadMenuPermissionsTable(); 
-              }
-          };
-      }
-  });
 
   // ==========================================
   // 🌟 3. ระบบแสดงผลและอัปเดตหน้าตะกร้าพัสดุ (ผง.2)
@@ -10327,7 +10301,7 @@ function showPage(pageId) {
         else if (pageId === 'page-profile') loadProfilePage();
     else if (pageId === 'page-admin') { 
         loadSettings(); 
-        if (typeof loadMenuPermissions === 'function') loadMenuPermissions(); 
+        if (typeof loadMenuPermissionsTable === 'function') loadMenuPermissionsTable(); 
     }
     else if (pageId === 'page-allprojects') loadAllProjects();
     else if (pageId === 'page-disbursement') loadDisbursementDashboardData(); 
