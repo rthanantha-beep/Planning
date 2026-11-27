@@ -6845,6 +6845,17 @@ function loadReconInbox(forceRefresh = false) {
     return;
   }
 
+  const btnRefresh = document.getElementById('btn-refresh-recon');
+  const setRefreshLoading = (isLoading) => {
+    if (!btnRefresh) return;
+    btnRefresh.disabled = isLoading;
+    btnRefresh.style.opacity = isLoading ? '0.7' : '1';
+    btnRefresh.innerHTML = isLoading
+      ? '<i class="fas fa-sync-alt fa-spin"></i> กำลังโหลด...'
+      : '<i class="fas fa-sync-alt"></i> โหลดล่าสุด';
+  };
+  setRefreshLoading(true);
+
   const tbPending = document.getElementById('tbody-recon-pending');
   const tbHistory = document.getElementById('tbody-recon-history');
   const tbAssign  = document.getElementById('tbody-plan-assign');
@@ -6852,9 +6863,10 @@ function loadReconInbox(forceRefresh = false) {
   if (tbHistory) tbHistory.innerHTML = '<tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
   if (tbAssign)  tbAssign.innerHTML  = '<tr><td colspan="4" style="text-align:center; padding:20px;"><i class="fas fa-spinner fa-spin"></i> กำลังดึงข้อมูล...</td></tr>';
 
-  // ดึงรายชื่อโครงการเฉพาะกรณีที่ยังไม่มีในแคชหรือสั่งรีเฟรชใหม่
-  if (forceRefresh || !Array.isArray(globalAssignProjects) || globalAssignProjects.length === 0) {
-    google.script.run.withSuccessHandler(projs => { globalAssignProjects = projs || []; }).getActiveApprovedProjects();
+  // หากเปิดแท็บ Audit Log ค้างอยู่และกดโหลดล่าสุด ให้ดึงประวัติกรณีพิเศษใหม่พร้อมกันด้วย
+  const auditTab = document.getElementById('tab-audit-log');
+  if (forceRefresh && auditTab && auditTab.style.display === 'block' && typeof loadAuditLog === 'function') {
+    loadAuditLog();
   }
 
   google.script.run
@@ -6866,9 +6878,11 @@ function loadReconInbox(forceRefresh = false) {
       window.AppCache.reconInboxByYear = window.AppCache.reconInboxByYear || {};
       window.AppCache.reconInboxByYear[year] = res;
       renderReconInbox(res);
+      setRefreshLoading(false);
     })
     .withFailureHandler(function(err) {
       if (tbPending) tbPending.innerHTML = `<tr><td colspan="7" style="text-align:center; color:#e74c3c; padding:20px;">เกิดข้อผิดพลาด: ${err.message}</td></tr>`;
+      setRefreshLoading(false);
     })
     .getAccountPlanInboxData(year);
 }
