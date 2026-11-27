@@ -10480,6 +10480,7 @@ function showPage(pageId) {
     
     if (pageId === 'page-myprojects') loadMyProjects();
     else if (pageId === 'page-dashboard') loadDashboardData();
+        else if (pageId === 'page-profile') loadProfilePage();
     else if (pageId === 'page-admin') { 
         loadSettings(); 
         if (typeof loadMenuPermissions === 'function') loadMenuPermissions(); 
