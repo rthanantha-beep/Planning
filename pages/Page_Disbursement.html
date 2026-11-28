@@ -444,6 +444,7 @@ function renderDisbursementDashboard(projects, allDisbursements) {
                 <div style="display:flex; flex-direction:column; gap:6px; align-items:center; margin-bottom:5px;">
                     <span style="color:#27ae60; font-size:0.85rem; font-weight:bold; margin-bottom:2px;"><i class="fas fa-check"></i> ส่งบิลไปบางส่วนแล้ว</span>
                     <button onclick="openBillPopup('${h.reqId}', '${safeProjName}', ${displayTotal}, '${safeItems}')" style="background:#3498db; color:white; border:none; padding:6px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.85rem; min-width:150px; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-plus-circle"></i> แนบบิลเพิ่ม</button>
+                    <button onclick="openEditBillsPopup('${h.reqId}', '${safeProjName}', '${safeItems}')" style="background:#8e44ad; color:white; border:none; padding:6px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold; font-size:0.85rem; min-width:150px; box-shadow:0 2px 4px rgba(0,0,0,0.1);"><i class="fas fa-edit"></i> แก้ไขบิลที่แนบ</button>
                     <button onclick="revokeBills('${h.reqId}')" style="background:#fff; color:#e74c3c; border:1px solid #e74c3c; padding:4px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-size:0.8rem; min-width:150px;"><i class="fas fa-undo"></i> ล้างบิลเก่าทิ้ง</button>
                 </div>` + printBtnHtml;
             } 
