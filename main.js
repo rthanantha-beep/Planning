@@ -3189,6 +3189,8 @@ function calcReportKpiPreview() {
             `;
         }
       } else {
+        } else {
+        calcReportKpiPreview();
         document.getElementById('report-status-badge').innerText = "สถานะปัจจุบัน: ยังไม่เคยรายงาน";
         footerDiv.innerHTML = `
           <button type="button" onclick="closeReportModal()" style="background:#bbb; color:white; border:none; padding:10px 15px; border-radius:4px; cursor:pointer; font-family:'Kanit'; margin-right:5px;">ยกเลิก</button>
