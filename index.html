@@ -660,7 +660,8 @@ function logoutAndSwitchAccount() {
           localStorage.removeItem('sopon_preferred_email');
           localStorage.removeItem('sopon_mobile_auth');
           localStorage.setItem('sopon_session_token', res.sessionToken);
-          location.reload();
+          window.__DESKTOP_BOOTED__ = false;
+          bootDesktopApp();
         } else {
           alert("ยืนยันตัวตนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง");
           showGoogleLoginScreen();
@@ -724,7 +725,7 @@ function logoutAndSwitchAccount() {
 
     // โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
     const mainScript = document.createElement('script');
-    mainScript.src = './main.js?v=' + Date.now();
+    mainScript.src = './main.js';
     mainScript.onload = () => {
       document.dispatchEvent(new Event('DOMContentLoaded'));
       if (typeof window.onload === 'function') {

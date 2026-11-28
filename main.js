@@ -7694,17 +7694,7 @@ window.onload = async function() {
       if (t) t.innerText = title;
       if (s) s.innerText = sub;
       };
-    try {
-       window.globalSettings = await fetchAPI('getSystemSettings');
-       console.log("✅ โหลดการตั้งค่าสำเร็จ", window.globalSettings);
-    } catch(e) {
-       console.error("❌ โหลดตั้งค่าล้มเหลว (getSystemSettings):", e);
-    }
-
-    initYearDropdowns();
-    loadConfigData();
-
-   const urlParams = new URLSearchParams(window.location.search);
+    const urlParams = new URLSearchParams(window.location.search);
     if (urlParams.get('uid')) {
        localStorage.setItem('nongPhaenDee_lineUid', urlParams.get('uid'));
     }
@@ -7714,14 +7704,26 @@ window.onload = async function() {
                     || localStorage.getItem('nongPhaenDee_lineUid')
                     || "";
 
-    let userInfo;
-    try {
-        userInfo = await fetchAPI('getCurrentUserInfo', savedAuthKey);
-        console.log("✅ โหลดข้อมูลผู้ใช้สำเร็จ:", userInfo);
-    } catch(e) {
+    // ⚡ ยิงดึงการตั้งค่าและข้อมูลผู้ใช้พร้อมกันในรอบเดียว
+    const [settingsRes, userInfo] = await Promise.all([
+      fetchAPI('getSystemSettings').catch(e => {
+        console.error("❌ โหลดตั้งค่าล้มเหลว (getSystemSettings):", e);
+        return null;
+      }),
+      fetchAPI('getCurrentUserInfo', savedAuthKey).catch(e => {
         console.error("❌ โหลดข้อมูลผู้ใช้ล้มเหลว (getCurrentUserInfo):", e);
         throw new Error("ระบบฐานข้อมูลผู้ใช้มีปัญหา");
+      })
+    ]);
+
+    if (settingsRes) {
+      window.globalSettings = settingsRes;
+      console.log("✅ โหลดการตั้งค่าสำเร็จ", window.globalSettings);
     }
+    console.log("✅ โหลดข้อมูลผู้ใช้สำเร็จ:", userInfo);
+
+    initYearDropdowns();
+    loadConfigData();
     
     if(!userInfo.isValid) {
       if (savedAuthKey.startsWith('sess_')) {
