@@ -3092,7 +3092,22 @@ function toggleAmendBudget() {
       .withFailureHandler(function(err) { document.body.removeChild(loader); alert("ผิดพลาด: " + err.message); })
       .submitAmendmentA3Decision({ projectId: projectId, action: action, a3Comment: comment });
   }
+function calcReportKpiPreview() {
+  const target = parseFloat(document.getElementById('report-kpi-target')?.value);
+  const actual = parseFloat(document.getElementById('report-kpi-actual')?.value);
+  const preview = document.getElementById('report-kpi-preview');
+  if (!preview) return { pct: "", status: "" };
 
+  if (!isNaN(target) && target > 0 && !isNaN(actual)) {
+    const pct = Math.min((actual / target) * 100, 100).toFixed(2);
+    const pass = Number(pct) >= 80;
+    const status = pass ? 'บรรลุเป้าหมาย' : 'ต่ำกว่าเป้าหมาย';
+    preview.innerHTML = `<span style="color:${pass ? '#27ae60' : '#e67e22'};"><i class="fas ${pass ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> บรรลุเป้าหมาย ${pct}% (${status})</span>`;
+    return { pct: pct, status: status };
+  }
+  preview.innerHTML = '';
+  return { pct: "", status: "" };
+}
   // ==========================================
   // ระบบรายงานผลโครงการ (Project Reporting)
   // ==========================================
@@ -3135,7 +3150,16 @@ function toggleAmendBudget() {
       form.reportName.value = defaultReportName;
       
       const footerDiv = document.getElementById('report-status-badge').nextElementSibling;
-
+      const refBox = document.getElementById('report-kpi-ref-box');
+      const refText = document.getElementById('report-kpi-ref-text');
+      if (refBox && refText) {
+        if (reportData && reportData.projectKpiReference) {
+          refText.innerText = reportData.projectKpiReference;
+          refBox.style.display = 'block';
+        } else {
+          refBox.style.display = 'none';
+        }
+      }
       if (reportData && reportData.ReportStatus) { 
         form.operationalStatus.value = reportData.OperationalStatus || "ดำเนินการเสร็จสิ้น";
         form.quantitativeResult.value = reportData.QuantitativeResult || "";
@@ -3143,6 +3167,11 @@ function toggleAmendBudget() {
         form.summaryOfOutcomes.value = reportData.SummaryOfOutcomes || "";
         form.problemsObstacles.value = reportData.ProblemsObstacles || "";
         form.suggestions.value = reportData.Suggestions || "";
+        if (form.kpiTarget) form.kpiTarget.value = reportData.KpiTarget || "";
+        if (form.kpiActual) form.kpiActual.value = reportData.KpiActual || "";
+        if (form.kpiUnit) form.kpiUnit.value = reportData.KpiUnit || "";
+        if (form.satisfactionPercent) form.satisfactionPercent.value = reportData.SatisfactionPercent || "";
+        calcReportKpiPreview();
         document.getElementById('report-status-badge').innerText = "สถานะปัจจุบัน: " + (reportData.ReportStatus || "แบบร่าง");
         
         // 🌟 แยกการแสดงปุ่ม: ถ้าเคยสร้างไฟล์ Docs แล้วให้โชว์ปุ่ม "ส่งให้แอดมิน"
@@ -3242,11 +3271,18 @@ function executeSubmitReport(form, actionType) {
     customClass: { container: 'kanit-font' }
   });
 
+  const kpiCalc = calcReportKpiPreview();
   const formData = {
     projectId: form.projectId.value, reportName: form.reportName.value, operationalStatus: form.operationalStatus.value,
     actualExpenses: "", reportUrl: "", quantitativeResult: form.quantitativeResult.value,
     qualitativeResult: form.qualitativeResult.value, summaryOfOutcomes: form.summaryOfOutcomes.value,
-    problemsObstacles: form.problemsObstacles.value, suggestions: form.suggestions.value
+    problemsObstacles: form.problemsObstacles.value, suggestions: form.suggestions.value,
+    kpiTarget: form.kpiTarget ? form.kpiTarget.value : "",
+    kpiActual: form.kpiActual ? form.kpiActual.value : "",
+    kpiUnit: form.kpiUnit ? form.kpiUnit.value : "",
+    kpiPercent: kpiCalc.pct,
+    satisfactionPercent: form.satisfactionPercent ? form.satisfactionPercent.value : "",
+    kpiPassStatus: kpiCalc.status
   };
 
   google.script.run
