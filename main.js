@@ -10550,7 +10550,111 @@ function openBillPopup(reqId, projectName, totalAmount, itemsJsonStr) {
       }
    });
 }
+function openEditBillsPopup(reqId, projectName, itemsJsonStr) {
+  let parsedItems = [];
+  try { parsedItems = JSON.parse(decodeURIComponent(itemsJsonStr)); } catch(e) { parsedItems = []; }
+  const realItems = parsedItems.filter(it => it.name !== '#SYS_VAT#' && it.name !== '#SYS_SHIPPING#');
 
+  Swal.fire({ title: 'กำลังโหลดรายการบิล...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+
+  google.script.run
+    .withSuccessHandler(bills => {
+      if (!bills || bills.length === 0) {
+        Swal.fire('ไม่พบบิล', 'ยังไม่มีบิลที่แนบไว้สำหรับคำขอนี้ครับ', 'info');
+        return;
+      }
+
+      let cardsHtml = bills.map((b, idx) => {
+        const matchedList = String(b.matchedItems || '').split(',').map(s => s.trim());
+        let chkHtml = '';
+        if (realItems.length > 0) {
+          chkHtml = `<div style="max-height:110px; overflow-y:auto; background:#fff; border:1px solid #e0e6ed; border-radius:6px; padding:8px; margin-top:6px;">`;
+          realItems.forEach((it, iIdx) => {
+            const checked = matchedList.includes(it.name) ? 'checked' : '';
+            chkHtml += `
+              <div style="margin-bottom:4px; text-align:left;">
+                <input type="checkbox" class="edit-bill-item-${idx}" value="${String(it.name).replace(/"/g, '&quot;')}" id="eb_${idx}_${iIdx}" ${checked} style="margin-right:6px;">
+                <label for="eb_${idx}_${iIdx}" style="font-size:0.85rem; color:#2c3e50; cursor:pointer;">${it.name}</label>
+              </div>`;
+          });
+          chkHtml += `</div>`;
+        } else {
+          chkHtml = `<input type="text" id="edit-bill-text-${idx}" value="${String(b.matchedItems || '').replace(/"/g, '&quot;')}" style="width:100%; padding:6px 8px; border:1px solid #ccc; border-radius:6px; font-family:'Kanit'; margin-top:6px; box-sizing:border-box;">`;
+        }
+
+        return `
+          <div class="edit-bill-card" data-bill-id="${b.billId}" style="border:1px solid #d5d8dc; border-radius:10px; padding:12px; margin-bottom:12px; background:#f8f9fa; text-align:left;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:8px; flex-wrap:wrap; gap:6px;">
+              <a href="${b.url}" target="_blank" style="background:#2980b9; color:white; padding:4px 10px; border-radius:6px; text-decoration:none; font-size:0.82rem; font-weight:bold;">
+                <i class="fas fa-file-invoice"></i> ดูรูปบิลใบที่ ${idx + 1}
+              </a>
+              <label style="color:#e74c3c; font-size:0.82rem; font-weight:bold; cursor:pointer; display:flex; align-items:center; gap:5px;">
+                <input type="checkbox" id="edit-bill-del-${idx}"> ลบบิลใบนี้
+              </label>
+            </div>
+            <div style="font-size:0.85rem; font-weight:bold; color:#34495e;">ยอดเงินตามบิล (บาท):</div>
+            <input type="number" id="edit-bill-amt-${idx}" value="${Number(b.actualAmount) || 0}" step="0.01" style="width:100%; padding:7px 10px; border:1px solid #bdc3c7; border-radius:6px; font-family:'Kanit'; font-size:0.95rem; margin:4px 0 8px 0; box-sizing:border-box;">
+            <div style="font-size:0.85rem; font-weight:bold; color:#34495e;">รายการสินค้าที่ตรงกับบิลใบนี้:</div>
+            ${chkHtml}
+          </div>`;
+      }).join('');
+
+      Swal.fire({
+        title: 'แก้ไขบิลที่แนบไว้',
+        html: `
+          <div style="font-size:0.95rem; color:#8e44ad; font-weight:bold; margin-bottom:4px;">${projectName}</div>
+          <div style="font-size:0.8rem; color:#7f8c8d; margin-bottom:12px;">รหัสคำขอ: ${reqId}</div>
+          <div style="max-height:55vh; overflow-y:auto; padding-right:4px;">${cardsHtml}</div>
+        `,
+        width: 560,
+        showCancelButton: true,
+        confirmButtonText: '<i class="fas fa-save"></i> บันทึกการแก้ไข',
+        cancelButtonText: 'ยกเลิก',
+        confirmButtonColor: '#8e44ad',
+        customClass: { container: 'kanit-font' },
+        preConfirm: () => {
+          const updates = [];
+          for (let idx = 0; idx < bills.length; idx++) {
+            const del = document.getElementById(`edit-bill-del-${idx}`).checked;
+            const amt = document.getElementById(`edit-bill-amt-${idx}`).value;
+            let matched = '';
+            if (realItems.length > 0) {
+              matched = Array.from(document.querySelectorAll(`.edit-bill-item-${idx}:checked`)).map(cb => cb.value).join(', ');
+              if (!del && !matched) {
+                Swal.showValidationMessage(`กรุณาเลือกรายการสินค้าสำหรับบิลใบที่ ${idx + 1} อย่างน้อย 1 รายการ`);
+                return false;
+              }
+            } else {
+              const txtEl = document.getElementById(`edit-bill-text-${idx}`);
+              matched = txtEl ? txtEl.value.trim() : '-';
+            }
+            updates.push({
+              billId: bills[idx].billId,
+              actualAmount: Number(amt) || 0,
+              matchedItems: matched || '-',
+              _delete: del
+            });
+          }
+          return updates;
+        }
+      }).then(result => {
+        if (!result.isConfirmed) return;
+        Swal.fire({ title: 'กำลังบันทึกการแก้ไข...', allowOutsideClick: false, didOpen: () => Swal.showLoading() });
+        google.script.run
+          .withSuccessHandler(res => {
+            Swal.fire('สำเร็จ', res.message, 'success').then(() => {
+              if (typeof loadDisbursementDashboardData === 'function') loadDisbursementDashboardData();
+              else if (typeof loadMobileData === 'function') loadMobileData();
+              else location.reload();
+            });
+          })
+          .withFailureHandler(err => Swal.fire('ผิดพลาด', err.message, 'error'))
+          .updateDisbursementBills(reqId, result.value);
+      });
+    })
+    .withFailureHandler(err => Swal.fire('ผิดพลาด', err.message, 'error'))
+    .getDisbursementBillsByReqId(reqId);
+}
 function toggleSelectAll(selectAllCheckbox) {
     document.querySelectorAll('.item-checkbox').forEach(cb => { cb.checked = selectAllCheckbox.checked; });
 }
