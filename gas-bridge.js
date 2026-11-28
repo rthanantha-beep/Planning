@@ -34,7 +34,13 @@ function createGasRunner(successHandler, failureHandler) {
         })
         .then(json => {
           if (json.ok) {
-            if (typeof successHandler === 'function') successHandler(json.data);
+           if (typeof successHandler === 'function') {
+              try {
+                successHandler(json.data);
+              } catch (uiErr) {
+                console.error("Frontend Error in " + prop + ":", uiErr);
+              }
+            }
           } else {
             const errMsg = json.error || "เกิดข้อผิดพลาดฝั่ง Server";
             if (errMsg.includes("SESSION_EXPIRED")) {
