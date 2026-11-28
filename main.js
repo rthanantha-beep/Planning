@@ -3188,7 +3188,6 @@ function calcReportKpiPreview() {
               <button type="button" onclick="submitProjectReport('create_doc')" id="btn-create-doc" style="background:#2980b9; color:white; border:none; padding:10px 20px; border-radius:4px; cursor:pointer; font-family:'Kanit'; font-weight:bold;"><i class="fas fa-file-word"></i> สร้างเอกสารรายงาน</button>
             `;
         }
-      } else {
         } else {
         calcReportKpiPreview();
         document.getElementById('report-status-badge').innerText = "สถานะปัจจุบัน: ยังไม่เคยรายงาน";
