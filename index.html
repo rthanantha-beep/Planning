@@ -753,20 +753,26 @@ function logoutAndSwitchAccount() {
       return;
     }
 
-    // ถ้าล็อกอินแล้ว -> โหลด HTML ทุกหน้าย่อยพร้อมกัน
+    // ถ้าเคยโหลดหน้าย่อยและ main.js ไว้แล้ว (เช่น กรณีเซสชันหมดอายุแล้วล็อกอินใหม่) ให้รันต่อเลยไม่ต้องโหลดซ้ำ
+    if (window.__APP_ASSETS_LOADED__) {
+      if (typeof window.onload === 'function') window.onload();
+      return;
+    }
+
+    // ถ้ายังไม่เคยโหลด -> โหลด HTML ทุกหน้าย่อยพร้อมกัน
     await Promise.all(PAGE_INCLUDES.map(([id, path]) => loadPageHTML(id, path)));
 
     // โหลด main.js หลังจาก HTML ทุกหน้าพร้อมในหน้าจอแล้ว
     const mainScript = document.createElement('script');
     mainScript.src = './main.js';
     mainScript.onload = () => {
+      window.__APP_ASSETS_LOADED__ = true;
       document.dispatchEvent(new Event('DOMContentLoaded'));
       if (typeof window.onload === 'function') {
         window.onload();
       }
     };
     document.body.appendChild(mainScript);
-  }
 
   // สั่งเริ่มระบบแค่ครั้งเดียว
   if (document.readyState === 'loading') {
